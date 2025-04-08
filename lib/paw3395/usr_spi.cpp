@@ -8,9 +8,9 @@ SPISettings paw3395Settings(
 );
 
 SPIClass mySPI(MYSPIBUS);
-void SPI_Init(void)
+void SPI_Init(uint8_t sclk, uint8_t miso, uint8_t mosi)
 {
-  mySPI.begin(SCLK, MISO, MOSI);         // 初始化SPI
+  mySPI.begin(sclk, miso, mosi);         // 初始化SPI
   mySPI.setDataMode(SPI_MODE3);          // SPI模式3
   mySPI.setClockDivider(SPI_CLOCK_DIV8); // 设置SPI时钟分频
 }

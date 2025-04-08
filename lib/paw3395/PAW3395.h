@@ -34,9 +34,10 @@
 #define PAW3395_TIMINGS_BEXIT 4 // 500ns
 #define PAW3395_SPI_WRITE 0x80
 
-void paw3395Init(void);                                        // 初始化传感器
+void paw3395Init(uint16_t dpi, uint8_t nrst, uint8_t ncs, uint8_t sclk, uint8_t miso, uint8_t mosi);                                        // 初始化传感器
 void Motion_Burst(volatile int16_t *dx, volatile int16_t *dy); // 读取dx和dy
 
 void Power_up_sequence(void);           // 上电
+bool paw3395_check(void);              // 检查paw3395是否正常工作
 void Pixel_Burst_Read(uint8_t *pFrame); // 输出原始数据
 void DPI_Config(uint16_t CPI_Num);      // 设置DPI
