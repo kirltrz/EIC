@@ -190,7 +190,7 @@
  * 0x00 关闭
  * 0x01 开启
  * 开启后更安全
- * 缓慢旋转的时间周期即为下方的”舵机上电启动时间“
+ * 缓慢旋转的时间周期即为下方的"舵机上电启动时间"
  */
 #define FSUS_PARAM_SOFT_START_SWITCH 49
 /*
@@ -380,30 +380,30 @@ public:
     // 发送设置原点指令
     void sendSetOriginPoint(FSUS_SERVO_ID_T servoId);
     // 发送控制模式停止指令
-    void FSUS_Protocol::sendStopOnControlMode(FSUS_SERVO_ID_T servoId, uint8_t method, uint16_t power);
+    void sendStopOnControlMode(FSUS_SERVO_ID_T servoId, uint8_t method, uint16_t power);
     // 发送控制模式停止指令-卸力（失锁）
-    void FSUS_Protocol::sendStopOnControlUnloading(FSUS_SERVO_ID_T servoId);
+    void sendStopOnControlUnloading(FSUS_SERVO_ID_T servoId);
     // 发送控制模式停止指令-锁力
-    void FSUS_Protocol::sendStopOnControlKeep(FSUS_SERVO_ID_T servoId, uint16_t power);
+    void sendStopOnControlKeep(FSUS_SERVO_ID_T servoId, uint16_t power);
     // 发送控制模式停止指令-阻尼
-    void FSUS_Protocol::sendStopOnControlDammping(FSUS_SERVO_ID_T servoId, uint16_t power);
+    void sendStopOnControlDammping(FSUS_SERVO_ID_T servoId, uint16_t power);
     // 发送数据监控指令
-   void FSUS_Protocol::sendServoMonitor(FSUS_SERVO_ID_T servoId);
-   // 接收数据监控指令
-    ServoMonitorData FSUS_Protocol::recvServoMonitor();
+    void sendServoMonitor(FSUS_SERVO_ID_T servoId);
+    // 接收数据监控指令
+    ServoMonitorData recvServoMonitor();
     // 发送同步命令
-    void FSUS_Protocol::sendSyncCommand( uint8_t sendservocount,uint8_t sendsyncmode,FSUS_sync_servo sendservoSync[]);
-    /*FSUS_STATUS FSUS_Protocol::recvsyncMonitor(ServoData *syncmonitorData);*/
+    void sendSyncCommand(uint8_t sendservocount, uint8_t sendsyncmode, FSUS_sync_servo sendservoSync[]);
+    /*FSUS_STATUS recvsyncMonitor(ServoData *syncmonitorData);*/
     //接收同步数据监控
-    void FSUS_Protocol::recvsyncMonitor(uint8_t servocount,ServoMonitorData* data);
+    void recvsyncMonitor(uint8_t servocount, ServoMonitorData* data);
     //发送同步数据监控
-    void FSUS_Protocol::sendSyncMonitor( uint8_t sendservocount,FSUS_sync_servo sendservoSync[]);
+    void sendSyncMonitor(uint8_t sendservocount, FSUS_sync_servo sendservoSync[]);
     //开始异步命令
-    void FSUS_Protocol::sendBeginAsync();
+    void sendBeginAsync();
     //结束异步命令
-    void FSUS_Protocol::sendEndAsync(uint8_t cancel);
+    void sendEndAsync(uint8_t cancel);
     //重设多圈角度
-    void FSUS_Protocol::sendResetMultiTurnAngle(FSUS_SERVO_ID_T servoId);
+    void sendResetMultiTurnAngle(FSUS_SERVO_ID_T servoId);
 
 };
 #endif

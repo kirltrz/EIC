@@ -121,17 +121,17 @@ public:
     // 控制模式停止指令-阻尼
     void StopOnControlDammping(uint16_t power);
     /*舵机数据监控*/
-    ServoMonitorData FSUS_Servo::ServoMonitor();
+    ServoMonitorData ServoMonitor();
     //同步控制
-    void FSUS_Servo::SyncCommand(uint8_t servocount, uint8_t syncmode, FSUS_sync_servo servoSync[]);
+    void SyncCommand(uint8_t servocount, uint8_t syncmode, FSUS_sync_servo servoSync[]);
     // 同步数据读取
-    void FSUS_Servo::SyncMonitorCommand(uint8_t servocount, FSUS_sync_servo servoSync[],ServoMonitorData* data);
+    void SyncMonitorCommand(uint8_t servocount, FSUS_sync_servo servoSync[],ServoMonitorData* data);
     //开始异步指令
-    void FSUS_Servo::BeginAsync();
+    void BeginAsync();
     // 结束异步指令
-    void FSUS_Servo::EndAsync(uint8_t cancel);
+    void EndAsync(uint8_t cancel);
     //重设多圈角度
-    void FSUS_Servo::ResetMultiTurnAngle();
+    void ResetMultiTurnAngle();
 private:
 
 };// NOTE：类的末尾要加;
