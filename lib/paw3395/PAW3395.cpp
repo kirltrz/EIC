@@ -1,14 +1,14 @@
 #include "PAW3395.h"
 #include "usr_spi.h"
+
 static void Power_Up_Initializaton_Register_Setting(void);
 
 void paw3395Init(uint16_t dpi, uint8_t nrst, uint8_t ncs, uint8_t sclk, uint8_t miso, uint8_t mosi)
 {
 	// 初始化SPI接口
-	SPI_Init(sclk, miso, mosi);
+	SPI_Init(sclk, miso, mosi, ncs);
 
 	// 配置引脚模式
-	pinMode(ncs, OUTPUT);
 	pinMode(nrst, OUTPUT);
 
 	// 复位传感器
@@ -17,7 +17,7 @@ void paw3395Init(uint16_t dpi, uint8_t nrst, uint8_t ncs, uint8_t sclk, uint8_t 
 	digitalWrite(nrst, HIGH);
 
 	// 确保片选信号为高电平
-	CS_High;
+	cs_high();
 
 	// 执行上电序列
 	Power_up_sequence();
@@ -44,9 +44,9 @@ void Power_up_sequence(void)
 	delay_ms(50);
 
 	// 步骤3：重置SPI端口
-	CS_High;
+	cs_high();
 	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
-	CS_Low;
+	cs_low();
 	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
 
 	// 步骤4：将0x5A写入Power_Up_Reset寄存器
@@ -57,7 +57,7 @@ void Power_up_sequence(void)
 
 	// 步骤6：加载上电初始化寄存器设置
 	Power_Up_Initializaton_Register_Setting();
-	CS_High;
+	cs_high();
 	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
 
 	// 步骤7：读取寄存器0x02至0x06
@@ -68,7 +68,7 @@ void Power_up_sequence(void)
 	}
 
 	// 片选拉高，结束SPI通讯
-	CS_High;
+	cs_high();
 	delay_125_ns(PAW3395_TIMINGS_BEXIT);
 }
 
@@ -99,7 +99,7 @@ void Motion_Burst(volatile int16_t *dx, volatile int16_t *dy)
 	uint8_t buffer[12] = {0};
 
 	// 片选拉低，开始SPI通信
-	CS_Low;
+	cs_low();
 	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
 
 	// 发送运动突发读取命令
@@ -113,7 +113,7 @@ void Motion_Burst(volatile int16_t *dx, volatile int16_t *dy)
 	}
 
 	// 片选拉高，结束SPI通信
-	CS_High;
+	cs_high();
 	delay_125_ns(PAW3395_TIMINGS_BEXIT);
 
 	// 解析X和Y方向的位移数据
@@ -180,7 +180,7 @@ void Pixel_Burst_Read(uint8_t *pFrame)
 	uint8_t reg_tmp;
 
 	// 拉低片选信号
-	CS_Low;
+	cs_low();
 	// 等待片选到时钟的建立时间
 	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
 
@@ -241,7 +241,7 @@ void Pixel_Burst_Read(uint8_t *pFrame)
 	write_register(0x55, 0x00);
 
 	// 拉高片选信号并等待退出时间
-	CS_High;
+	cs_high();
 	delay_125_ns(PAW3395_TIMINGS_BEXIT);
 }
 
@@ -255,7 +255,7 @@ void DPI_Config(uint16_t CPI_Num)
 	uint16_t cpi_value = CPI_Num / 50; // 计算寄存器值（DPI以50为步进单位）
 
 	// 拉低片选信号
-	CS_Low;
+	cs_low();
 	// 等待片选信号到时钟信号的建立时间
 	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
 
@@ -271,7 +271,7 @@ void DPI_Config(uint16_t CPI_Num)
 	write_register(SET_RESOLUTION, 0x01);
 
 	// 拉高片选信号
-	CS_High;
+	cs_high();
 	// 等待退出时间
 	delay_125_ns(PAW3395_TIMINGS_BEXIT);
 }
