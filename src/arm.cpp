@@ -1,5 +1,9 @@
 #include "arm.h"
 
+FSUS_Protocol protocol_ch1(&Serial1, 115200);
+FSUS_Servo servo0(0,&protocol_ch1);
+FSUS_Servo servo1(1,&protocol_ch1);
+FSUS_Servo servo2(2,&protocol_ch1);
 void initArm(void)
 {
     /*初始化机械臂*/
