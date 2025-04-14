@@ -1,9 +1,9 @@
-#include "comm.h"
+#include "vision.h"
 #include "HardwareSerial.h"
 
 typedef uint8_t byte;
 
-void initComm(void)
+void initVision(void)
 {
     /*初始化串口通信*/
     Serial.begin(115200);
@@ -22,7 +22,7 @@ void sendCommand(int mode)
     Serial.write(frame, 9);
 }
 
-bool receiveData(comm_packet_t *data)
+bool receiveData(vision_packet_t *data)
 {
     /*接收数据*/
     // 定义一个长度为9的字节数组，用于存储从串口读取的数据

@@ -7,7 +7,7 @@
 #define CMD_CIRCLE 2
 #define CMD_MATERIAL 3
 
-struct comm_packet_t
+struct vision_packet_t
 {
     int mode;
     int16_t data1;
@@ -18,7 +18,7 @@ struct comm_packet_t
 /*
 @brief 初始化串口通信
 */
-void initComm(void);
+void initVision(void);
 /*
 @brief 发送命令
 @param mode 命令模式 0：待命模式 1：二维码识别 2：色环识别 3：物料识别
@@ -29,6 +29,6 @@ void sendCommand(int mode);
 @param data 数据结构体
 @return 是否接收成功
 */
-bool receiveData(comm_packet_t *data);
+bool receiveData(vision_packet_t *data);
 
 

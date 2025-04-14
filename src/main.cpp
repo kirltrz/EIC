@@ -1,11 +1,11 @@
 #include <Arduino.h>
 #include "displayInterface.h"
 #include "taskManager.h"
-#include "comm.h"
+#include "sensor.h"
 
 void setup()
 {
-    initComm();
+    initSensor();
     initGUI();
     initTaskManager();
 }

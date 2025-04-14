@@ -13,9 +13,9 @@
 
 #define FSUS_K_ANGLE_REAL2RAW 1
 #define FSUS_B_ANGLE_REAL2RAW 0
-#define FSUS_SERVO_SPEED 100.0 // 舵机角度的默认转速
+#define FSUS_SERVO_SPEED 100.0 // 舵机角度的默认转速（最高大概850°/s）
 #define FSUS_ANGLE_CTL_DEADBLOCK 2.5 // 舵机控制的死区
-#define FSUS_WAIT_TIMEOUT_MS 60000 // 等待的时间上限 ms
+#define FSUS_WAIT_TIMEOUT_MS 3000 // 等待的时间上限 ms
 
 class FSUS_Servo{
 public:
