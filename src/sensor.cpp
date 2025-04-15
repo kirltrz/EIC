@@ -13,7 +13,7 @@ SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
 void initSensor(void)
 {
     /*初始化传感器*/
-    initComm();
+    initVision();
     Wire.begin();
     paw3395Init(DPI, NRESET, NCS, SCLK, MISO, MOSI);
 }
@@ -32,11 +32,11 @@ bool checkHWT101(void)
     return Wire.endTransmission() == 0;
 }
 
-bool checkComm(void)
+bool checkVision(void)
 {
     /*检查与视觉模块串口通信是否正常*/
     sendCommand(CMD_IDLE);
-    comm_packet_t data;
+    vision_packet_t data;
     return receiveData(&data);
 }
 
