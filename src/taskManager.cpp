@@ -1,8 +1,11 @@
 #include "taskManager.h"
 #include "displayInterface.h"
-
+#include "mainSequence.h"
+#include "motion.h"
+SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
 void initTaskManager(void)
 {
+    xSemaphoreMainsequence=xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量
     /*初始化任务管理器*/
     xTaskCreate(
         lvglTask,    // 任务函数
@@ -12,13 +15,6 @@ void initTaskManager(void)
         1,           // 任务优先级
         NULL         // 任务句柄
     );
-    
-}
-void lvglTask(void *pvParameters)
-{
-    while (true)
-    {
-        lv_timer_handler();
-        vTaskDelay(5);
-    }
+    xTaskCreate(mainSequenceTask, "Main Sequence Task",4096, NULL, 1, NULL);
+    xTaskCreate(moveTask, "Move Task", 4096, NULL, 1, NULL);
 }

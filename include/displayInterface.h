@@ -3,3 +3,4 @@
 #include "ui.h"
 
 void initGUI(void);
+void lvglTask(void *pvParameters);

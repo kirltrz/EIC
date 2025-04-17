@@ -6,6 +6,14 @@ uint16_t calibrateData[8] = {3912, 161, 3928, 3772, 219, 188, 222, 3768}; // 触
 const uint16_t screenWidth = 320, screenHeight = 240;
 uint16_t buf[screenWidth * screenHeight / 10];
 
+void lvglTask(void *pvParameters)
+{
+    while (true)
+    {
+        lv_timer_handler();
+        vTaskDelay(5);
+    }
+}
 void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
     uint32_t w = (area->x2 - area->x1 + 1);
