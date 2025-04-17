@@ -15,12 +15,13 @@ struct armPos
 };
 const armPos fold = {0, 0, 0};       // 折叠状态
 const armPos ttDetect = {0, 0, 0};   // 转盘检测位置
-const armPos redPlate = {0, 0, 0};   // 红色物料托盘位置
-const armPos bluePlate = {0, 0, 0};  // 蓝色物料托盘位置
-const armPos greenPlate = {0, 0, 0}; // 绿色物料托盘位置
-const armPos redCircleBase = {0, 0, 0}; // 红色色环基础位置（未视觉纠偏的位置）
-const armPos blueCircleBase = {0, 0, 0}; // 蓝色色环基础位置（未视觉纠偏的位置）
-const armPos greenCircleBase = {0, 0, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
+const armPos rPlate = {0, 0, 0};   // 红色物料托盘位置
+const armPos bPlate = {0, 0, 0};  // 蓝色物料托盘位置
+const armPos gPlate = {0, 0, 0}; // 绿色物料托盘位置
+const armPos gdDetect = {0, 0, 0};     // 地面检测位置
+const armPos rCircleBase = {0, 0, 0}; // 红色色环基础位置（未视觉纠偏的位置）
+const armPos bCircleBase = {0, 0, 0}; // 蓝色色环基础位置（未视觉纠偏的位置）
+const armPos gCircleBase = {0, 0, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
 
 struct
 { // 当前车身位置下的色环位置
