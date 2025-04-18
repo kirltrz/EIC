@@ -4,6 +4,5 @@
 #include "semphr.h"
 
 extern SemaphoreHandle_t xSemaphoreMainsequence;
+void wait(int ms);
 void initTaskManager(void);
-
-void lvglTask(void *pvParameters);

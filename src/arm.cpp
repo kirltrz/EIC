@@ -89,23 +89,27 @@ void moveArm(int x, int y, int z)
     servo3.wait();
 }
 
-void catchFromTurntable(int taskcode[3])
+void arm_ScanQRcode(){
+    /*扫描二维码，与控制xyz不同，机械臂前端需抬起使摄像头朝向二维码，无需处理视觉部分*/
+}
+
+void arm_catchFromTurntable(int taskcode[3])
 {
-    /*从转盘抓取*/
+    /*从转盘抓取，需要通过视觉识别抓取物料，因为转盘不断转动，故需要等待物料停止再抓取或者实时跟踪*/
     const int turntableHeight = 80; // 转盘高度
 }
 
-void putToGround(int taskcode[3])
+void arm_putToGround(int taskcode[3], int circleOffset[3][2]/*传出当前色环偏移量*/)
 {
-    /*放置到地面*/
+    /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
 }
 
-void catchFromGround(int taskcode[3])
+void arm_catchFromGround(int taskcode[3], const int circleOffset[3][2]/*传入当前色环偏移量*/)
 {
-    /*从地面抓取*/
+    /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
 }
 
-void putToMaterial(int taskcode[3])
+void arm_putToMaterial(int taskcode[3])
 {
-    /*码垛*/
+    /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
 }

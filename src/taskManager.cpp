@@ -3,6 +3,9 @@
 #include "mainSequence.h"
 #include "motion.h"
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
+
+void wait(int ms){vTaskDelay(ms/portTICK_PERIOD_MS);}
+
 void initTaskManager(void)
 {
     xSemaphoreMainsequence=xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量
