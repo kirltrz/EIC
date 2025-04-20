@@ -9,8 +9,7 @@ struct global_position_t{
     volatile float rawYaw;
     volatile float continuousYaw;
 };
-
-/*传感器初始化*/
+/// @brief 传感器初始化(包括paw3395、hwt101、视觉模块)
 void initSensor(void);
 
 void getGlobalPosition(global_position_t *position);

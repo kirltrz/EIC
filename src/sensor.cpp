@@ -13,7 +13,7 @@ SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
 void initSensor(void)
 {
     /*初始化传感器*/
-    positionMutex = xSemaphoreCreateMutex(); // 创建互斥锁
+    positionMutex = xSemaphoreCreateMutex(); // 创建全局坐标互斥锁
     initVision();
     Wire.begin();
     paw3395Init(DPI, NRESET, NCS, SCLK, MISO, MOSI);
