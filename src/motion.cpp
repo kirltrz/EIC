@@ -21,3 +21,8 @@ bool arrived(void)
     // 3. 如果距离小于一定值，则返回true，否则返回false
     return false;
 }
+void stopMotion(void)
+{
+    /*停止移动*/
+}
+
