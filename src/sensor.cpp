@@ -42,7 +42,7 @@ bool checkVision(void)
 }
 
 global_position_t currentPosition;//用于积分运算
-void calculateGlobalPosition()
+void calculateGlobalPosition(void *pvParameters)
 {
     /*计算全局位置*/
     float prevYaw = 0.0f;       // 上一次的yaw角度
@@ -93,8 +93,8 @@ void calculateGlobalPosition()
         float yawRad = continuousYaw * DEG_TO_RAD;
 
         // 计算实际位移（考虑传感器方向与车身方向的关系）
-        float dxActual = dx; // dx可能需要取反，取决于传感器安装方向
-        float dyActual = dy; // dy可能需要取反，取决于传感器安装方向
+        float dxActual = -dy; // dx可能需要取反，取决于传感器安装方向
+        float dyActual = dx; // dy可能需要取反，取决于传感器安装方向
 
         // 使用旋转矩阵将局部坐标系的变化转换到全局坐标系
         float dxGlobal = dxActual * cos(yawRad) - dyActual * sin(yawRad);

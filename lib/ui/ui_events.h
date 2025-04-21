@@ -10,6 +10,8 @@
 extern "C" {
 #endif
 
+void toNextPos(lv_event_t * e);
+
 #ifdef __cplusplus
 } /*extern "C"*/
 #endif
