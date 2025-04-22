@@ -6,17 +6,20 @@
 #include "ui.h"
 
 
-const ui_theme_variable_t _ui_theme_color_lightest[1] = {0xE3FDFD};
-const ui_theme_variable_t _ui_theme_alpha_lightest[1] = {255};
+const ui_theme_variable_t _ui_theme_color_color1[1] = {0xEAC7C7};
+const ui_theme_variable_t _ui_theme_alpha_color1[1] = {255};
 
-const ui_theme_variable_t _ui_theme_color_light[1] = {0xCBF1F5};
-const ui_theme_variable_t _ui_theme_alpha_light[1] = {255};
+const ui_theme_variable_t _ui_theme_color_color2[1] = {0xA0C3D2};
+const ui_theme_variable_t _ui_theme_alpha_color2[1] = {255};
 
-const ui_theme_variable_t _ui_theme_color_middle[1] = {0xA6E3E9};
-const ui_theme_variable_t _ui_theme_alpha_middle[1] = {255};
+const ui_theme_variable_t _ui_theme_color_color3[1] = {0xF7F5EB};
+const ui_theme_variable_t _ui_theme_alpha_color3[1] = {255};
 
-const ui_theme_variable_t _ui_theme_color_deep[1] = {0x71C9CE};
-const ui_theme_variable_t _ui_theme_alpha_deep[1] = {255};
+const ui_theme_variable_t _ui_theme_color_color4[1] = {0xEAE0DA};
+const ui_theme_variable_t _ui_theme_alpha_color4[1] = {255};
+
+const ui_theme_variable_t _ui_theme_color_color5[1] = {0x000000};
+const ui_theme_variable_t _ui_theme_alpha_color5[1] = {255};
 uint8_t ui_theme_idx = UI_THEME_DEFAULT;
 
 

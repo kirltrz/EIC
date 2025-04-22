@@ -10,9 +10,9 @@ void ui_Screen1_screen_init(void)
     ui_Screen1 = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_Screen1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     ui_object_set_themeable_style_property(ui_Screen1, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_COLOR,
-                                           _ui_theme_color_light);
+                                           _ui_theme_color_color3);
     ui_object_set_themeable_style_property(ui_Screen1, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_OPA,
-                                           _ui_theme_alpha_light);
+                                           _ui_theme_alpha_color3);
 
     ui_Label1 = lv_label_create(ui_Screen1);
     lv_obj_set_width(ui_Label1, LV_SIZE_CONTENT);   /// 1
@@ -32,9 +32,9 @@ void ui_Screen1_screen_init(void)
     lv_obj_add_flag(ui_Button1, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_remove_flag(ui_Button1, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     ui_object_set_themeable_style_property(ui_Button1, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_COLOR,
-                                           _ui_theme_color_deep);
+                                           _ui_theme_color_color2);
     ui_object_set_themeable_style_property(ui_Button1, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_OPA,
-                                           _ui_theme_alpha_deep);
+                                           _ui_theme_alpha_color2);
 
     ui_Label2 = lv_label_create(ui_Button1);
     lv_obj_set_width(ui_Label2, LV_SIZE_CONTENT);   /// 1
@@ -42,9 +42,9 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_Label2, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label2, "锁定位置");
     ui_object_set_themeable_style_property(ui_Label2, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_COLOR,
-                                           _ui_theme_color_lightest);
+                                           _ui_theme_color_color3);
     ui_object_set_themeable_style_property(ui_Label2, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_TEXT_OPA,
-                                           _ui_theme_alpha_lightest);
+                                           _ui_theme_alpha_color3);
     lv_obj_set_style_text_font(ui_Label2, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_battery = lv_bar_create(ui_Screen1);
@@ -56,14 +56,14 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_y(ui_battery, -2);
     lv_obj_set_align(ui_battery, LV_ALIGN_CENTER);
     ui_object_set_themeable_style_property(ui_battery, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_COLOR,
-                                           _ui_theme_color_lightest);
+                                           _ui_theme_color_color1);
     ui_object_set_themeable_style_property(ui_battery, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_OPA,
-                                           _ui_theme_alpha_lightest);
+                                           _ui_theme_alpha_color1);
 
     ui_object_set_themeable_style_property(ui_battery, LV_PART_INDICATOR | LV_STATE_DEFAULT, LV_STYLE_BG_COLOR,
-                                           _ui_theme_color_deep);
+                                           _ui_theme_color_color4);
     ui_object_set_themeable_style_property(ui_battery, LV_PART_INDICATOR | LV_STATE_DEFAULT, LV_STYLE_BG_OPA,
-                                           _ui_theme_alpha_deep);
+                                           _ui_theme_alpha_color4);
 
     //Compensating for LVGL9.1 draw crash with bar/slider max value when top-padding is nonzero and right-padding is 0
     if(lv_obj_get_style_pad_top(ui_battery, LV_PART_MAIN) > 0) lv_obj_set_style_pad_right(ui_battery,

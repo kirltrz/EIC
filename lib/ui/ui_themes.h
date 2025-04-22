@@ -10,24 +10,28 @@
 extern "C" {
 #endif
 
-#define UI_THEME_COLOR_LIGHTEST 0
-#define UI_THEME_COLOR_LIGHT 1
-#define UI_THEME_COLOR_MIDDLE 2
-#define UI_THEME_COLOR_DEEP 3
+#define UI_THEME_COLOR_COLOR1 0
+#define UI_THEME_COLOR_COLOR2 1
+#define UI_THEME_COLOR_COLOR3 2
+#define UI_THEME_COLOR_COLOR4 3
+#define UI_THEME_COLOR_COLOR5 4
 
 #define UI_THEME_DEFAULT 0
 
-extern const ui_theme_variable_t _ui_theme_color_lightest[1];
-extern const ui_theme_variable_t _ui_theme_alpha_lightest[1];
+extern const ui_theme_variable_t _ui_theme_color_color1[1];
+extern const ui_theme_variable_t _ui_theme_alpha_color1[1];
 
-extern const ui_theme_variable_t _ui_theme_color_light[1];
-extern const ui_theme_variable_t _ui_theme_alpha_light[1];
+extern const ui_theme_variable_t _ui_theme_color_color2[1];
+extern const ui_theme_variable_t _ui_theme_alpha_color2[1];
 
-extern const ui_theme_variable_t _ui_theme_color_middle[1];
-extern const ui_theme_variable_t _ui_theme_alpha_middle[1];
+extern const ui_theme_variable_t _ui_theme_color_color3[1];
+extern const ui_theme_variable_t _ui_theme_alpha_color3[1];
 
-extern const ui_theme_variable_t _ui_theme_color_deep[1];
-extern const ui_theme_variable_t _ui_theme_alpha_deep[1];
+extern const ui_theme_variable_t _ui_theme_color_color4[1];
+extern const ui_theme_variable_t _ui_theme_alpha_color4[1];
+
+extern const ui_theme_variable_t _ui_theme_color_color5[1];
+extern const ui_theme_variable_t _ui_theme_alpha_color5[1];
 
 extern const uint32_t * ui_theme_colors[1];
 extern const uint8_t * ui_theme_alphas[1];
