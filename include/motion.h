@@ -2,6 +2,8 @@
 
 #define DEFAULT_SPEED 100.0f
 #define DEFAULT_ACC 100
+
+extern ZDTX42V2* motor;
 struct POS{
     float x;
     float y;

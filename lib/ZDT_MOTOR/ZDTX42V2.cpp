@@ -9,7 +9,8 @@
 
 #include "ZDTX42V2.h"
 
-// 构造函数，自动初始化
+
+// 构造函数，初始化
 ZDTX42V2::ZDTX42V2(HardwareSerial* serial) {
   // 设置串口
   _serial = serial ? serial : &Serial; // 如果为空则使用默认Serial
@@ -434,7 +435,7 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount) {
   }
   
   // 延时等待所有数据接收完成
-  delay(10);
+  //delay(10);
   
   // 接收数据
   while(_serial->available() && *rxCount < 128) {

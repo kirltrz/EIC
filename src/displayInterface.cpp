@@ -1,10 +1,16 @@
 #include "displayInterface.h"
-
+#include "ZDTX42V2.h"
+#include "motion.h"
 LGFX display;
 
 uint16_t calibrateData[8] = {3912, 161, 3928, 3772, 219, 188, 222, 3768}; // 触摸屏校准数据
 const uint16_t screenWidth = 320, screenHeight = 240;
 uint16_t buf[screenWidth * screenHeight / 10];
+
+// 电池电压和电量计算参数
+const float BATTERY_MAX_VOLTAGE = 12.6f;  // 满电电压
+const float BATTERY_MIN_VOLTAGE = 9.0f;  // 低电电压
+uint8_t batteryPercent = 0;               // 电池电量百分比
 
 void lvglTask(void *pvParameters)
 {
@@ -14,6 +20,13 @@ void lvglTask(void *pvParameters)
         vTaskDelay(5);
     }
 }
+
+// UI更新任务回调函数
+static void updateUITask(lv_timer_t *timer)
+{
+   
+}
+
 void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
     uint32_t w = (area->x2 - area->x1 + 1);
@@ -70,4 +83,7 @@ void initGUI(void)
 
     /*加载UI*/
     ui_init();
+    
+    /* 创建500ms周期的UI更新任务 */
+    lv_timer_create(updateUITask, 500, NULL);
 }

@@ -24,6 +24,8 @@ extern "C" {
 
 #include "ui_helpers.h"
 #include "ui_events.h"
+#include "ui_theme_manager.h"
+#include "ui_themes.h"
 
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
@@ -32,6 +34,7 @@ extern lv_obj_t * ui_Label1;
 void ui_event_Button1(lv_event_t * e);
 extern lv_obj_t * ui_Button1;
 extern lv_obj_t * ui_Label2;
+extern lv_obj_t * ui_battery;
 // CUSTOM VARIABLES
 
 // EVENTS

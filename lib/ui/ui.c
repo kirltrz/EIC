@@ -15,6 +15,7 @@ lv_obj_t * ui_Label1;
 void ui_event_Button1(lv_event_t * e);
 lv_obj_t * ui_Button1;
 lv_obj_t * ui_Label2;
+lv_obj_t * ui_battery;
 // CUSTOM VARIABLES
 
 // EVENTS

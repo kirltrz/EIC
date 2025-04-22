@@ -27,22 +27,22 @@ ZDTX42V2* motor = nullptr;
 #define YAW_KD 1.0f     // 偏航角微分系数 - 增大
 
 // PID控制参数 - 位置锁定时使用（比例系数更高，以增强保持力）
-#define HOLD_POS_KP 200.0f    // 位置保持比例系数
-#define HOLD_POS_KI 0.0f     // 完全禁用积分作用
-#define HOLD_POS_KD 10.0f     // 位置保持微分系数
-#define HOLD_YAW_KP 200.0f    // 偏航角保持比例系数
-#define HOLD_YAW_KI 0.0f     // 完全禁用积分作用
+#define HOLD_POS_KP 50.0f    // 位置保持比例系数
+#define HOLD_POS_KI 0.1f     // 完全禁用积分作用
+#define HOLD_POS_KD 15.0f     // 位置保持微分系数
+#define HOLD_YAW_KP 100.0f    // 偏航角保持比例系数
+#define HOLD_YAW_KI 0.1f     // 完全禁用积分作用
 #define HOLD_YAW_KD 15.0f     // 偏航角保持微分系数
 
 // 运动控制参数
 #define MAX_LINEAR_SPEED 5000.0f  // 最大线速度，单位mm/s - 大幅增加
-#define MAX_ANGULAR_SPEED 150.0f  // 最大角速度，单位度/s - 大幅增加
+#define MAX_ANGULAR_SPEED 720.0f  // 最大角速度，单位度/s - 大幅增加
 #define MIN_SPEED_RPM 0.1f       // 最小速度，单位RPM - 增大最小速度
 #define MAX_SPEED_RPM 2400.0f    // 最大速度，单位RPM - 恢复原始设置
 
 // 位置保持模式参数
-#define HOLD_MAX_LINEAR_SPEED 2500.0f  // 位置保持时最大线速度，单位mm/s
-#define HOLD_MAX_ANGULAR_SPEED 360.0f  // 位置保持时最大角速度，单位度/s
+#define HOLD_MAX_LINEAR_SPEED 5000.0f  // 位置保持时最大线速度，单位mm/s
+#define HOLD_MAX_ANGULAR_SPEED 720.0f  // 位置保持时最大角速度，单位度/s
 
 // 电机位置累积值
 static float motor_pos_fr = 0;
@@ -220,7 +220,7 @@ void moveTask(void* pvParameters)
             // 计算误差
             float pos_x_error = targetPos.x - currentPosition.x;
             float pos_y_error = targetPos.y - currentPosition.y;
-            float yaw_error = targetPos.yaw - currentPosition.rawYaw; // 使用rawYaw，已归一化到±180度
+            float yaw_error = targetPos.yaw - currentPosition.continuousYaw;
             
             // 更新积分项
             pos_x_integral += pos_x_error * PID_INTERVAL / 1000.0f;
@@ -337,7 +337,7 @@ void moveTask(void* pvParameters)
                     motor->receiveData(rxCmd, &rxCount);
                     
                     // 添加调试信息，显示电机回复
-                    if (i == 0 && (currentTime % 1000) < 10) { // 每秒输出一次第一个电机的回复情况
+                    /*if (i == 0 && (currentTime % 1000) < 10) { // 每秒输出一次第一个电机的回复情况
                         Serial.print("电机回复数据: 长度=");
                         Serial.print(rxCount);
                         Serial.print(", 数据:");
@@ -346,7 +346,7 @@ void moveTask(void* pvParameters)
                             Serial.print(rxCmd[j], HEX);
                         }
                         Serial.println();
-                    }
+                    }*/
                 }
             }
             
@@ -366,7 +366,7 @@ void moveTask(void* pvParameters)
         }
         
         // 控制任务执行频率
-        wait(10); // 主循环延时10ms
+        wait(1); // 主循环延时10ms
     }
 }
 
@@ -380,7 +380,7 @@ bool arrived(void)
     // 2. 判断当前点与目标点的距离
     float dx = currentPosition.x - targetPos.x;
     float dy = currentPosition.y - targetPos.y;
-    float dyaw = currentPosition.rawYaw - targetPos.yaw; // 使用rawYaw
+    float dyaw = currentPosition.continuousYaw - targetPos.yaw; // 使用rawYaw
     
     // 3. 如果距离小于一定值，则返回true，否则返回false
     const float POSITION_TOLERANCE = 30.0; // 位置容差，单位mm，放宽到30mm
