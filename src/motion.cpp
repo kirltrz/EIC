@@ -19,12 +19,12 @@ ZDTX42V2* motor = nullptr;
 #define ROBOT_RADIUS 106.5f   // 机器人中心到轮子的距离，单位mm
 
 // PID控制参数 - 运动中使用
-#define POS_KP 200.0f     // 位置环比例系数 - 极大增大
-#define POS_KI 1.0f      // 位置环积分系数 - 增大
-#define POS_KD 1.0f     // 位置环微分系数 - 增大
-#define YAW_KP 200.0f     // 偏航角比例系数 - 极大增大
-#define YAW_KI 1.0f      // 偏航角积分系数 - 增大
-#define YAW_KD 1.0f     // 偏航角微分系数 - 增大
+#define POS_KP 30.0f     // 位置环比例系数 - 极大增大
+#define POS_KI 0.1f      // 位置环积分系数 - 增大
+#define POS_KD 15.0f     // 位置环微分系数 - 增大
+#define YAW_KP 50.0f     // 偏航角比例系数 - 极大增大
+#define YAW_KI 0.1f      // 偏航角积分系数 - 增大
+#define YAW_KD 15.0f     // 偏航角微分系数 - 增大
 
 // PID控制参数 - 位置锁定时使用（比例系数更高，以增强保持力）
 #define HOLD_POS_KP 50.0f    // 位置保持比例系数
@@ -35,7 +35,7 @@ ZDTX42V2* motor = nullptr;
 #define HOLD_YAW_KD 15.0f     // 偏航角保持微分系数
 
 // 运动控制参数
-#define MAX_LINEAR_SPEED 5000.0f  // 最大线速度，单位mm/s - 大幅增加
+#define MAX_LINEAR_SPEED 15000.0f  // 最大线速度，单位mm/s - 大幅增加
 #define MAX_ANGULAR_SPEED 720.0f  // 最大角速度，单位度/s - 大幅增加
 #define MIN_SPEED_RPM 0.1f       // 最小速度，单位RPM - 增大最小速度
 #define MAX_SPEED_RPM 2400.0f    // 最大速度，单位RPM - 恢复原始设置
@@ -314,12 +314,12 @@ void moveTask(void* pvParameters)
                     float speed = wheel_speeds[i];
                     
                     // 限制最小速度
-                    if (abs(speed) < MIN_SPEED_RPM && abs(speed) > 0.001f) {
+                    if (abs(speed) < MIN_SPEED_RPM && abs(speed) > 0.01f) {
                         speed = (speed > 0) ? MIN_SPEED_RPM : -MIN_SPEED_RPM;
                     }
                     
                     // 如果速度几乎为零，不发送命令
-                    if (abs(speed) < 0.001f) {
+                    if (abs(speed) < 0.01f) {
                         continue;
                     }
                     
@@ -366,7 +366,7 @@ void moveTask(void* pvParameters)
         }
         
         // 控制任务执行频率
-        wait(1); // 主循环延时10ms
+        wait(1); // 主循环延时
     }
 }
 
@@ -380,7 +380,7 @@ bool arrived(void)
     // 2. 判断当前点与目标点的距离
     float dx = currentPosition.x - targetPos.x;
     float dy = currentPosition.y - targetPos.y;
-    float dyaw = currentPosition.continuousYaw - targetPos.yaw; // 使用rawYaw
+    float dyaw = currentPosition.continuousYaw - targetPos.yaw;
     
     // 3. 如果距离小于一定值，则返回true，否则返回false
     const float POSITION_TOLERANCE = 30.0; // 位置容差，单位mm，放宽到30mm

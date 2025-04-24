@@ -6,60 +6,92 @@
 #include "ui.h"
 #include "Arduino.h"
 #include "Wire.h"
-#include "motion.h"
+// 先包含mainSequence.h，它已经包含了motion.h
+#include "mainSequence.h"
 #include "sensor.h"
 #include "ZDTX42V2.h"
 
 // 声明外部变量
-extern ZDTX42V2* motor;
+extern ZDTX42V2 *motor;
 extern const uint8_t MOTOR_FR;
 extern const uint8_t MOTOR_FL;
 extern const uint8_t MOTOR_BL;
 extern const uint8_t MOTOR_BR;
 
-void toNextPos(lv_event_t * e)
+void toNextPos(lv_event_t *e)
+{
+	// 静态变量，记录当前位置索引
+	static int current_pos_index = 0;
+
+	// 停止当前运动
+	stopMotion();
+	delay(50); // 短暂延时，确保电机停止
+	
+	// 移动到下一个位置
+	moveTo(pos[current_pos_index]);
+
+	// 计算下一个位置索引（循环访问）
+	current_pos_index = (current_pos_index + 1) % 10; // 假设共有10个位置（根据mainSequence.cpp中的定义）
+
+	// 可选：更新UI显示当前目标点信息
+	lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+	lv_obj_t *label = lv_obj_get_child(btn, 0);
+	if (label != NULL)
+	{
+		char buffer[32];
+		snprintf(buffer, sizeof(buffer), "下一点: %d", current_pos_index);
+		lv_label_set_text(label, buffer);
+	}
+}
+
+void lockCurrentPos(lv_event_t *e)
 {
 	// 静态变量记录当前状态：是否已锁定位置
 	static bool is_position_locked = false;
-	
+
 	// 获取当前位置
 	global_position_t currentPosition;
 	getGlobalPosition(&currentPosition);
-	
-	if (!is_position_locked) {
+
+	if (!is_position_locked)
+	{
 		// 当前未锁定，按下按钮后锁定当前位置
 		POS currentPos = {currentPosition.x, currentPosition.y, currentPosition.rawYaw};
-		
+
 		// 重要：先调用stopMotion停止任何现有运动，然后再锁定位置
 		stopMotion();
 		delay(50); // 短暂延时，确保电机停止
-		
+
 		// 现在锁定在当前位置
 		moveTo(currentPos); // 移动到当前位置（实际上是锁定位置）
-		
+
 		// 修改按钮显示文本
-		lv_obj_t * btn = (lv_obj_t *)lv_event_get_target(e);
-		lv_obj_t * label = lv_obj_get_child(btn, 0);
-		if (label != NULL) {
+		lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+		lv_obj_t *label = lv_obj_get_child(btn, 0);
+		if (label != NULL)
+		{
 			lv_label_set_text(label, "解锁位置");
 		}
-		
+
 		// 更新状态
 		is_position_locked = true;
-	} else {
+	}
+	else
+	{
 		// 当前已锁定，按下按钮后解锁
-		
+
 		// 使用紧急停止函数，确保完全停止所有电机
 		forceStopAllMotors();
-		delay(50);  // 短暂延时，确保电机完全停止
-		
+		delay(50); // 短暂延时，确保电机完全停止
+
 		// 恢复按钮显示文本
-		lv_obj_t * btn = (lv_obj_t *)lv_event_get_target(e);
-		lv_obj_t * label = lv_obj_get_child(btn, 0);
-		if (label != NULL) {
+		lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+		lv_obj_t *label = lv_obj_get_child(btn, 0);
+		if (label != NULL)
+		{
 			lv_label_set_text(label, "锁定位置");
 		}
-		
+
 		// 更新状态
 		is_position_locked = false;
 	}

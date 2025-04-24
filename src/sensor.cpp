@@ -9,6 +9,7 @@
 #define MOSI 40
 
 SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
+global_position_t currentPosition;//用于积分运算
 
 void initSensor(void)
 {
@@ -17,6 +18,8 @@ void initSensor(void)
     initVision();
     Wire.begin();
     paw3395Init(DPI, NRESET, NCS, SCLK, MISO, MOSI);
+
+    resetSensor();
 }
 
 bool checkPaw3395(void)
@@ -41,7 +44,25 @@ bool checkVision(void)
     return receiveData(&data);
 }
 
-global_position_t currentPosition;//用于积分运算
+void resetSensor(void){
+    HWT101.toZero();
+    checkVision();//使视觉模块恢复空闲状态
+    // 重置全局坐标积分值
+    if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE) {
+        // 重置当前位置的所有坐标值
+        currentPosition.x = 0.0f;
+        currentPosition.y = 0.0f;
+        //currentPosition.rawYaw = 0.0f;//原始yaw无需置零
+        currentPosition.continuousYaw = 0.0f;
+        
+        //Serial.println("全局坐标已重置为零点");
+        
+        // 释放互斥锁
+        xSemaphoreGive(positionMutex);
+    } else {
+        //Serial.println("无法获取互斥锁，坐标重置失败");
+    }
+}
 void calculateGlobalPosition(void *pvParameters)
 {
     /*计算全局位置*/

@@ -31,9 +31,16 @@ bool receiveData(vision_packet_t *data)
     byte buffer[9] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
     // 等待串口有数据可读，如果没有数据则延迟10ms
+    // 设置超时时间，防止死循环
+    unsigned long startTime = millis();
     while (Serial.available() == 0)
     {
         vTaskDelay(10 / portTICK_PERIOD_MS);
+        // 如果超过1秒钟没有收到数据，则退出循环
+        if (millis() - startTime > VISION_TIMEOUT)
+        {
+            return false;
+        }
     }
 
     // 读取第一个字节，检查是否为帧头0x7B
