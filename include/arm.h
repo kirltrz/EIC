@@ -1,8 +1,10 @@
 #include "FashionStar_UartServo.h"
+#include "config.h"
 
 /*
 @brief 机械臂运动函数
 */
+void initArm(void);
 void arm_ScanQRcode();
 void arm_catchFromTurntable(int taskcode[3]);
 void arm_putToGround(int taskcode[3], int circleOffset[3][2]/*传出当前色环偏移量*/);

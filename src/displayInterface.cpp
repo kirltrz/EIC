@@ -1,4 +1,5 @@
 #include "displayInterface.h"
+#include "config.h"
 
 LGFX display;
 

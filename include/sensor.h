@@ -1,3 +1,4 @@
+#pragma once
 #include "Wire.h"
 #include "HWT101.h"
 #include "PAW3395.h"

@@ -1,11 +1,7 @@
 /*用于通过串口与视觉模块进行通信*/
+#pragma once
 #include "stdint.h"
-
-/*命令类型*/
-#define CMD_IDLE 0
-#define CMD_QRCODE 1
-#define CMD_CIRCLE 2
-#define CMD_MATERIAL 3
+#include "config.h"
 
 /*
 @brief 视觉接收数据包结构体

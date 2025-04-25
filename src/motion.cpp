@@ -1,8 +1,10 @@
 #include "motion.h"
+#include "config.h"
 
 void initMotor(void)
 {
     /*初始化电机*/
+    MOTOR_SERIAL.begin(SERIAL_BAUDRATE);
 }
 void moveTo(POS pos, float speed, int acc, int dec)
 {

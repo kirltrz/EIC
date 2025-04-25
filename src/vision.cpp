@@ -1,14 +1,14 @@
 #include "vision.h"
 #include "HardwareSerial.h"
 #include "taskManager.h"
+#include "config.h"
 
-#define VISION_TIMEOUT 1000
 typedef uint8_t byte;
 
 void initVision(void)
 {
     /*初始化串口通信*/
-    Serial.begin(115200);
+    VISION_SERIAL.begin(SERIAL_BAUDRATE);
 }
 
 void sendCommand(int mode)
@@ -21,7 +21,7 @@ void sendCommand(int mode)
     {
         frame[7] ^= frame[i];
     }
-    Serial.write(frame, 9);
+    VISION_SERIAL.write(frame, 9);
 }
 
 bool receiveData(vision_packet_t *data)
@@ -32,7 +32,7 @@ bool receiveData(vision_packet_t *data)
 
     // 等待串口有数据可读，如果没有数据则延迟10ms
     unsigned long startTime = millis();
-    while (Serial.available() == 0)
+    while (VISION_SERIAL.available() == 0)
     {
         vTaskDelay(10 / portTICK_PERIOD_MS);
         // 添加超时检测，防止死循环
@@ -51,11 +51,11 @@ bool receiveData(vision_packet_t *data)
         {
             return false;
         }
-        Serial.read(buffer, 1);
+        VISION_SERIAL.read(buffer, 1);
     } while (buffer[0] != 0x7B);
 
     // 读取接下来的8个字节，存储到buffer中
-    Serial.readBytes((byte *)buffer + 1, 8);
+    VISION_SERIAL.readBytes((byte *)buffer + 1, 8);
 
     // 检查最后一个字节是否为帧尾0x7D
     if (buffer[8] != 0x7D)

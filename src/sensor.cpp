@@ -1,12 +1,6 @@
 #include "sensor.h"
 #include "taskManager.h"
-/*paw3395参数及针脚设置*/
-#define DPI 26000
-#define NRESET 2
-#define NCS 42
-#define SCLK 39
-#define MISO 41
-#define MOSI 40
+#include "config.h"
 
 SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
 
@@ -15,8 +9,8 @@ void initSensor(void)
     /*初始化传感器*/
     positionMutex = xSemaphoreCreateMutex(); // 创建全局坐标互斥锁
     initVision();
-    Wire.begin();
-    paw3395Init(DPI, NRESET, NCS, SCLK, MISO, MOSI);
+    Wire.begin(PIN_HWT101_SDA, PIN_HWT101_SCL);
+    paw3395Init(PAW3395_DPI, PIN_PAW3395_NRESET, PIN_PAW3395_NCS, PIN_PAW3395_SCLK, PIN_PAW3395_MISO, PIN_PAW3395_MOSI);
 }
 
 bool checkPaw3395(void)

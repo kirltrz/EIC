@@ -1,6 +1,7 @@
 #include "arm.h"
+#include "config.h"
 
-FSUS_Protocol protocol(&Serial1, 115200);
+FSUS_Protocol protocol(&SERVO_SERIAL, SERIAL_BAUDRATE);
 FSUS_Servo servo0(0, &protocol); // 云台舵机
 FSUS_Servo servo1(1, &protocol); // 一级关节舵机
 FSUS_Servo servo2(2, &protocol); // 二级关节舵机
