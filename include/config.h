@@ -16,6 +16,10 @@
 /* 底盘运动参数 */
 #define CHASSIS_MAX_SPEED TBD // 底盘最大速度mm/s
 #define CHASSIS_MAX_OMEGA TBD // 底盘最大角速度rad/s
+// 电机控制参数
+#define ACC_VALUE 2000        // 位置模式加速度(RPM/s)
+#define DEC_VALUE 2000        // 位置模式减速度(RPM/s)
+#define MAX_VELOCITY 2400  // 位置模式最大速度(RPM)
 /* 底盘PID参数 */
 
 /* 底盘硬件参数 */
@@ -50,7 +54,25 @@
 #define MOTOR_SERIAL Serial2
 #define PIN_MOTOR_TX 9
 #define PIN_MOTOR_RX 10
-
+// 定义电机地址
+#define MOTOR_FR 3  // 前右轮电机地址
+#define MOTOR_FL 4  // 前左轮电机地址
+#define MOTOR_BL 1  // 后左轮电机地址
+#define MOTOR_BR 2  // 后右轮电机地址
+// 反馈和控制周期(具体时间待调整)
+#define CONTROL_INTERVAL 50    // 控制周期(ms)
+#define FEEDBACK_INTERVAL 100  // 反馈周期(ms)
+// 定位参数
+#define WHEEL_RADIUS 41.0f    // 轮子半径，单位mm
+#define ROBOT_RADIUS 106.5f   // 机器人中心到轮子的距离，单位mm
+#define WHEEL_BASE_X 200.0f    // 小车X方向尺寸的一半(mm)
+#define WHEEL_BASE_Y 200.0f    // 小车Y方向尺寸的一半(mm)
+#define GEAR_RATIO 1.0f        // 电机与轮子的传动比
+#define POSITION_TOLERANCE 10.0f    // 粗定位容差(mm)
+#define FINE_POSITION_TOLERANCE 2.0f // 精定位容差(mm)
+#define FINE_VELOCITY 500.0f        // 精定位模式下的最大速度(RPM)
+#define FINE_VELOCITY_RAMP 1000     // 精定位速度斜率(RPM/s)
+#define MIN_VELOCITY 50.0f          // 精定位最小速度(RPM)
 /* 舵机 */
 #define SERVO_SERIAL Serial1
 #define PIN_SERVO_TX 14
