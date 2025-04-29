@@ -5,11 +5,11 @@
 #include "sensor.h"
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
 
-void wait(int ms){vTaskDelay(ms/portTICK_PERIOD_MS);}
+#define wait(ms) delay(ms)//才知道delay其实就是vTaskDelay，其他地方就不改了，就这样了
 
 void initTaskManager(void)
 {
-    xSemaphoreMainsequence=xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量
+    xSemaphoreMainsequence = xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量
     /*初始化任务管理器*/
     xTaskCreate(
         lvglTask,    // 任务函数
@@ -19,7 +19,7 @@ void initTaskManager(void)
         1,           // 任务优先级
         NULL         // 任务句柄
     );
-    xTaskCreate(mainSequenceTask, "Main Sequence Task",4096, NULL, 1, NULL);
+    xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
     xTaskCreate(moveTask, "Move Task", 4096, NULL, 1, NULL);
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
 }

@@ -10,6 +10,10 @@
         "vector": "cpp",
         "string_view": "cpp",
         "initializer_list": "cpp",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "condition_variable": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp",
+        "mutex": "cpp"
     }
 }

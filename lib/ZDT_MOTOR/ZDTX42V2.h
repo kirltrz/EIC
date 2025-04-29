@@ -6,9 +6,7 @@
  * CSDN博客：https://blog.csdn.net/zhangdatou666
  * qq交流群：262438510
  **********************************************************/
-
-#ifndef ZDTX42V2_H
-#define ZDTX42V2_H
+#pragma once
 
 #include <Arduino.h>
 
@@ -68,9 +66,8 @@ public:
   
   // 接收数据函数
   void receiveData(uint8_t *rxCmd, uint8_t *rxCount);            // 返回数据接收函数
+  uint16_t getVoltage();
 
 private:
   HardwareSerial* _serial;
 };
-
-#endif // ZDTX42V2_H 

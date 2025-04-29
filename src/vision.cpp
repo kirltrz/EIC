@@ -34,7 +34,7 @@ bool receiveData(vision_packet_t *data)
     unsigned long startTime = millis();
     while (VISION_SERIAL.available() == 0)
     {
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        wait(10);
         // 添加超时检测，防止死循环
         if (millis() - startTime > VISION_TIMEOUT)
         {
@@ -119,7 +119,7 @@ bool visionScanQRcode(int taskcode1[3], int taskcode2[3])
             return false;
         }
     }
-    if (packet.mode == CMD_QRCODE)
+    if (packet.mode == CMD_QRCODE && packet.data1 != 0 && packet.data2 != 0)
     {
         // 将data1分解为三个数字存入taskcode1
         taskcode1[0] = packet.data1 / 100;       // 百位
@@ -130,7 +130,10 @@ bool visionScanQRcode(int taskcode1[3], int taskcode2[3])
         taskcode2[0] = packet.data2 / 100;       // 百位
         taskcode2[1] = (packet.data2 / 10) % 10; // 十位
         taskcode2[2] = packet.data2 % 10;        // 个位
-        return true;
+        if (taskcode1[0] && taskcode1[1] && taskcode1[2] && taskcode2[0] && taskcode2[1] && taskcode2[2]) // 如果两个任务码的三个数字都非0，则返回true
+        {
+            return true;
+        }
     }
     return false;
 }
