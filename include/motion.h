@@ -7,7 +7,7 @@ struct POS{
     float y;
     float yaw;
 };
-void init(void);
+void motorInit(void);
 void globalToLocalVelocity(float global_vx, float global_vy, float yaw_rad, float &local_vx, float &local_vy);
 void calculateWheelVelocities(float vx, float vy, float omega, float wheelVelocities[4]);
 void calculateWheelPositions(float wheelPositions[4]);

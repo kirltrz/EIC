@@ -26,9 +26,16 @@
 #define MOTOR_ACC TBD // 电机加速度RPM/s（可更改，但需要与底盘PID参数匹配）
 #define MOTOR_MAX_SPEED 2400 // 电机最大速度RPM（不可更改）
 #define MOTOR_MIN_SPEED 0.1 // 电机最小速度RPM（不可更改）
-#define WHEEL_RADIUS 0.041 // 轮子半径m
-#define WHEEL_TO_CENTER TBD // 轮子到中心的距离m
-
+#define WHEEL_RADIUS 41.0f    // 轮子半径，单位mm
+#define ROBOT_RADIUS 106.5f   // 机器人中心到轮子的距离，单位mm
+#define WHEEL_BASE_X 100.0f    // 小车X方向尺寸的一半(mm)
+#define WHEEL_BASE_Y 100.0f    // 小车Y方向尺寸的一半(mm)
+#define GEAR_RATIO 1.0f        // 电机与轮子的传动比
+#define POSITION_TOLERANCE 10.0f    // 粗定位容差(mm)
+#define FINE_POSITION_TOLERANCE 2.0f // 精定位容差(mm)
+#define FINE_VELOCITY 500.0f        // 精定位模式下的最大速度(RPM)
+#define FINE_VELOCITY_RAMP 1000     // 精定位速度斜率(RPM/s)
+#define MIN_VELOCITY 0.1          // 精定位最小速度(RPM)
 /******************************************************************************
  * 机械臂参数配置
  ******************************************************************************/
@@ -55,24 +62,16 @@
 #define PIN_MOTOR_TX 9
 #define PIN_MOTOR_RX 10
 // 定义电机地址
-#define MOTOR_FR 3  // 前右轮电机地址
-#define MOTOR_FL 4  // 前左轮电机地址
+#define MOTOR_FR 3 // 前右轮电机地址
+#define MOTOR_FL  2 // 前左轮电机地址
 #define MOTOR_BL 1  // 后左轮电机地址
-#define MOTOR_BR 2  // 后右轮电机地址
+#define MOTOR_BR 4  // 后右轮电机地址
 // 反馈和控制周期(具体时间待调整)
-#define CONTROL_INTERVAL 50    // 控制周期(ms)
-#define FEEDBACK_INTERVAL 100  // 反馈周期(ms)
+#define CONTROL_INTERVAL 10    // 控制周期(ms)
+#define FEEDBACK_INTERVAL 10  // 反馈周期(ms)
 // 定位参数
-#define WHEEL_RADIUS 41.0f    // 轮子半径，单位mm
-#define ROBOT_RADIUS 106.5f   // 机器人中心到轮子的距离，单位mm
-#define WHEEL_BASE_X 200.0f    // 小车X方向尺寸的一半(mm)
-#define WHEEL_BASE_Y 200.0f    // 小车Y方向尺寸的一半(mm)
-#define GEAR_RATIO 1.0f        // 电机与轮子的传动比
-#define POSITION_TOLERANCE 10.0f    // 粗定位容差(mm)
-#define FINE_POSITION_TOLERANCE 2.0f // 精定位容差(mm)
-#define FINE_VELOCITY 500.0f        // 精定位模式下的最大速度(RPM)
-#define FINE_VELOCITY_RAMP 1000     // 精定位速度斜率(RPM/s)
-#define MIN_VELOCITY 50.0f          // 精定位最小速度(RPM)
+
+
 /* 舵机 */
 #define SERVO_SERIAL Serial1
 #define PIN_SERVO_TX 14
