@@ -7,7 +7,7 @@
  * 系统参数配置
  ******************************************************************************/
 /* 调试配置 */
-#define DEBUG_ENABLE 1 // 启用调试输出
+#define DEBUG_ENABLE 0 // 启用调试输出
 #if DEBUG_ENABLE
   #define DEBUG_LOG(...) Serial.print(__VA_ARGS__)
 #else
