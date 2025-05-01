@@ -7,10 +7,11 @@ typedef uint8_t byte;
 
 void visionInit(void)
 {
-/*初始化串口通信*/
-#if (DEBUG_ENABLE == 0) && (VISION_SERIAL == Serial)
-    VISION_SERIAL.begin(SERIAL_BAUDRATE);
-#endif
+    /*初始化串口通信*/
+    // 如果视觉串口和调试串口不同，或者调试未启用，则初始化视觉串口
+    #if (DEBUG_SERIAL != VISION_SERIAL) || (DEBUG_ENABLE == 0)
+        VISION_SERIAL.begin(SERIAL_BAUDRATE);
+    #endif
 }
 
 void sendCommand(int mode)

@@ -8,6 +8,7 @@
  ******************************************************************************/
 /* 调试配置 */
 #define DEBUG_ENABLE 1 // 启用调试输出
+#define DEBUG_SERIAL Serial
 
 #if DEBUG_ENABLE
 #define DEBUG_LOG(...) Serial.print(__VA_ARGS__)

@@ -11,7 +11,7 @@
 void setup()
 {
     #if DEBUG_ENABLE
-    Serial.begin(115200);
+    DEBUG_SERIAL.begin(115200);
     #endif
 
     initMotor();
