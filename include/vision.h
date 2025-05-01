@@ -21,7 +21,7 @@ struct vision_packet_t
 /*
 @brief 初始化串口通信
 */
-void initVision(void);
+void visionInit(void);
 /*
 @brief 发送命令
 @param mode 命令模式 0：待命模式 1：二维码识别 2：色环识别 3：物料识别

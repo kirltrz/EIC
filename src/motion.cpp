@@ -2,7 +2,7 @@
 #include "sensor.h"
 #include "config.h"
 #include "math.h"
-#include "taskManager.h" 
+#include "taskManager.h"
 /*有待完善 部分函数可以加入pid控制 部分参数待调整 速度模式和位置模式也还未限幅 主循环中也可以添加安全检查*/
 ZDTX42V2 *motor = nullptr;
 enum systemState
@@ -28,30 +28,33 @@ void initMotor(void)
 {
   // 初始化串口通信，用于与电机通信
   Serial2.begin(SERIAL_BAUDRATE, SERIAL_8N1, PIN_MOTOR_RX /*RX*/, PIN_MOTOR_TX /*TX*/);
-  delay(1000); // 等待通信稳定
+  delay(100); // 等待通信稳定
 
-  Serial.println("开始初始化电机...");
+  DEBUG_LOG("开始初始化电机...");
   // 初始化电机对象
   motor = new ZDTX42V2(&Serial2);
 
   delay(500); // 等待电机初始化完成
 
   // 确保所有电机都停止
-  motor->stopNow(MOTOR_FR, 0);
-  motor->stopNow(MOTOR_FL, 0);
-  motor->stopNow(MOTOR_BL, 0);
-  motor->stopNow(MOTOR_BR, 0);
-  // 批量处理电机初始化
-  for (int i = 0; i < motorCount; i++)
-  {
-    // 重置电机位置
-    motor->resetCurPosToZero(motorAddresses[i]);
-    motor->receiveData(rxBuffer, &rxLength);
-  }
-  delay(500); // 等待电机初始化完成
-  Serial.println("电机初始化和通信测试完成");
+  motor->stopNow(MOTOR_BROADCAST, 0);
+  // 重置电机位置
+  motor->resetCurPosToZero(MOTOR_BROADCAST);
+  motor->receiveData(rxBuffer, &rxLength);
+
+  // delay(500); // 等待电机初始化完成
+  DEBUG_LOG("电机初始化和通信测试完成");
 }
 
+void moveTo(POS _targetPos)
+{ // 不要直接赋值，加互斥锁
+}
+void stopMotion(void)
+{
+}
+void emergencyStop(void)
+{//失能驱动板
+}
 // 将全局坐标系中的速度转换为机器人局部坐标系中的速度
 void globalToLocalVelocity(float global_vx, float global_vy, float yaw_rad, float &local_vx, float &local_vy)
 {
@@ -170,11 +173,9 @@ bool finePositioning(void)
   if (distance <= FINE_POSITION_TOLERANCE && angleDistance <= 1.0f)
   {
     // 达到精度要求，停止所有电机
-    for (int i = 0; i < motorCount; i++)
-    {
-      motor->velocityControl(motorAddresses[i], 0, FINE_VELOCITY_RAMP, 0.0f, 0);
-      motor->receiveData(rxBuffer, &rxLength);
-    }
+    // 使用广播地址停止所有电机
+    motor->velocityControl(MOTOR_BROADCAST, 0, FINE_VELOCITY_RAMP, 0.0f, 0);
+    motor->receiveData(rxBuffer, &rxLength);
     return true; // 精定位完成
   }
   // 计算根据误差的速度缩放因子(越接近目标速度越慢)(具体参数待调整，可以考虑用增量式pid控制)

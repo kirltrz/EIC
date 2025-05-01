@@ -8,8 +8,8 @@ void initSensor(void)
 {
     /*初始化传感器*/
     positionMutex = xSemaphoreCreateMutex(); // 创建全局坐标互斥锁
-    initVision();
-    Wire.begin(PIN_HWT101_SDA, PIN_HWT101_SCL);
+    visionInit();
+    Wire.begin(PIN_HWT101_SDA, PIN_HWT101_SCL); // 初始化IIC(HWT101)
     paw3395Init(PAW3395_DPI, PIN_PAW3395_NRESET, PIN_PAW3395_NCS, PIN_PAW3395_SCLK, PIN_PAW3395_MISO, PIN_PAW3395_MOSI);
 }
 
@@ -22,7 +22,7 @@ bool checkPaw3395(void)
 bool checkHWT101(void)
 {
     /*检查hwt101是否正常工作*/
-    Wire.beginTransmission(80);
+    Wire.beginTransmission(80); // HWT101地址0x50对应十进制为80
     delay(5);
     return Wire.endTransmission() == 0;
 }

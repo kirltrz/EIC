@@ -5,10 +5,12 @@
 
 typedef uint8_t byte;
 
-void initVision(void)
+void visionInit(void)
 {
-    /*初始化串口通信*/
+/*初始化串口通信*/
+#if (DEBUG_ENABLE == 0) && (VISION_SERIAL == Serial)
     VISION_SERIAL.begin(SERIAL_BAUDRATE);
+#endif
 }
 
 void sendCommand(int mode)
@@ -127,9 +129,9 @@ bool visionScanQRcode(int taskcode1[3], int taskcode2[3])
         taskcode1[2] = packet.data1 % 10;        // 个位
 
         // 将data2分解为三个数字存入taskcode2
-        taskcode2[0] = packet.data2 / 100;       // 百位
-        taskcode2[1] = (packet.data2 / 10) % 10; // 十位
-        taskcode2[2] = packet.data2 % 10;        // 个位
+        taskcode2[0] = packet.data2 / 100;                                                                // 百位
+        taskcode2[1] = (packet.data2 / 10) % 10;                                                          // 十位
+        taskcode2[2] = packet.data2 % 10;                                                                 // 个位
         if (taskcode1[0] && taskcode1[1] && taskcode1[2] && taskcode2[0] && taskcode2[1] && taskcode2[2]) // 如果两个任务码的三个数字都非0，则返回true
         {
             return true;
@@ -174,10 +176,12 @@ bool visionGetMaterial(int color, int *x, int *y)
     sendCommand(CMD_MATERIAL);
     vision_packet_t packet;
     int startTime = millis();
-    while(!receiveData(&packet)){
+    while (!receiveData(&packet))
+    {
         wait(100);
-        if(millis()-startTime>VISION_TIMEOUT){
-            return false;   
+        if (millis() - startTime > VISION_TIMEOUT)
+        {
+            return false;
         }
     }
     if (packet.mode == CMD_MATERIAL || packet.color == color)

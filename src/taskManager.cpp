@@ -5,8 +5,6 @@
 #include "sensor.h"
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
 
-#define wait(ms) delay(ms)//才知道delay其实就是vTaskDelay，其他地方就不改了，就这样了
-
 void initTaskManager(void)
 {
     xSemaphoreMainsequence = xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量

@@ -14,6 +14,8 @@
         "condition_variable": "cpp",
         "istream": "cpp",
         "ostream": "cpp",
-        "mutex": "cpp"
-    }
+        "mutex": "cpp",
+        "new": "cpp"
+    },
+    "commentTranslate.source": "intellsmi.comment-translate-ali.cloud"
 }

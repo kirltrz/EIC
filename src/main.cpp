@@ -10,15 +10,20 @@
 
 void setup()
 {
+    #if DEBUG_ENABLE
+    Serial.begin(115200);
+    #endif
+
     initMotor();
     initArm();
     initLED();
     initSensor();
     initGUI();
-    initVision();
     initTaskManager();
 }
 
 void loop()
 {
+    delay(1);//让出CPU时间
 }
+

@@ -8,6 +8,9 @@ struct POS{
     float yaw;
 };
 void initMotor(void);
+void moveTo(POS _targetPos);
+void stopMotion(void);
+void emergencyStop(void);
 void globalToLocalVelocity(float global_vx, float global_vy, float yaw_rad, float &local_vx, float &local_vy);
 void calculateWheelVelocities(float vx, float vy, float omega, float wheelVelocities[4]);
 void calculateWheelPositions(float wheelPositions[4]);
