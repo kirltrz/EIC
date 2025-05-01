@@ -24,7 +24,7 @@ static POS targetPos = {0, 0, 0};
 // 电机当前角度位置(度)
 float motorPositions[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
-void motorInit(void)
+void initMotor(void)
 {
   // 初始化串口通信，用于与电机通信
   Serial2.begin(SERIAL_BAUDRATE, SERIAL_8N1, PIN_MOTOR_RX /*RX*/, PIN_MOTOR_TX /*TX*/);
