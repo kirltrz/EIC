@@ -13,7 +13,7 @@ systemState currentState = IDLE; // 默认空闲
 uint8_t rxBuffer[128];
 uint8_t rxLength;
 // 定义电机地址数组
-const uint8_t motorAddresses[] = {MOTOR_FL, MOTOR_FR, MOTOR_BR, MOTOR_BL};
+const uint8_t motorAddresses[] = {MOTOR_FR, MOTOR_BR, MOTOR_BL, MOTOR_FL};
 const int motorCount = sizeof(motorAddresses) / sizeof(motorAddresses[0]);
 static POS targetPos = {0, 0, 0};
 // 电机当前角度位置(度)
@@ -165,7 +165,7 @@ bool coarsePositioning(void)
 
   for (int i = 0; i < motorCount; i++)
   {
-    motor->trajPositionControl(motorAddresses[i], 0, ACC_VALUE, DEC_VALUE, 240, wheelPositions[i], 1, 1);
+    motor->trajPositionControl(motorAddresses[i], wheelPositions[i]>0?1:2, ACC_VALUE, DEC_VALUE, 240, wheelPositions[i], 0, 1);
     //motor->receiveData(rxBuffer, &rxLength);
   }
   motor->synchronousMotion(MOTOR_BROADCAST);
