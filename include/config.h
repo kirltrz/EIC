@@ -11,7 +11,7 @@
 #define DEBUG_SERIAL Serial
 
 #if DEBUG_ENABLE
-#define DEBUG_LOG(...) Serial.print(__VA_ARGS__)
+#define DEBUG_LOG(...) Serial.printf(__VA_ARGS__)
 #else
 #define DEBUG_LOG(...)
 #endif
@@ -29,8 +29,8 @@
 #define CHASSIS_MAX_SPEED TBD // 底盘最大速度mm/s
 #define CHASSIS_MAX_OMEGA TBD // 底盘最大角速度rad/s
 // 电机控制参数
-#define ACC_VALUE 2000    // 位置模式加速度(RPM/s)
-#define DEC_VALUE 2000    // 位置模式减速度(RPM/s)
+#define ACC_VALUE 500    // 位置模式加速度(RPM/s)
+#define DEC_VALUE 500    // 位置模式减速度(RPM/s)
 #define MAX_VELOCITY 2400 // 位置模式最大速度(RPM)
 /* 底盘PID参数 */
 
@@ -45,7 +45,7 @@
 #define GEAR_RATIO 1.0f              // 电机与轮子的传动比
 #define POSITION_TOLERANCE 10.0f     // 粗定位容差(mm)
 #define FINE_POSITION_TOLERANCE 2.0f // 精定位容差(mm)
-#define FINE_VELOCITY 500.0f         // 精定位模式下的最大速度(RPM)
+#define FINE_VELOCITY 240.0f         // 精定位模式下的最大速度(RPM)
 #define FINE_VELOCITY_RAMP 1000      // 精定位速度斜率(RPM/s)
 #define MIN_VELOCITY 0.1             // 精定位最小速度(RPM)
 /******************************************************************************

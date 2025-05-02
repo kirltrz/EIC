@@ -3,6 +3,7 @@
 #include "config.h"
 
 SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
+global_position_t currentPosition; // 用于积分运算
 
 void initSensor(void)
 {
@@ -11,8 +12,26 @@ void initSensor(void)
     visionInit();
     Wire.begin(PIN_HWT101_SDA, PIN_HWT101_SCL); // 初始化IIC(HWT101)
     paw3395Init(PAW3395_DPI, PIN_PAW3395_NRESET, PIN_PAW3395_NCS, PIN_PAW3395_SCLK, PIN_PAW3395_MISO, PIN_PAW3395_MOSI);
+    wait(100);
+    resetSensor();
 }
 
+void resetSensor(void)
+{
+    visionToIDLE();
+    HWT101.toZero();
+    if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
+    {
+        // 在获取到互斥锁后，清零全局位置数据
+        currentPosition.x = 0;
+        currentPosition.y = 0;
+        currentPosition.rawYaw = 0;
+        currentPosition.continuousYaw = 0;
+
+        // 释放互斥锁
+        xSemaphoreGive(positionMutex);
+    }
+}
 bool checkPaw3395(void)
 {
     /*检查paw3395是否正常工作*/
@@ -35,7 +54,6 @@ bool checkVision(void)
     return receiveData(&data);
 }
 
-global_position_t currentPosition; // 用于积分运算
 void calculateGlobalPosition(void *pvParameters)
 {
     /*计算全局位置*/
@@ -84,27 +102,27 @@ void calculateGlobalPosition(void *pvParameters)
         }
 
         // 将角度转换为弧度（使用原始角度即可，因为sin/cos函数对于±180°是连续的）
-        float yawRad = continuousYaw * DEG_TO_RAD;
+        float yawRad = rawYaw * DEG_TO_RAD;
 
         // 计算实际位移（考虑传感器方向与车身方向的关系）
-        float dxActual = -dy; // dx可能需要取反，取决于传感器安装方向
-        float dyActual = dx;  // dy可能需要取反，取决于传感器安装方向
+        double dxActual = -(float)dy * scaleFactor; // dx可能需要取反，取决于传感器安装方向
+        double dyActual = (float)dx * scaleFactor;  // dy可能需要取反，取决于传感器安装方向
 
         // 使用旋转矩阵将局部坐标系的变化转换到全局坐标系
-        float dxGlobal = dxActual * cos(yawRad) - dyActual * sin(yawRad);
-        float dyGlobal = dxActual * sin(yawRad) + dyActual * cos(yawRad);
+        double dxGlobal = dxActual * cos((double)yawRad) - dyActual * sin((double)yawRad);
+        double dyGlobal = dxActual * sin((double)yawRad) + dyActual * cos((double)yawRad);
 
         // 更新全局坐标（乘以比例因子，将像素变化转换为实际距离变化）
         if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
         {
-            currentPosition.x += dxGlobal * scaleFactor;
-            currentPosition.y += dyGlobal * scaleFactor;
+            currentPosition.x += dxGlobal;
+            currentPosition.y += dyGlobal;
             currentPosition.rawYaw = rawYaw;
             currentPosition.continuousYaw = continuousYaw;
             xSemaphoreGive(positionMutex); // 释放互斥锁
         }
 
-        vTaskDelay(5 / portTICK_PERIOD_MS);
+        wait(1);
     }
 }
 

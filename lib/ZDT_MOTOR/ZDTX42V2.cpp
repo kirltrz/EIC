@@ -1,10 +1,21 @@
 #include "ZDTX42V2.h"
 #include "taskManager.h"
+#include "config.h"
+
 // 构造函数，自动初始化
 ZDTX42V2::ZDTX42V2(HardwareSerial *serial)
 {
   _serial = serial ? serial : &Serial; // 设置串口，如果serial为空则使用默认Serial
-  _serial->begin(115200); // 初始化串口
+  _serialMutex = xSemaphoreCreateMutex(); // 创建串口互斥锁
+  _serial->begin(115200);              // 初始化串口
+  if (_serialMutex != NULL)
+  {
+    DEBUG_LOG("串口互斥锁创建成功");
+  }
+  else
+  {
+    DEBUG_LOG("串口互斥锁创建失败");
+  }
   /*
     // 等待串口初始化完成
     while (!(*_serial))
@@ -33,7 +44,7 @@ void ZDTX42V2::resetCurPosToZero(uint8_t addr)
   cmd[3] = 0x6B; // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 4);
+  sendCommand(cmd, 4);
 }
 
 /**
@@ -52,7 +63,7 @@ void ZDTX42V2::resetClogPro(uint8_t addr)
   cmd[3] = 0x6B; // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 4);
+  sendCommand(cmd, 4);
 }
 
 /**
@@ -64,44 +75,91 @@ void ZDTX42V2::resetClogPro(uint8_t addr)
 void ZDTX42V2::readSysParams(uint8_t addr, SysParams_t s)
 {
   uint8_t cmd[16] = {0};
-  
-  // 装载命令
-  cmd[0] =  addr;                       // 地址
 
-  switch(s)                             // 功能码
+  // 装载命令
+  cmd[0] = addr; // 地址
+
+  switch (s) // 功能码
   {
-    case S_VER   : cmd[1] = 0x1F; break;                  /* 读取固件版本和对应的硬件版本 */
-    case S_RL    : cmd[1] = 0x20; break;                  /* 读取读取相电阻和相电感 */
-    case S_PID   : cmd[1] = 0x21; break;                  /* 读取PID参数 */
-    case S_ORG   : cmd[1] = 0x22; break;                  /* 读取回零参数 */
-    case S_VBUS  : cmd[1] = 0x24; break;                  /* 读取总线电压 */
-    case S_CBUS  : cmd[1] = 0x26; break;                  /* 读取总线电流 */
-    case S_CPHA  : cmd[1] = 0x27; break;                  /* 读取相电流 */
-    case S_ENC   : cmd[1] = 0x29; break;                  /* 读取编码器原始值 */
-    case S_CPUL  : cmd[1] = 0x30; break;                  /* 读取实时脉冲数（根据实时位置计算得到的脉冲数） */
-    case S_ENCL  : cmd[1] = 0x31; break;                  /* 读取经过线性化校准后的编码器值 */
-    case S_TPUL  : cmd[1] = 0x32; break;                  /* 读取输入脉冲数 */
-    case S_TPOS  : cmd[1] = 0x33; break;                  /* 读取电机目标位置 */
-    case S_OPOS  : cmd[1] = 0x34; break;                  /* 读取电机实时设定的目标位置（开环模式的实时位置） */
-    case S_VEL   : cmd[1] = 0x35; break;                  /* 读取电机实时转速 */
-    case S_CPOS  : cmd[1] = 0x36; break;                  /* 读取电机实时位置（基于角度编码器累加的电机实时位置） */
-    case S_PERR  : cmd[1] = 0x37; break;                  /* 读取电机位置误差 */
-    case S_TEMP  : cmd[1] = 0x39; break;                  /* 读取电机实时温度 */
-    case S_SFLAG : cmd[1] = 0x3A; break;                  /* 读取状态标志位 */
-    case S_OFLAG : cmd[1] = 0x3B; break;                  /* 读取回零状态标志位 */
-    case S_Conf  : cmd[1] = 0x42; cmd[2] = 0x6C; break;   /* 读取驱动参数 */
-    case S_State : cmd[1] = 0x43; cmd[2] = 0x7A; break;   /* 读取系统状态参数 */
-    default: break;
+  case S_VER:
+    cmd[1] = 0x1F;
+    break; /* 读取固件版本和对应的硬件版本 */
+  case S_RL:
+    cmd[1] = 0x20;
+    break; /* 读取读取相电阻和相电感 */
+  case S_PID:
+    cmd[1] = 0x21;
+    break; /* 读取PID参数 */
+  case S_ORG:
+    cmd[1] = 0x22;
+    break; /* 读取回零参数 */
+  case S_VBUS:
+    cmd[1] = 0x24;
+    break; /* 读取总线电压 */
+  case S_CBUS:
+    cmd[1] = 0x26;
+    break; /* 读取总线电流 */
+  case S_CPHA:
+    cmd[1] = 0x27;
+    break; /* 读取相电流 */
+  case S_ENC:
+    cmd[1] = 0x29;
+    break; /* 读取编码器原始值 */
+  case S_CPUL:
+    cmd[1] = 0x30;
+    break; /* 读取实时脉冲数（根据实时位置计算得到的脉冲数） */
+  case S_ENCL:
+    cmd[1] = 0x31;
+    break; /* 读取经过线性化校准后的编码器值 */
+  case S_TPUL:
+    cmd[1] = 0x32;
+    break; /* 读取输入脉冲数 */
+  case S_TPOS:
+    cmd[1] = 0x33;
+    break; /* 读取电机目标位置 */
+  case S_OPOS:
+    cmd[1] = 0x34;
+    break; /* 读取电机实时设定的目标位置（开环模式的实时位置） */
+  case S_VEL:
+    cmd[1] = 0x35;
+    break; /* 读取电机实时转速 */
+  case S_CPOS:
+    cmd[1] = 0x36;
+    break; /* 读取电机实时位置（基于角度编码器累加的电机实时位置） */
+  case S_PERR:
+    cmd[1] = 0x37;
+    break; /* 读取电机位置误差 */
+  case S_TEMP:
+    cmd[1] = 0x39;
+    break; /* 读取电机实时温度 */
+  case S_SFLAG:
+    cmd[1] = 0x3A;
+    break; /* 读取状态标志位 */
+  case S_OFLAG:
+    cmd[1] = 0x3B;
+    break; /* 读取回零状态标志位 */
+  case S_Conf:
+    cmd[1] = 0x42;
+    cmd[2] = 0x6C;
+    break; /* 读取驱动参数 */
+  case S_State:
+    cmd[1] = 0x43;
+    cmd[2] = 0x7A;
+    break; /* 读取系统状态参数 */
+  default:
+    break;
   }
 
   // 发送命令
-  if(s >= S_Conf)
+  if (s >= S_Conf)
   {
-    cmd[3] = 0x6B; _serial->write(cmd, 4);
+    cmd[3] = 0x6B;
+    sendCommand(cmd, 4);
   }
   else
   {
-    cmd[2] = 0x6B; _serial->write(cmd, 3);
+    cmd[2] = 0x6B;
+    sendCommand(cmd, 3);
   }
 }
 
@@ -125,7 +183,7 @@ void ZDTX42V2::modifyCtrlMode(uint8_t addr, bool svF, uint8_t ctrl_mode)
   cmd[5] = 0x6B;      // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 6);
+  sendCommand(cmd, 6);
 }
 
 /**
@@ -148,7 +206,7 @@ void ZDTX42V2::enControl(uint8_t addr, bool state, uint8_t snF)
   cmd[5] = 0x6B;           // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 6);
+  sendCommand(cmd, 6);
 }
 
 /**
@@ -176,7 +234,7 @@ void ZDTX42V2::torqueControl(uint8_t addr, uint8_t sign, uint16_t t_ramp, uint16
   cmd[8] = 0x6B;                   // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 9);
+  sendCommand(cmd, 9);
 }
 
 /**
@@ -191,7 +249,7 @@ void ZDTX42V2::torqueControl(uint8_t addr, uint8_t sign, uint16_t t_ramp, uint16
 void ZDTX42V2::velocityControl(uint8_t addr, uint8_t dir, uint16_t v_ramp, float velocity, uint8_t snF)
 {
   uint8_t cmd[16] = {0};
-  uint16_t vel_int = (uint16_t)ABS(velocity*10.0f);
+  uint16_t vel_int = (uint16_t)ABS(velocity * 10.0f);
 
   // 装载命令
   cmd[0] = addr;                    // 地址
@@ -205,7 +263,7 @@ void ZDTX42V2::velocityControl(uint8_t addr, uint8_t dir, uint16_t v_ramp, float
   cmd[8] = 0x6B;                    // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 9);
+  sendCommand(cmd, 9);
 }
 
 /**
@@ -229,21 +287,21 @@ void ZDTX42V2::bypassPositionLVControl(uint8_t addr, uint8_t dir, float velocity
   pos = (uint32_t)ABS(position * 10.0f);
 
   // 装载命令
-  cmd[0]  =  addr;                      // 地址
-  cmd[1]  =  0xFB;                      // 功能码
-  cmd[2]  =  dir;                       // 符号（方向）
-  cmd[3]  =  (uint8_t)(vel >> 8);       // 最大速度(RPM)高8位字节
-  cmd[4]  =  (uint8_t)(vel >> 0);       // 最大速度(RPM)低8位字节 
-  cmd[5]  =  (uint8_t)(pos >> 24);      // 位置(bit24 - bit31)
-  cmd[6]  =  (uint8_t)(pos >> 16);      // 位置(bit16 - bit23)
-  cmd[7]  =  (uint8_t)(pos >> 8);       // 位置(bit8  - bit15)
-  cmd[8]  =  (uint8_t)(pos >> 0);       // 位置(bit0  - bit7 )
-  cmd[9]  =  raf;                       // 相位位置/绝对位置标志
-  cmd[10] =  snF;                       // 多机同步运动标志
-  cmd[11] =  0x6B;                      // 校验字节
+  cmd[0] = addr;                 // 地址
+  cmd[1] = 0xFB;                 // 功能码
+  cmd[2] = dir;                  // 符号（方向）
+  cmd[3] = (uint8_t)(vel >> 8);  // 最大速度(RPM)高8位字节
+  cmd[4] = (uint8_t)(vel >> 0);  // 最大速度(RPM)低8位字节
+  cmd[5] = (uint8_t)(pos >> 24); // 位置(bit24 - bit31)
+  cmd[6] = (uint8_t)(pos >> 16); // 位置(bit16 - bit23)
+  cmd[7] = (uint8_t)(pos >> 8);  // 位置(bit8  - bit15)
+  cmd[8] = (uint8_t)(pos >> 0);  // 位置(bit0  - bit7 )
+  cmd[9] = raf;                  // 相位位置/绝对位置标志
+  cmd[10] = snF;                 // 多机同步运动标志
+  cmd[11] = 0x6B;                // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 12);
+  sendCommand(cmd, 12);
 }
 
 /**
@@ -269,25 +327,25 @@ void ZDTX42V2::trajPositionControl(uint8_t addr, uint8_t dir, uint16_t acc, uint
   pos = (uint32_t)ABS(position * 10.0f);
 
   // 装载命令
-  cmd[0]  =  addr;                      // 地址
-  cmd[1]  =  0xFD;                      // 功能码
-  cmd[2]  =  dir;                       // 符号（方向）
-  cmd[3]  =  (uint8_t)(acc >> 8);       // 加速加速度(RPM/s)高8位字节
-  cmd[4]  =  (uint8_t)(acc >> 0);       // 加速加速度(RPM/s)低8位字节  
-  cmd[5]  =  (uint8_t)(dec >> 8);       // 减速加速度(RPM/s)高8位字节
-  cmd[6]  =  (uint8_t)(dec >> 0);       // 减速加速度(RPM/s)低8位字节  
-  cmd[7]  =  (uint8_t)(vel >> 8);       // 最大速度(RPM)高8位字节
-  cmd[8]  =  (uint8_t)(vel >> 0);       // 最大速度(RPM)低8位字节 
-  cmd[9]  =  (uint8_t)(pos >> 24);      // 位置(bit24 - bit31)
-  cmd[10] =  (uint8_t)(pos >> 16);      // 位置(bit16 - bit23)
-  cmd[11] =  (uint8_t)(pos >> 8);       // 位置(bit8  - bit15)
-  cmd[12] =  (uint8_t)(pos >> 0);       // 位置(bit0  - bit7 )
-  cmd[13] =  raf;                       // 相位位置/绝对位置标志
-  cmd[14] =  snF;                       // 多机同步运动标志
-  cmd[15] =  0x6B;                      // 校验字节
+  cmd[0] = addr;                  // 地址
+  cmd[1] = 0xFD;                  // 功能码
+  cmd[2] = dir;                   // 符号（方向）
+  cmd[3] = (uint8_t)(acc >> 8);   // 加速加速度(RPM/s)高8位字节
+  cmd[4] = (uint8_t)(acc >> 0);   // 加速加速度(RPM/s)低8位字节
+  cmd[5] = (uint8_t)(dec >> 8);   // 减速加速度(RPM/s)高8位字节
+  cmd[6] = (uint8_t)(dec >> 0);   // 减速加速度(RPM/s)低8位字节
+  cmd[7] = (uint8_t)(vel >> 8);   // 最大速度(RPM)高8位字节
+  cmd[8] = (uint8_t)(vel >> 0);   // 最大速度(RPM)低8位字节
+  cmd[9] = (uint8_t)(pos >> 24);  // 位置(bit24 - bit31)
+  cmd[10] = (uint8_t)(pos >> 16); // 位置(bit16 - bit23)
+  cmd[11] = (uint8_t)(pos >> 8);  // 位置(bit8  - bit15)
+  cmd[12] = (uint8_t)(pos >> 0);  // 位置(bit0  - bit7 )
+  cmd[13] = raf;                  // 相位位置/绝对位置标志
+  cmd[14] = snF;                  // 多机同步运动标志
+  cmd[15] = 0x6B;                 // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 16);
+  sendCommand(cmd, 16);
 }
 
 /**
@@ -308,7 +366,7 @@ void ZDTX42V2::stopNow(uint8_t addr, uint8_t snF)
   cmd[4] = 0x6B; // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 5);
+  sendCommand(cmd, 5);
 }
 
 /**
@@ -327,7 +385,7 @@ void ZDTX42V2::synchronousMotion(uint8_t addr)
   cmd[3] = 0x6B; // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 4);
+  sendCommand(cmd, 4);
 }
 
 /**
@@ -348,7 +406,7 @@ void ZDTX42V2::originSetO(uint8_t addr, bool svF)
   cmd[4] = 0x6B; // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 5);
+  sendCommand(cmd, 5);
 }
 
 /**
@@ -392,7 +450,7 @@ void ZDTX42V2::originModifyParams(uint8_t addr, bool svF, uint8_t o_mode, uint8_
   cmd[19] = 0x6B;                   // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 20);
+  sendCommand(cmd, 20);
 }
 
 /**
@@ -414,7 +472,7 @@ void ZDTX42V2::originTriggerReturn(uint8_t addr, uint8_t o_mode, bool snF)
   cmd[4] = 0x6B;   // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 5);
+  sendCommand(cmd, 5);
 }
 
 /**
@@ -433,7 +491,7 @@ void ZDTX42V2::originInterrupt(uint8_t addr)
   cmd[3] = 0x6B; // 校验字节
 
   // 发送命令
-  _serial->write(cmd, 4);
+  sendCommand(cmd, 4);
 }
 
 /**
@@ -450,18 +508,21 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
   // 记录当前的时间
   currentTime = millis();
   lastTime = currentTime;
+  
+  xSemaphoreTake(_serialMutex, portMAX_DELAY); // 获取锁
   // 开始接收数据
-  for(int i=0;i<128;i++)
+  for (int i = 0; i < 128; i++)
   {
     if (_serial->available() > 0) // 串口有数据进来
     {
-        rxCmd[i] = _serial->read(); // 接收数据
-        if(rxCmd[i]==0x6B)//如果校验字节为0x6B，则一帧数据接收结束
-        {
-          *rxCount = i+1;
-          break;
-        }
-        lastTime = millis(); // 更新上一时刻的时间
+      rxCmd[i] = _serial->read(); // 接收数据
+      if (rxCmd[i] == 0x6B)       // 如果校验字节为0x6B，则一帧数据接收结束
+      {
+        *rxCount = i + 1;
+        xSemaphoreGive(_serialMutex); // 释放锁
+        return;
+      }
+      lastTime = millis(); // 更新上一时刻的时间
     }
     else // 串口有没有数据
     {
@@ -470,11 +531,12 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
       if ((int)(currentTime - lastTime) > 100) // 100毫秒内串口没有数据进来，就判定一帧数据接收结束
       {
         *rxCount = i; // 数据长度
-
-        break; // 退出while(1)循环
+        xSemaphoreGive(_serialMutex); // 释放锁
+        return; // 退出循环
       }
     }
   }
+  xSemaphoreGive(_serialMutex); // 释放锁
 }
 
 uint16_t ZDTX42V2::getVoltage()
@@ -482,13 +544,27 @@ uint16_t ZDTX42V2::getVoltage()
   uint16_t voltage = 0;
   uint8_t rxCmd[16] = {0};
   uint8_t rxCount = 0;
-  this->readSysParams(1, S_VBUS);
+  readSysParams(1, S_VBUS);
+  //DEBUG_LOG("发送读取电压命令");
   wait(100);
-  this->receiveData(rxCmd, &rxCount);
-  if(rxCount==5&&rxCmd[1]==0x24)
+  receiveData(rxCmd, &rxCount);
+  //DEBUG_LOG("读取电压命令完成");
+  // 调试输出接收到的字节
+  DEBUG_LOG("接收到的字节数: %d", rxCount);
+  DEBUG_LOG("字节[1]: 0x%02X", rxCmd[1]);
+
+  if (rxCmd[1] == 0x24)
   {
+    DEBUG_LOG("成功解析电压命令");
     voltage = (rxCmd[2] << 8) | rxCmd[3];
   }
   return voltage;
 }
 
+void ZDTX42V2::sendCommand(uint8_t *cmd, uint8_t len) {
+  xSemaphoreTake(_serialMutex, portMAX_DELAY);
+  _serial->write(cmd, len);
+  _serial->flush(); // 确保数据完全发送
+  xSemaphoreGive(_serialMutex);
+  wait(10); // 添加命令间的缓冲时间
+}

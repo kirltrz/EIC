@@ -24,14 +24,31 @@ extern "C" {
 
 #include "ui_helpers.h"
 #include "ui_events.h"
+#include "ui_theme_manager.h"
+#include "ui_themes.h"
 
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
 extern lv_obj_t * ui_Screen1;
-extern lv_obj_t * ui_Label1;
 void ui_event_Button1(lv_event_t * e);
 extern lv_obj_t * ui_Button1;
 extern lv_obj_t * ui_Label2;
+void ui_event_Button2(lv_event_t * e);
+extern lv_obj_t * ui_Button2;
+extern lv_obj_t * ui_Label3;
+extern lv_obj_t * ui_Panel1;
+extern lv_obj_t * ui_Label1;
+extern lv_obj_t * ui_Label4;
+extern lv_obj_t * ui_Label5;
+extern lv_obj_t * ui_currentX;
+extern lv_obj_t * ui_currentY;
+extern lv_obj_t * ui_currentYaw;
+void ui_event_enableMotorSwitch(lv_event_t * e);
+extern lv_obj_t * ui_enableMotorSwitch;
+extern lv_obj_t * ui_Label6;
+extern lv_obj_t * ui_Label7;
+extern lv_obj_t * ui_voltage;
+extern lv_obj_t * ui_Label8;
 // CUSTOM VARIABLES
 
 // EVENTS

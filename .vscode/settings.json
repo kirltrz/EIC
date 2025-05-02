@@ -15,7 +15,8 @@
         "istream": "cpp",
         "ostream": "cpp",
         "mutex": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "random": "cpp"
     },
     "commentTranslate.source": "intellsmi.comment-translate-ali.cloud"
 }
