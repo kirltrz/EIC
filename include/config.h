@@ -51,12 +51,17 @@
 /******************************************************************************
  * 机械臂参数配置
  ******************************************************************************/
-#define ARM_FIRST_JOINT_HEIGHT TBD // 机械臂第一关节距地面高度mm
-#define ARM_FIRST_LENGTH TBD       // 机械臂第一关节至第二关节长度mm
-#define ARM_SECOND_LENGTH TBD      // 机械臂第二关节至第三关节长度mm
-#define ARM_THIRD_LENGTH TBD       // 机械臂第三关节至夹持点长度mm
-#define ARM_MATERIAL_HEIGHT TBD    // 物料夹持点距地面高度mm
-
+#define ARM_FIRST_JOINT_HEIGHT TBD  // 机械臂第一关节距地面高度mm
+#define ARM_FIRST_LENGTH TBD        // 机械臂第一关节至第二关节长度mm
+#define ARM_SECOND_LENGTH TBD       // 机械臂第二关节至第三关节长度mm
+#define ARM_THIRD_LENGTH TBD        // 机械臂第三关节至夹持点长度mm
+#define ARM_MATERIAL_HEIGHT TBD     // 物料夹持点距地面高度mm
+#define FIRST_ARM_ANGLE_MIN -90.0f  // 大臂最小角度
+#define FIRST_ARM_ANGLE_MAX 90.0f   // 大臂最大角度
+#define SECOND_ARM_ANGLE_MIN -90.0f // 小臂最小角度
+#define SECOND_ARM_ANGLE_MAX 90.0f  // 小臂最大角度
+#define BASIS_ARM_ANGLE_MIN 0.0f    // 小臂最小角度
+#define BASIS_ARM_ANGLE_MAX 360.0f  // 小臂最大角度
 #define ARM_GRIPPER_OPEN_ANGLE TBD  // 机械臂夹爪张开角度
 #define ARM_GRIPPER_CLOSE_ANGLE TBD // 机械臂夹爪闭合角度
 

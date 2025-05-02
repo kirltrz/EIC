@@ -102,6 +102,8 @@ void calculateWheelPositions(float wheelPositions[4])
   global_position_t currentPosition;
   getGlobalPosition(&currentPosition);
 
+  // 获取所有电机位置
+  
   // 将目标位置从全局坐标系转换到机器人局部坐标系
   float localX = (targetPos.x - currentPosition.x) * cos(currentPosition.rawYaw) +
                  (targetPos.y - currentPosition.y) * sin(currentPosition.rawYaw);
@@ -109,19 +111,20 @@ void calculateWheelPositions(float wheelPositions[4])
                  (targetPos.y - currentPosition.y) * cos(currentPosition.rawYaw);
   float localTheta = (targetPos.yaw - currentPosition.rawYaw);
 
-  // 计算各轮子位移(mm)
-  // 此处位移模型解算不一定准确 虚空开发T—T
-  // 轮子1：左前(+,+)  轮子2：右前(+,-)  轮子3：右后(-,-)  轮子4：左后(-,+)
-  float wheel1 = localX + localY + (WHEEL_BASE_X + WHEEL_BASE_Y) * localTheta;
-  float wheel2 = localX - localY + (WHEEL_BASE_X + WHEEL_BASE_Y) * localTheta;
-  float wheel3 = localX - localY - (WHEEL_BASE_X + WHEEL_BASE_Y) * localTheta;
-  float wheel4 = localX + localY - (WHEEL_BASE_X + WHEEL_BASE_Y) * localTheta;
+  // 计算时间间隔
+  float dt = CONTROL_INTERVAL / 1000.0f; // 转换为秒
+
+  // 计算位移增量
+  float wheel1 = (localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;  // 后左轮 (BL) - 1号
+  float wheel2 = (localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;  // 前左轮 (FL) - 2号
+  float wheel3 = (-localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt; // 前右轮 (FR) - 3号
+  float wheel4 = (-localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt; // 后右轮 (BR) - 4号
 
   // 转换为电机旋转角度(度)
-  wheelPositions[0] = wheel1 / (WHEEL_RADIUS * M_PI / 180.0f * GEAR_RATIO) + motorPositions[0];
-  wheelPositions[1] = wheel2 / (WHEEL_RADIUS * M_PI / 180.0f * GEAR_RATIO) + motorPositions[1];
-  wheelPositions[2] = wheel3 / (WHEEL_RADIUS * M_PI / 180.0f * GEAR_RATIO) + motorPositions[2];
-  wheelPositions[3] = wheel4 / (WHEEL_RADIUS * M_PI / 180.0f * GEAR_RATIO) + motorPositions[3];
+  wheelPositions[0] = wheel1 * (180.0f / M_PI) * GEAR_RATIO ;
+  wheelPositions[1] = wheel2 * (180.0f / M_PI) * GEAR_RATIO ;
+  wheelPositions[2] = wheel3 * (180.0f / M_PI) * GEAR_RATIO ;
+  wheelPositions[3] = wheel4 * (180.0f / M_PI) * GEAR_RATIO ;
 }
 // 计算两点间距离
 float calculateDistance(float x1, float y1, float x2, float y2)

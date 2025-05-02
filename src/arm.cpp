@@ -48,8 +48,8 @@ void initArm(void)
     servo3.setAngleRange(0, 0); // 三级关节舵机
     servo4.setAngleRange(0, 0); // 夹爪舵机
 }
-
-void moveArm(float x, float y, float z, float *outArmdegree)
+/*逆解算 根据下x,y,z坐标解算出具体关节的舵机角度*/
+void armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
 {
     float shortSide;        // 短边长度
     float hypotenuse;       // 斜边长度
@@ -112,52 +112,81 @@ void moveArm(float x, float y, float z, float *outArmdegree)
                              (2.0f * ARM_SECOND_LENGTH * ARM_SECOND_LENGTH)) *
                         180.0f / PI; // 小臂角度(度)
 
+    first_arm_degree = 90.0f - first_arm_degree;                       // 将大臂角转换为相对于竖直方向的角度 ，向前为正值
+    second_arm_degree = -90.0f + second_arm_degree - first_arm_degree; // 将小臂角转换为相对于水平线的角度，低于水平线为负值
     /* 机械臂xy平面逆解算 */
     float theta0 = atan2(y, x) * 180.0 / PI; // 云台舵机角度(度)
 
-    // 计算关节角度
-    // // 使用余弦定理计算关节角度
-    // float alpha = atan2(z, r) * 180.0 / PI;
-    // float beta = acos((L1 * L1 + R * R - L2 * L2 - L3 * L3 - 2 * L2 * L3) / (2 * L1 * R)) * 180.0 / PI;
-    // float theta1 = alpha + beta; // 一级关节舵机角度(度)
-
-    // float gamma = acos((L1 * L1 + L2 * L2 - R * R + L3 * L3 + 2 * L2 * L3) / (2 * L1 * L2)) * 180.0 / PI;
-    // float theta2 = 180.0 - gamma; // 二级关节舵机角度(度)
-
-    // float delta = acos((L2 * L2 + L3 * L3 - L1 * L1 - R * R + 2 * L1 * R) / (2 * L2 * L3)) * 180.0 / PI;
-    // float theta3 = 180.0 - delta; // 三级关节舵机角度(度)
-
-    // // 设置舵机角度
-    // servo0.setAngle(theta0, 1000); // 云台舵机
-    // servo1.setAngle(theta1, 1000); // 一级关节舵机
-    // servo2.setAngle(theta2, 1000); // 二级关节舵机
-    // servo3.setAngle(theta3, 1000); // 三级关节舵机
-    // 等待舵机运动完成
-    servo0.wait();
-    servo1.wait();
-    servo2.wait();
-    servo3.wait();
+    out_arm_degree[0] = first_arm_degree;  // 大臂角度
+    out_arm_degree[1] = second_arm_degree; // 小臂角度(度)
+    out_arm_degree[2] = theta0;            // 云台舵机角度(度)
 }
 /**
+ * 根据大小臂角度计算末端执行器的位置坐标
  *@brief 机械臂运动学正解算
  *@param first_arm_degree: 大臂角度,竖直方向为0,向前为正角度
  *@param second_arm_degree: 小臂角度,水平方向为0,向上为正角度
+ *@param theta0   云台舵机角度(度)
  *@param out_arm_location_yz[0]: 输出坐标y
  *@param out_arm_location_yz[1]: 输出坐标z
+ *@param out_arm_location_yz[1]: 输出坐标x
  */
-float *robot_arm_calculate_forward(float first_arm_degree, float second_arm_degree, float *out_arm_location_yz)
+float *armCalculate_forward(float first_arm_degree, float second_arm_degree, float theta0, float *out_arm_location_yz)
 {
     float z1, z2, y1, y2;                                        // 大臂和小臂的z轴和y轴增量
+    float x1, x2;                                                // 大臂和小臂的x轴增量
     z1 = ARM_SECOND_LENGTH * cos(first_arm_degree * PI / 180.0); // 大臂z轴增量
     y1 = ARM_SECOND_LENGTH * sin(first_arm_degree * PI / 180.0); // 大臂y轴增量
 
     z2 = ARM_FIRST_LENGTH * sin(second_arm_degree * PI / 180.0);
     y2 = ARM_FIRST_LENGTH * cos(second_arm_degree * PI / 180.0);
 
-    out_arm_location_yz[0] = y1 + y2 + ARM_THIRD_LENGTH;
-    out_arm_location_yz[1] = z1 + z2 - ARM_THIRD_LENGTH + ARM_FIRST_JOINT_HEIGHT;
+    out_arm_location_yz[0] = y1 + y2 + ARM_THIRD_LENGTH;                          // 末端执行器y坐标
+    out_arm_location_yz[2] = out_arm_location_yz[0] * tan(theta0 * PI / 180.0);   // 末端执行器x坐标
+    out_arm_location_yz[1] = z1 + z2 - ARM_THIRD_LENGTH + ARM_FIRST_JOINT_HEIGHT; // 末端执行器z坐标
 
     return out_arm_location_yz;
+}
+/**
+ *@brief 机械大小臂角度控制
+ *@param first_arm_degree: 大臂相对角度
+ *@param second_arm_degree: 小臂相对角度
+ *@return 无
+ */
+void armSet_position(float first_arm_degree, float second_arm_degree, float theta0)
+{
+    // 角度限制
+    if (theta0 < BASIS_ARM_ANGLE_MIN)
+        theta0 = BASIS_ARM_ANGLE_MIN;
+    if (theta0 > BASIS_ARM_ANGLE_MAX)
+        theta0 = BASIS_ARM_ANGLE_MAX;
+    if (first_arm_degree < FIRST_ARM_ANGLE_MIN)
+        first_arm_degree = FIRST_ARM_ANGLE_MIN;
+    if (first_arm_degree > FIRST_ARM_ANGLE_MAX)
+        first_arm_degree = FIRST_ARM_ANGLE_MAX;
+    if (second_arm_degree < SECOND_ARM_ANGLE_MIN)
+        second_arm_degree = SECOND_ARM_ANGLE_MIN;
+    if (second_arm_degree > SECOND_ARM_ANGLE_MAX)
+        second_arm_degree = SECOND_ARM_ANGLE_MAX;
+
+    // 设置舵机角度
+    servo0.setAngle(theta0);            // 云台舵机
+    servo1.setAngle(first_arm_degree);  // 一级关节舵机
+    servo2.setAngle(second_arm_degree); // 二级关节舵机
+}
+/**
+ *@brief 机械臂xyz平面位置控制
+ *@param x: x坐标,单位mm
+ *@param y: y坐标,单位mm
+ *@param z: z轴坐标,单位mm
+ *@return void
+ */
+void armControl_xyz(float x, float y, float z)
+{
+    float xyz_to_angle[3];
+
+    armCalculate_inverse(x, y, z, xyz_to_angle);
+    armSet_position(xyz_to_angle[0], xyz_to_angle[1], xyz_to_angle[2]);
 }
 
 void arm_ScanQRcode()
