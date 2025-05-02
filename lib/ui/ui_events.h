@@ -10,7 +10,9 @@
 extern "C" {
 #endif
 
+void lockCurrentPos(lv_event_t * e);
 void toNextPos(lv_event_t * e);
+void enableMotor(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

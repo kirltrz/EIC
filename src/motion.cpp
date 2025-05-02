@@ -5,13 +5,8 @@
 #include "taskManager.h"
 /*有待完善 部分函数可以加入pid控制 部分参数待调整 速度模式和位置模式也还未限幅 主循环中也可以添加安全检查*/
 ZDTX42V2 *motor = nullptr;
-enum systemState
-{
-  IDLE,               // 空闲状态
-  COARSE_POSITIONING, // 粗定位状态
-  FINE_POSITIONING,   // 精定位状态
-  COMPLETED           // 定位完成
-};
+SemaphoreHandle_t targetPositionMutex = NULL; // 目标坐标互斥锁
+
 systemState currentState = IDLE; // 默认空闲
 
 // 数据缓冲区
@@ -33,14 +28,15 @@ void initMotor(void)
   DEBUG_LOG("开始初始化电机...");
   // 初始化电机对象
   motor = new ZDTX42V2(&Serial2);
-
-  delay(500); // 等待电机初始化完成
+  targetPositionMutex = xSemaphoreCreateMutex(); // 创建目标坐标互斥锁
+  delay(1000); // 等待电机初始化完成
 
   // 确保所有电机都停止
   motor->stopNow(MOTOR_BROADCAST, 0);
+  //motor->receiveData(rxBuffer, &rxLength);
   // 重置电机位置
   motor->resetCurPosToZero(MOTOR_BROADCAST);
-  motor->receiveData(rxBuffer, &rxLength);
+  //motor->receiveData(rxBuffer, &rxLength);
 
   // delay(500); // 等待电机初始化完成
   DEBUG_LOG("电机初始化和通信测试完成");
@@ -48,12 +44,28 @@ void initMotor(void)
 
 void moveTo(POS _targetPos)
 { // 不要直接赋值，加互斥锁
+  if (xSemaphoreTake(targetPositionMutex, portMAX_DELAY) == pdTRUE)
+  {
+    targetPos = _targetPos;
+    xSemaphoreGive(targetPositionMutex);
+  }
 }
 void stopMotion(void)
 {
+  global_position_t currentPosition;
+  getGlobalPosition(&currentPosition);
+  if (xSemaphoreTake(targetPositionMutex, portMAX_DELAY) == pdTRUE)
+  {
+    targetPos.x = currentPosition.x;
+    targetPos.y = currentPosition.y;
+    targetPos.yaw = currentPosition.rawYaw;
+    xSemaphoreGive(targetPositionMutex);
+  }
 }
-void emergencyStop(void)
-{//失能驱动板
+void emergencyStopMotor(bool is_enable)
+{ // 失能驱动板
+  DEBUG_LOG("急停");
+  motor->enControl(MOTOR_BROADCAST, is_enable);
 }
 // 将全局坐标系中的速度转换为机器人局部坐标系中的速度
 void globalToLocalVelocity(float global_vx, float global_vy, float yaw_rad, float &local_vx, float &local_vy)
@@ -150,11 +162,11 @@ bool coarsePositioning(void)
 
   for (int i = 0; i < motorCount; i++)
   {
-    motor->trajPositionControl(motorAddresses[i], 0, ACC_VALUE, DEC_VALUE, MAX_VELOCITY, wheelPositions[i], 1, 1);
-    motor->receiveData(rxBuffer, &rxLength);
+    motor->trajPositionControl(motorAddresses[i], 0, ACC_VALUE, DEC_VALUE, 240, wheelPositions[i], 1, 1);
+    //motor->receiveData(rxBuffer, &rxLength);
   }
-  motor->synchronousMotion(0);
-  motor->receiveData(rxBuffer, &rxLength);
+  motor->synchronousMotion(MOTOR_BROADCAST);
+  //motor->receiveData(rxBuffer, &rxLength);
 
   return false; // 粗定位未完成
 }
@@ -175,7 +187,8 @@ bool finePositioning(void)
     // 达到精度要求，停止所有电机
     // 使用广播地址停止所有电机
     motor->velocityControl(MOTOR_BROADCAST, 0, FINE_VELOCITY_RAMP, 0.0f, 0);
-    motor->receiveData(rxBuffer, &rxLength);
+    //motor->receiveData(rxBuffer, &rxLength);
+
     return true; // 精定位完成
   }
   // 计算根据误差的速度缩放因子(越接近目标速度越慢)(具体参数待调整，可以考虑用增量式pid控制)
@@ -212,13 +225,16 @@ bool finePositioning(void)
       wheelVelocities[i] = wheelVelocities[i] > 0 ? MIN_VELOCITY : -MIN_VELOCITY;
     }
   }
+
   for (int i = 0; i < motorCount; i++)
   {
     motor->velocityControl(motorAddresses[i], wheelVelocities[i] < 0, FINE_VELOCITY_RAMP, fabs(wheelVelocities[i]), 0);
-    motor->receiveData(rxBuffer, &rxLength);
+    //motor->receiveData(rxBuffer, &rxLength);
   }
+
   return false; // 精定位未完成
 }
+/*
 void updateCurrentPosition()
 {
   // 获取当前全局坐标系下的位置
@@ -243,7 +259,7 @@ void updateCurrentPosition()
     currentPosition.y += dy * 0.02;
     currentPosition.rawYaw += dtheta * 0.02;
   }
-}
+}*/
 
 void moveTask(void *pvParameters)
 {
@@ -262,16 +278,15 @@ void moveTask(void *pvParameters)
       switch (currentState)
       {
       case IDLE:
-        init();
-        Serial.println("开始粗定位阶段...");
-        currentState = COARSE_POSITIONING;
+        //DEBUG_LOG("开始粗定位阶段...");
+        //currentState = COARSE_POSITIONING;
         break;
 
       case COARSE_POSITIONING:
         // 执行粗定位
         if (coarsePositioning())
         {
-          Serial.println("粗定位完成，开始精定位阶段...");
+          DEBUG_LOG("粗定位完成，开始精定位阶段...");
           currentState = FINE_POSITIONING;
         }
         break;
@@ -280,20 +295,14 @@ void moveTask(void *pvParameters)
         // 执行精定位
         if (finePositioning())
         {
-          Serial.println("精定位完成，任务完成!");
-          currentState = COMPLETED;
+          DEBUG_LOG("精定位完成，任务完成!");
+          //currentState = COMPLETED;
         }
         break;
 
       case COMPLETED:
-        for (int i = 0; i < 3; i++)
-        {
-          motor->stopNow(MOTOR_FR, 0);
-          motor->stopNow(MOTOR_FL, 0);
-          motor->stopNow(MOTOR_BL, 0);
-          motor->stopNow(MOTOR_BR, 0);
-          wait(10);
-        }
+        motor->stopNow(MOTOR_BROADCAST, 0);
+        //wait(10);
         break;
       }
     } /*移动任务,不断向电机发送控制指令*/
@@ -301,7 +310,8 @@ void moveTask(void *pvParameters)
     if (currentTime - lastFeedbackTime >= FEEDBACK_INTERVAL)
     {
       lastFeedbackTime = currentTime;
-      updateCurrentPosition();
+      //updateCurrentPosition();
     }
+    wait(10);
   }
 }

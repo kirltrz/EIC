@@ -11,10 +11,25 @@
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
 lv_obj_t * ui_Screen1;
-lv_obj_t * ui_Label1;
 void ui_event_Button1(lv_event_t * e);
 lv_obj_t * ui_Button1;
 lv_obj_t * ui_Label2;
+void ui_event_Button2(lv_event_t * e);
+lv_obj_t * ui_Button2;
+lv_obj_t * ui_Label3;
+lv_obj_t * ui_Panel1;
+lv_obj_t * ui_Label1;
+lv_obj_t * ui_Label4;
+lv_obj_t * ui_Label5;
+lv_obj_t * ui_currentX;
+lv_obj_t * ui_currentY;
+lv_obj_t * ui_currentYaw;
+void ui_event_enableMotorSwitch(lv_event_t * e);
+lv_obj_t * ui_enableMotorSwitch;
+lv_obj_t * ui_Label6;
+lv_obj_t * ui_Label7;
+lv_obj_t * ui_voltage;
+lv_obj_t * ui_Label8;
 // CUSTOM VARIABLES
 
 // EVENTS
@@ -35,7 +50,25 @@ void ui_event_Button1(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        lockCurrentPos(e);
+    }
+}
+
+void ui_event_Button2(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
         toNextPos(e);
+    }
+}
+
+void ui_event_enableMotorSwitch(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        enableMotor(e);
     }
 }
 

@@ -12,6 +12,11 @@
 
 void toNextPos(lv_event_t * e)
 {
+	currentState = COARSE_POSITIONING;
+}
+
+void lockCurrentPos(lv_event_t * e)
+{
 	// 静态变量记录当前状态：是否已锁定位置
 	static bool is_position_locked = false;
 	
@@ -53,5 +58,22 @@ void toNextPos(lv_event_t * e)
 		
 		// 更新状态
 		is_position_locked = false;
+	}
+}
+
+void enableMotor(lv_event_t * e)
+{
+	// 获取开关状态
+	lv_obj_t * sw = (lv_obj_t *)lv_event_get_target(e);
+	bool is_checked = lv_obj_has_state(sw, LV_STATE_CHECKED);
+	
+	if (is_checked) {
+		// 开关打开，使能电机
+		emergencyStopMotor(true);
+		DEBUG_LOG("电机已使能");
+	} else {
+		// 开关关闭，失能电机
+		emergencyStopMotor(false);
+		DEBUG_LOG("电机已失能");
 	}
 }

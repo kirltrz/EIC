@@ -1,6 +1,7 @@
 #include "displayInterface.h"
 #include "config.h"
-
+#include "sensor.h"
+#include "motion.h"
 LGFX display;
 
 uint16_t calibrateData[8] = {3912, 161, 3928, 3772, 219, 188, 222, 3768}; // 触摸屏校准数据
@@ -15,6 +16,25 @@ void lvglTask(void *pvParameters)
         vTaskDelay(5);
     }
 }
+static void lv_update_task(lv_timer_t *timer)
+{
+    //定期更新UI内容
+    char buf[10][16]; // 静态缓冲区
+    global_position_t globalPos;
+    getGlobalPosition(&globalPos);
+
+    
+    sprintf(buf[0], "%.2f", globalPos.x);
+    sprintf(buf[1], "%.2f", globalPos.y);
+    sprintf(buf[2], "%.2f", globalPos.continuousYaw);
+    sprintf(buf[3], "%d", motor->getVoltage());
+
+    lv_label_set_text(ui_currentX, buf[0]);
+    lv_label_set_text(ui_currentY, buf[1]);
+    lv_label_set_text(ui_currentYaw, buf[2]);
+    lv_label_set_text(ui_voltage, buf[3]);
+}
+
 void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)
 {
     uint32_t w = (area->x2 - area->x1 + 1);
@@ -71,4 +91,7 @@ void initGUI(void)
 
     /*加载UI*/
     ui_init();
+
+    /*创建lvgl周期任务用于更新UI*/
+    lv_timer_t *timer = lv_timer_create(lv_update_task, 200, NULL);
 }

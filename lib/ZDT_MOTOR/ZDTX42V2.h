@@ -42,7 +42,8 @@ class ZDTX42V2 {
 public:
   // 构造函数自动初始化，可选传入串口指针
   ZDTX42V2(HardwareSerial* serial = nullptr);
-  
+  // 发送命令
+  void sendCommand(uint8_t *cmd, uint8_t len);
   // 基本控制函数
   void resetCurPosToZero(uint8_t addr);                          // 将当前位置清零
   void resetClogPro(uint8_t addr);                               // 解除堵转保护
@@ -70,4 +71,5 @@ public:
 
 private:
   HardwareSerial* _serial;
+  SemaphoreHandle_t _serialMutex;
 };
