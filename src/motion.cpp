@@ -13,7 +13,7 @@ systemState currentState = IDLE; // 默认空闲
 uint8_t rxBuffer[128];
 uint8_t rxLength;
 // 定义电机地址数组
-const uint8_t motorAddresses[] = {MOTOR_FR, MOTOR_BR, MOTOR_BL, MOTOR_FL};
+const uint8_t motorAddresses[] = {MOTOR_BL, MOTOR_FL, MOTOR_FR, MOTOR_BR};
 const int motorCount = sizeof(motorAddresses) / sizeof(motorAddresses[0]);
 static POS targetPos = {0, 0, 0};
 // 电机当前角度位置(度)
@@ -29,14 +29,14 @@ void initMotor(void)
   // 初始化电机对象
   motor = new ZDTX42V2(&Serial2);
   targetPositionMutex = xSemaphoreCreateMutex(); // 创建目标坐标互斥锁
-  delay(1000); // 等待电机初始化完成
+  delay(1000);                                   // 等待电机初始化完成
 
   // 确保所有电机都停止
   motor->stopNow(MOTOR_BROADCAST, 0);
-  //motor->receiveData(rxBuffer, &rxLength);
-  // 重置电机位置
+  // motor->receiveData(rxBuffer, &rxLength);
+  //  重置电机位置
   motor->resetCurPosToZero(MOTOR_BROADCAST);
-  //motor->receiveData(rxBuffer, &rxLength);
+  // motor->receiveData(rxBuffer, &rxLength);
 
   // delay(500); // 等待电机初始化完成
   DEBUG_LOG("电机初始化和通信测试完成");
@@ -68,12 +68,20 @@ void emergencyStopMotor(bool is_enable)
   motor->enControl(MOTOR_BROADCAST, is_enable);
 }
 // 将全局坐标系中的速度转换为机器人局部坐标系中的速度
+/* void globalToLocalVelocity(float global_vx, float global_vy, float yaw_rad, float &local_vx, float &local_vy)
+{
+  /* // yaw_rad是机器人相对于全局坐标系的偏航角，单位是弧度
+  // 全局坐标到局部坐标的旋转变换，交换X和Y的映射关系
+  local_vx = -global_vy * cos(yaw_rad) + global_vx * sin(yaw_rad);
+  local_vy = -global_vx * cos(yaw_rad) - global_vy * sin(yaw_rad); */
+  
+
 void globalToLocalVelocity(float global_vx, float global_vy, float yaw_rad, float &local_vx, float &local_vy)
 {
   // yaw_rad是机器人相对于全局坐标系的偏航角，单位是弧度
-  // 全局坐标到局部坐标的旋转变换，交换X和Y的映射关系
-  local_vx = -global_vy * cos(yaw_rad) + global_vx * sin(yaw_rad);
-  local_vy = -global_vx * cos(yaw_rad) - global_vy * sin(yaw_rad);
+  // 标准的全局坐标到局部坐标的旋转变换
+  local_vx = global_vx * cos(yaw_rad) + global_vy * sin(yaw_rad);
+  local_vy = -global_vx * sin(yaw_rad) + global_vy * cos(yaw_rad);
 }
 void calculateWheelVelocities(float vx, float vy, float omega, float wheelVelocities[4])
 {
@@ -82,7 +90,7 @@ void calculateWheelVelocities(float vx, float vy, float omega, float wheelVeloci
   global_position_t currentPosition;
   getGlobalPosition(&currentPosition);
   float local_vx, local_vy;
-  globalToLocalVelocity(vx, vy, currentPosition.rawYaw, local_vx, local_vy);
+  globalToLocalVelocity(vx, vy, (currentPosition.continuousYaw) * M_PI / 180.0f, local_vx, local_vy);
 
   // 计算轮子角速度 (rad/s)
   float wheel_speeds[4];
@@ -95,10 +103,10 @@ void calculateWheelVelocities(float vx, float vy, float omega, float wheelVeloci
 
   // 翻转X轴控制方向，修正左右行驶方向
   // 交换X和Y对轮子的影响关系
-  wheel_speeds[0] = (local_vx - omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS;  // 后左轮 (BL) - 1号
-  wheel_speeds[1] = (local_vy - omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS;  // 前左轮 (FL) - 2号
-  wheel_speeds[2] = (-local_vx - omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS; // 前右轮 (FR) - 3号
-  wheel_speeds[3] = (-local_vy - omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS; // 后右轮 (BR) - 4号
+  wheel_speeds[0] = (local_vy - omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS;  // 后左轮 (BL) - 1号
+  wheel_speeds[1] = (local_vx - omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS;  // 前左轮 (FL) - 2号
+  wheel_speeds[2] = (-local_vy - omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS; // 前右轮 (FR) - 3号
+  wheel_speeds[3] = (-local_vx + omegaRad * ROBOT_RADIUS) / WHEEL_RADIUS; // 后右轮 (BR) - 4号
 
   // 将角速度转换为RPM
   for (int i = 0; i < 4; i++)
@@ -115,28 +123,38 @@ void calculateWheelPositions(float wheelPositions[4])
   getGlobalPosition(&currentPosition);
 
   // 获取所有电机位置
-  
+
   // 将目标位置从全局坐标系转换到机器人局部坐标系
-  float localX = (targetPos.x - currentPosition.x) * cos(currentPosition.rawYaw) +
-                 (targetPos.y - currentPosition.y) * sin(currentPosition.rawYaw);
-  float localY = -(targetPos.x - currentPosition.x) * sin(currentPosition.rawYaw) +
-                 (targetPos.y - currentPosition.y) * cos(currentPosition.rawYaw);
+  float localX = (targetPos.x - currentPosition.x) * cos(currentPosition.rawYaw * (M_PI / 180.0f)) +
+                 (targetPos.y - currentPosition.y) * sin(currentPosition.rawYaw * (M_PI / 180.0f));
+  float localY = -(targetPos.x - currentPosition.x) * sin(currentPosition.rawYaw * (M_PI / 180.0f)) +
+                 (targetPos.y - currentPosition.y) * cos(currentPosition.rawYaw * (M_PI / 180.0f));
   float localTheta = (targetPos.yaw - currentPosition.rawYaw);
-
+  /*计算出的localX，localY单位为mm localTheta单位为度 速度为mm/s 除以1s则不需要将localx（位移）再单独计算 其数值大小等于mm/s */
   // 计算时间间隔
-  float dt = CONTROL_INTERVAL / 1000.0f; // 转换为秒
+  float dt = CONTROL_INTERVAL / 1000.0f;     // 转换为秒
+  localTheta = localTheta * (M_PI / 180.0f); // 转换为弧度 同理 其数值上等于弧度/s
+  /*  // 计算位移增量
+                                              float wheel1 = (localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;  // 后左轮 (BL) - 1号
+                                              float wheel2 = (localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;  // 前左轮 (FL) - 2号
+                                              float wheel3 = (-localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt; // 前右轮 (FR) - 3号
+                                              float wheel4 = (-localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt; // 后右轮 (BR) - 4号 */
+  // 计算轮子位移
+  float wheel1 = (localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;
 
-  // 计算位移增量
-  float wheel1 = (localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;  // 后左轮 (BL) - 1号
-  float wheel2 = (localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;  // 前左轮 (FL) - 2号
-  float wheel3 = (-localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt; // 前右轮 (FR) - 3号
-  float wheel4 = (-localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt; // 后右轮 (BR) - 4号
+  // 2号轮（FL）：左上角，与x轴平行
+  float wheel2 = (localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;
 
+  // 3号轮（FR）：右上角，与y轴平行
+  float wheel3 = (-localY - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;
+
+  // 4号轮（BR）：右下角，与x轴平行
+  float wheel4 = (-localX - ROBOT_RADIUS * localTheta) / WHEEL_RADIUS * dt;
   // 转换为电机旋转角度(度)
-  wheelPositions[0] = wheel1 * (180.0f / M_PI) * GEAR_RATIO ;
-  wheelPositions[1] = wheel2 * (180.0f / M_PI) * GEAR_RATIO ;
-  wheelPositions[2] = wheel3 * (180.0f / M_PI) * GEAR_RATIO ;
-  wheelPositions[3] = wheel4 * (180.0f / M_PI) * GEAR_RATIO ;
+  wheelPositions[0] = wheel1 * (180.0f / M_PI) * GEAR_RATIO;
+  wheelPositions[1] = wheel2 * (180.0f / M_PI) * GEAR_RATIO;
+  wheelPositions[2] = wheel3 * (180.0f / M_PI) * GEAR_RATIO;
+  wheelPositions[3] = wheel4 * (180.0f / M_PI) * GEAR_RATIO;
 }
 // 计算两点间距离
 float calculateDistance(float x1, float y1, float x2, float y2)
@@ -151,8 +169,8 @@ bool coarsePositioning(void)
   getGlobalPosition(&currentPosition);
 
   // 计算当前位置和目标位置之间的距离
-  float distance = calculateDistance(currentPosition.x, currentPosition.y, targetPos.x, targetPos.y);
-  float angleDistance = fabs(currentPosition.rawYaw - targetPos.yaw);
+  float distance = calculateDistance(currentPosition.x, currentPosition.y, targetPos.x, targetPos.y); // 单位mm
+  float angleDistance = fabs(currentPosition.rawYaw - targetPos.yaw);                                 // 单位度
 
   // 检查是否已经达到粗定位精度
   if (distance <= POSITION_TOLERANCE && angleDistance <= 5.0f)
@@ -165,11 +183,11 @@ bool coarsePositioning(void)
 
   for (int i = 0; i < motorCount; i++)
   {
-    motor->trajPositionControl(motorAddresses[i], wheelPositions[i]>0?1:2, ACC_VALUE, DEC_VALUE, 240, wheelPositions[i], 0, 1);
-    //motor->receiveData(rxBuffer, &rxLength);
+    motor->trajPositionControl(motorAddresses[i], wheelPositions[i] > 0 ? 2 : 1, ACC_VALUE, DEC_VALUE, 100, wheelPositions[i], 0, 1);
+    // motor->receiveData(rxBuffer, &rxLength);
   }
   motor->synchronousMotion(MOTOR_BROADCAST);
-  //motor->receiveData(rxBuffer, &rxLength);
+  // motor->receiveData(rxBuffer, &rxLength);
 
   return false; // 粗定位未完成
 }
@@ -190,7 +208,7 @@ bool finePositioning(void)
     // 达到精度要求，停止所有电机
     // 使用广播地址停止所有电机
     motor->velocityControl(MOTOR_BROADCAST, 0, FINE_VELOCITY_RAMP, 0.0f, 0);
-    //motor->receiveData(rxBuffer, &rxLength);
+    // motor->receiveData(rxBuffer, &rxLength);
 
     return true; // 精定位完成
   }
@@ -200,7 +218,7 @@ bool finePositioning(void)
   // 计算指向目标的速度向量
   float dx = targetPos.x - currentPosition.x;
   float dy = targetPos.y - currentPosition.y;
-  float dtheta = targetPos.yaw - currentPosition.rawYaw;
+  float dtheta = targetPos.yaw - currentPosition.rawYaw; // 单位是度
 
   // 归一化位移向量
   float length = sqrt(dx * dx + dy * dy);
@@ -218,7 +236,7 @@ bool finePositioning(void)
   float angularSpeed = min(fabs(dtheta) * 5.0f, 30.0f) * (dtheta >= 0 ? 1 : -1);
 
   // 转换为轮速,并且将全局坐标系下的速度转换为局部坐标系下的速度
-  calculateWheelVelocities(dx * linearSpeed, dy * linearSpeed, angularSpeed, wheelVelocities);
+  calculateWheelVelocities(dx * linearSpeed, dy * linearSpeed, angularSpeed, wheelVelocities); // 函数内会将速度转换为RPM 并且会将角速度转换为弧度/s
 
   // 应用最小速度阈值，确保电机不会因速度太小而无法移动
   for (int i = 0; i < 4; i++)
@@ -231,8 +249,8 @@ bool finePositioning(void)
 
   for (int i = 0; i < motorCount; i++)
   {
-    motor->velocityControl(motorAddresses[i], wheelVelocities[i] < 0, FINE_VELOCITY_RAMP, fabs(wheelVelocities[i]), 0);
-    //motor->receiveData(rxBuffer, &rxLength);
+    motor->velocityControl(motorAddresses[i], wheelVelocities[i] < 0, FINE_VELOCITY_RAMP, fabs(wheelVelocities[i]), 1);
+    // motor->receiveData(rxBuffer, &rxLength);
   }
 
   return false; // 精定位未完成
@@ -281,8 +299,8 @@ void moveTask(void *pvParameters)
       switch (currentState)
       {
       case IDLE:
-        //DEBUG_LOG("开始粗定位阶段...");
-        //currentState = COARSE_POSITIONING;
+        // DEBUG_LOG("开始粗定位阶段...");
+        // currentState = COARSE_POSITIONING;
         break;
 
       case COARSE_POSITIONING:
@@ -299,13 +317,13 @@ void moveTask(void *pvParameters)
         if (finePositioning())
         {
           DEBUG_LOG("精定位完成，任务完成!");
-          //currentState = COMPLETED;
+          // currentState = COMPLETED;
         }
         break;
 
       case COMPLETED:
         motor->stopNow(MOTOR_BROADCAST, 0);
-        //wait(10);
+        // wait(10);
         break;
       }
     } /*移动任务,不断向电机发送控制指令*/
@@ -313,7 +331,7 @@ void moveTask(void *pvParameters)
     if (currentTime - lastFeedbackTime >= FEEDBACK_INTERVAL)
     {
       lastFeedbackTime = currentTime;
-      //updateCurrentPosition();
+      // updateCurrentPosition();
     }
     wait(10);
   }

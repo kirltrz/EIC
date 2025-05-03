@@ -45,7 +45,7 @@
 #define GEAR_RATIO 1.0f              // 电机与轮子的传动比
 #define POSITION_TOLERANCE 10.0f     // 粗定位容差(mm)
 #define FINE_POSITION_TOLERANCE 2.0f // 精定位容差(mm)
-#define FINE_VELOCITY 240.0f         // 精定位模式下的最大速度(RPM)
+#define FINE_VELOCITY 100.0f         // 精定位模式下的最大速度(RPM)
 #define FINE_VELOCITY_RAMP 1000      // 精定位速度斜率(RPM/s)
 #define MIN_VELOCITY 0.1             // 精定位最小速度(RPM)
 /******************************************************************************
