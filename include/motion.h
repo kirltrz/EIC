@@ -21,7 +21,7 @@ enum systemState
 // 外部声明电机驱动实例，使其全局可用
 extern ZDTX42V2 *motor;
 extern systemState currentState;
-
+float calculateMinAngleDifference(float angle1, float angle2);
 void initMotor(void);
 void moveTo(POS _targetPos);
 void stopMotion(void);
