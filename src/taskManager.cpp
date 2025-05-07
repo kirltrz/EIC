@@ -4,10 +4,11 @@
 #include "motion.h"
 #include "sensor.h"
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
-
+SemaphoreHandle_t xSemaphoreArmTest = NULL;
 void initTaskManager(void)
 {
     xSemaphoreMainsequence = xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量
+    xSemaphoreArmTest = xSemaphoreCreateBinary();
     /*初始化任务管理器*/
     xTaskCreate(
         lvglTask,    // 任务函数
