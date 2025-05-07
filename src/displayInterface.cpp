@@ -93,5 +93,5 @@ void initGUI(void)
     ui_init();
 
     /*创建lvgl周期任务用于更新UI*/
-    lv_timer_t *timer = lv_timer_create(lv_update_task, 200, NULL);
+    (void)lv_timer_create(lv_update_task, 200, NULL);
 }

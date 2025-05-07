@@ -8,6 +8,7 @@
 #define YAW     0x3F
 #define UNLOCK  0x69
 #define CALIYAW 0x76
+#define RRATE   0x03
 
 class HWT101CLASS
 {
@@ -18,6 +19,7 @@ public:
 
 	float getZ(float *ptr = nullptr);
 	void toZero(void);
+	bool setOutputRate(float hz);
 
 private:
 	unsigned char devAddr;
