@@ -7,6 +7,7 @@
 #include "Arduino.h"
 #include "Wire.h"
 #include "motion.h"
+#include "arm.h"
 #include "sensor.h"
 #include "ZDTX42V2.h"
 
@@ -76,4 +77,19 @@ void enableMotor(lv_event_t * e)
 		emergencyStopMotor(false);
 		DEBUG_LOG("电机已失能");
 	}
+}
+
+void armTestFunc(lv_event_t * e)
+{
+	startArmTest();
+}
+
+void servoSetOringin(lv_event_t * e)
+{
+	setOriginPoint();
+}
+
+void stopServo(lv_event_t * e)
+{
+	stopArm(false);
 }

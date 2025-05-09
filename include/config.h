@@ -11,7 +11,7 @@
 #define DEBUG_SERIAL Serial
 
 #if DEBUG_ENABLE
-#define DEBUG_LOG(...) Serial.printf(__VA_ARGS__)
+#define DEBUG_LOG(...) Serial.println(__VA_ARGS__)
 #else
 #define DEBUG_LOG(...)
 #endif
@@ -85,8 +85,8 @@
 
 /* 舵机 */
 #define SERVO_SERIAL Serial1
-#define PIN_SERVO_TX 14
-#define PIN_SERVO_RX 13
+#define PIN_SERVO_TX 13
+#define PIN_SERVO_RX 14
 
 /* PAW3395 */
 #define PAW3395_OFFSET_X TBD // 安装偏移量X

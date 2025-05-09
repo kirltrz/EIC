@@ -2,6 +2,7 @@
 #include "displayInterface.h"
 #include "mainSequence.h"
 #include "motion.h"
+#include "arm.h"
 #include "sensor.h"
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
 SemaphoreHandle_t xSemaphoreArmTest = NULL;
@@ -21,4 +22,5 @@ void initTaskManager(void)
     xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
     xTaskCreate(moveTask, "Move Task", 4096, NULL, 1, NULL);
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
+    xTaskCreate(armTestTask, "Arm Test Task", 4096, NULL, 1, NULL);
 }

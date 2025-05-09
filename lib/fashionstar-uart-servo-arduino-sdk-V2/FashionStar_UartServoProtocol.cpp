@@ -11,7 +11,7 @@ FSUS_Protocol::FSUS_Protocol(HardwareSerial * serial, uint32_t baudrate){
     this->serial = serial;
     this->baudrate = baudrate;
     // 初始化波特率
-    serial->begin(baudrate);
+    //serial->begin(baudrate);
 }
 
 FSUS_Protocol::FSUS_Protocol(uint32_t baudrate){
@@ -32,8 +32,8 @@ void FSUS_Protocol::init(){
 #elif defined(ARDUINO_ARCH_ESP32)
     // Serial2初始化
     // API Serial2.begin(baud-rate, protocol, RX pin, TX pin);
-    Serial2.begin(baudrate);
-    this->serial = &Serial2;
+    //Serial2.begin(baudrate);
+    //this->serial = &Serial1;
 
 #elif defined(ARDUINO_ARCH_STM32)
  Serial2.begin(baudrate); // 设置波特率

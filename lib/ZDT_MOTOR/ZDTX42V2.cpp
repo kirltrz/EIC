@@ -550,12 +550,12 @@ uint16_t ZDTX42V2::getVoltage()
   receiveData(rxCmd, &rxCount);
   //DEBUG_LOG("读取电压命令完成");
   // 调试输出接收到的字节
-  DEBUG_LOG("接收到的字节数: %d", rxCount);
-  DEBUG_LOG("字节[1]: 0x%02X", rxCmd[1]);
+  //DEBUG_LOG("接收到的字节数: %d", rxCount);
+  //DEBUG_LOG("字节[1]: 0x%02X", rxCmd[1]);
 
   if (rxCmd[1] == 0x24)
   {
-    DEBUG_LOG("成功解析电压命令");
+    //DEBUG_LOG("成功解析电压命令");
     voltage = (rxCmd[2] << 8) | rxCmd[3];
   }
   return voltage;
