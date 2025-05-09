@@ -30,6 +30,26 @@ lv_obj_t * ui_Label6;
 lv_obj_t * ui_Label7;
 lv_obj_t * ui_voltage;
 lv_obj_t * ui_Label8;
+void ui_event_Button3(lv_event_t * e);
+lv_obj_t * ui_Button3;
+lv_obj_t * ui_Label9;
+void ui_event_Button4(lv_event_t * e);
+lv_obj_t * ui_Button4;
+lv_obj_t * ui_Label11;
+void ui_event_Button5(lv_event_t * e);
+lv_obj_t * ui_Button5;
+lv_obj_t * ui_Label12;
+lv_obj_t * ui_Panel2;
+lv_obj_t * ui_Label10;
+lv_obj_t * ui_Label13;
+lv_obj_t * ui_Label14;
+lv_obj_t * ui_Label15;
+lv_obj_t * ui_Label16;
+lv_obj_t * ui_servo0angle;
+lv_obj_t * ui_servo1angle;
+lv_obj_t * ui_servo2angle;
+lv_obj_t * ui_servo3angle;
+lv_obj_t * ui_servo4angle;
 // CUSTOM VARIABLES
 
 // EVENTS
@@ -69,6 +89,33 @@ void ui_event_enableMotorSwitch(lv_event_t * e)
 
     if(event_code == LV_EVENT_CLICKED) {
         enableMotor(e);
+    }
+}
+
+void ui_event_Button3(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        armTestFunc(e);
+    }
+}
+
+void ui_event_Button4(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        servoSetOringin(e);
+    }
+}
+
+void ui_event_Button5(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        stopServo(e);
     }
 }
 

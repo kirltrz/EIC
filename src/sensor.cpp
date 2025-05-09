@@ -122,7 +122,7 @@ void calculateGlobalPosition(void *pvParameters)
             xSemaphoreGive(positionMutex); // 释放互斥锁
         }
 
-        wait(1);
+        wait(5);
     }
 }
 

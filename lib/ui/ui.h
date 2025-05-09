@@ -49,6 +49,26 @@ extern lv_obj_t * ui_Label6;
 extern lv_obj_t * ui_Label7;
 extern lv_obj_t * ui_voltage;
 extern lv_obj_t * ui_Label8;
+void ui_event_Button3(lv_event_t * e);
+extern lv_obj_t * ui_Button3;
+extern lv_obj_t * ui_Label9;
+void ui_event_Button4(lv_event_t * e);
+extern lv_obj_t * ui_Button4;
+extern lv_obj_t * ui_Label11;
+void ui_event_Button5(lv_event_t * e);
+extern lv_obj_t * ui_Button5;
+extern lv_obj_t * ui_Label12;
+extern lv_obj_t * ui_Panel2;
+extern lv_obj_t * ui_Label10;
+extern lv_obj_t * ui_Label13;
+extern lv_obj_t * ui_Label14;
+extern lv_obj_t * ui_Label15;
+extern lv_obj_t * ui_Label16;
+extern lv_obj_t * ui_servo0angle;
+extern lv_obj_t * ui_servo1angle;
+extern lv_obj_t * ui_servo2angle;
+extern lv_obj_t * ui_servo3angle;
+extern lv_obj_t * ui_servo4angle;
 // CUSTOM VARIABLES
 
 // EVENTS

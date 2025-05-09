@@ -8,7 +8,6 @@ FSUS_Servo servo2(2, &protocol); // 二级关节舵机
 FSUS_Servo servo3(3, &protocol); // 三级关节舵机
 FSUS_Servo servo4(4, &protocol); // 夹爪舵机
 
-
 struct armPos
 {
     int x;
@@ -35,6 +34,7 @@ struct
 } circlePosition;
 void initArm(void)
 {
+    Serial1.begin(115200, SERIAL_8N1, PIN_SERVO_RX, PIN_SERVO_TX);
     /*初始化机械臂*/
     protocol.init(); // 初始化协议
     servo0.init();   // 初始化云台舵机
@@ -43,11 +43,32 @@ void initArm(void)
     servo3.init();   // 初始化三级关节舵机
     servo4.init();   // 初始化夹爪舵机
     /*舵机角度限幅 限幅角度待定 宏定义*/
-    servo0.setAngleRange(0, 0); // 云台舵机
-    servo1.setAngleRange(0, 0); // 一级关节舵机
-    servo2.setAngleRange(0, 0); // 二级关节舵机
-    servo3.setAngleRange(0, 0); // 三级关节舵机
-    servo4.setAngleRange(0, 0); // 夹爪舵机
+    servo0.setAngleRange(-180, 180); // 云台舵机
+    servo1.setAngleRange(-180, 180); // 一级关节舵机
+    servo2.setAngleRange(-180, 180); // 二级关节舵机
+    servo3.setAngleRange(-180, 180); // 三级关节舵机
+    servo4.setAngleRange(-180, 180); // 夹爪舵机
+    DEBUG_LOG("初始化机械臂完成");
+}
+void setOriginPoint(void)
+{
+    servo0.SetOriginPoint();
+    servo1.SetOriginPoint();
+    servo2.SetOriginPoint();
+    servo3.SetOriginPoint();
+    servo4.SetOriginPoint();
+}
+void stopArm(bool stop)
+{
+    if (!stop)
+    {
+        DEBUG_LOG("机械臂停止");
+        servo0.StopOnControlUnloading();
+        servo1.StopOnControlUnloading();
+        servo2.StopOnControlUnloading();
+        servo3.StopOnControlUnloading();
+        servo4.StopOnControlUnloading();
+    }
 }
 /*逆解算 根据下x,y,z坐标解算出具体关节的舵机角度*/
 void armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
@@ -191,7 +212,8 @@ void armControl_xyz(float x, float y, float z)
 }
 void startArmTest(void)
 {
-    if (xSemaphoreArmTest != NULL) {
+    if (xSemaphoreArmTest != NULL)
+    {
         xSemaphoreGive(xSemaphoreArmTest);
         DEBUG_LOG("机械臂测试信号已发送");
     }
@@ -205,109 +227,135 @@ void armTestTask(void *pvParameters)
         // 等待测试信号
         if (xSemaphoreTake(xSemaphoreArmTest, portMAX_DELAY) == pdTRUE)
         {
+            DEBUG_LOG("机械臂测试信号已接收");
+            // setOriginPoint();
+            // DEBUG_LOG("机械臂归零完成");
+            servo0.setAngle(0, 500,50000);
+            servo1.setAngle(0, 500);
+            servo2.setAngle(0, 500);
+            servo3.setAngle(0, 500);
+            servo4.setAngle(0, 500);
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
+            servo0.setAngle(0, 500);
+            servo1.setAngle(30, 500);
+            servo2.setAngle(-90, 500);
+            servo3.setAngle(-90, 500);
+            servo4.setAngle(-45, 500);
+            /*
+            DEBUG_LOG("测试电机是否在线");
+            bool u1_valid = servo0.ping();
+            if (u1_valid)
+            {
+                DEBUG_LOG("云台舵机在线");
+            }
+            else
+            {
+                DEBUG_LOG("云台舵机离线");
+            }
+
             DEBUG_LOG("开始机械臂测试序列...");
-            
+
             // 测试1: 基础舵机控制
             DEBUG_LOG("测试1: 基础舵机角度控制");
-            
+
             // 测试云台舵机
-            DEBUG_LOG("  测试云台舵机...");
+            DEBUG_LOG("测试云台舵机...");
             servo0.setAngle(0, 1000);
             vTaskDelay(2000 / portTICK_PERIOD_MS);
             servo0.setAngle(90, 1000);
             vTaskDelay(2000 / portTICK_PERIOD_MS);
             servo0.setAngle(45, 1000);
             vTaskDelay(2000 / portTICK_PERIOD_MS);
-            
-        /*     // 测试一级关节舵机
-            DEBUG_LOG("  测试一级关节舵机...");
-            servo1.setAngle(FIRST_ARM_ANGLE_MIN + 10, 1000);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            servo1.setAngle(FIRST_ARM_ANGLE_MAX - 10, 1000);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            servo1.setAngle((FIRST_ARM_ANGLE_MIN + FIRST_ARM_ANGLE_MAX) / 2, 1000);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            
-            // 测试二级关节舵机
-            DEBUG_LOG("  测试二级关节舵机...");
-            servo2.setAngle(SECOND_ARM_ANGLE_MIN + 10, 1000);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            servo2.setAngle(SECOND_ARM_ANGLE_MAX - 10, 1000);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            servo2.setAngle((SECOND_ARM_ANGLE_MIN + SECOND_ARM_ANGLE_MAX) / 2, 1000);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            
-            // 测试夹爪舵机
-            DEBUG_LOG("  测试夹爪舵机...");
-            servo4.setAngle(0, 1000);  // 打开夹爪
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            servo4.setAngle(90, 1000); // 关闭夹爪
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            servo4.setAngle(45, 1000); // 中间位置
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            
-            // 测试2: 逆运动学测试
-            DEBUG_LOG("测试2: 逆运动学测试 (XYZ位置控制)");
-            
-            // 测试点1: 前方位置
-            DEBUG_LOG("  测试点1: 前方位置");
-            armControl_xyz(0, 150, 100);
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
-            
-            // 测试点2: 右侧位置
-            DEBUG_LOG("  测试点2: 右侧位置");
-            armControl_xyz(100, 150, 100);
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
-            
-            // 测试点3: 左侧位置
-            DEBUG_LOG("  测试点3: 左侧位置");
-            armControl_xyz(-100, 150, 100);
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
-            
-            // 测试点4: 高位置
-            DEBUG_LOG("  测试点4: 高位置");
-            armControl_xyz(0, 150, 150);
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
-            
-            // 测试点5: 低位置
-            DEBUG_LOG("  测试点5: 低位置");
-            armControl_xyz(0, 150, 50);
-            vTaskDelay(3000 / portTICK_PERIOD_MS);
-            
-            // 测试3: 轨迹测试
-            DEBUG_LOG("测试3: 轨迹测试");
-            
-            // 绘制矩形
-            DEBUG_LOG("  绘制矩形轨迹");
-            armControl_xyz(50, 150, 100);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            armControl_xyz(50, 150, 150);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            armControl_xyz(-50, 150, 150);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            armControl_xyz(-50, 150, 100);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            armControl_xyz(50, 150, 100);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            
-            // 绘制圆形轨迹
-            DEBUG_LOG("  绘制圆形轨迹");
-            for (int angle = 0; angle < 360; angle += 30) {
-                float rad = angle * PI / 180.0f;
-                float x = 50 * cos(rad);
-                float z = 50 * sin(rad) + 100;
-                armControl_xyz(x, 150, z);
-                vTaskDelay(500 / portTICK_PERIOD_MS);
-            }
-            
-            // 回到初始位置
-            DEBUG_LOG("测试完成，回到初始位置");
-            armControl_xyz(0, 150, 100);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-            
-            DEBUG_LOG("机械臂测试序列完成！"); */
+*/
+            /*     // 测试一级关节舵机
+                DEBUG_LOG("  测试一级关节舵机...");
+                servo1.setAngle(FIRST_ARM_ANGLE_MIN + 10, 1000);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                servo1.setAngle(FIRST_ARM_ANGLE_MAX - 10, 1000);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                servo1.setAngle((FIRST_ARM_ANGLE_MIN + FIRST_ARM_ANGLE_MAX) / 2, 1000);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+                // 测试二级关节舵机
+                DEBUG_LOG("  测试二级关节舵机...");
+                servo2.setAngle(SECOND_ARM_ANGLE_MIN + 10, 1000);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                servo2.setAngle(SECOND_ARM_ANGLE_MAX - 10, 1000);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                servo2.setAngle((SECOND_ARM_ANGLE_MIN + SECOND_ARM_ANGLE_MAX) / 2, 1000);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+                // 测试夹爪舵机
+                DEBUG_LOG("  测试夹爪舵机...");
+                servo4.setAngle(0, 1000);  // 打开夹爪
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                servo4.setAngle(90, 1000); // 关闭夹爪
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                servo4.setAngle(45, 1000); // 中间位置
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+                // 测试2: 逆运动学测试
+                DEBUG_LOG("测试2: 逆运动学测试 (XYZ位置控制)");
+
+                // 测试点1: 前方位置
+                DEBUG_LOG("  测试点1: 前方位置");
+                armControl_xyz(0, 150, 100);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+                // 测试点2: 右侧位置
+                DEBUG_LOG("  测试点2: 右侧位置");
+                armControl_xyz(100, 150, 100);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+                // 测试点3: 左侧位置
+                DEBUG_LOG("  测试点3: 左侧位置");
+                armControl_xyz(-100, 150, 100);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+                // 测试点4: 高位置
+                DEBUG_LOG("  测试点4: 高位置");
+                armControl_xyz(0, 150, 150);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+                // 测试点5: 低位置
+                DEBUG_LOG("  测试点5: 低位置");
+                armControl_xyz(0, 150, 50);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+                // 测试3: 轨迹测试
+                DEBUG_LOG("测试3: 轨迹测试");
+
+                // 绘制矩形
+                DEBUG_LOG("  绘制矩形轨迹");
+                armControl_xyz(50, 150, 100);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                armControl_xyz(50, 150, 150);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                armControl_xyz(-50, 150, 150);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                armControl_xyz(-50, 150, 100);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                armControl_xyz(50, 150, 100);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+                // 绘制圆形轨迹
+                DEBUG_LOG("  绘制圆形轨迹");
+                for (int angle = 0; angle < 360; angle += 30) {
+                    float rad = angle * PI / 180.0f;
+                    float x = 50 * cos(rad);
+                    float z = 50 * sin(rad) + 100;
+                    armControl_xyz(x, 150, z);
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                }
+
+                // 回到初始位置
+                DEBUG_LOG("测试完成，回到初始位置");
+                armControl_xyz(0, 150, 100);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+                DEBUG_LOG("机械臂测试序列完成！"); */
         }
-        
+
         // 短暂延时，避免空循环占用CPU
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
