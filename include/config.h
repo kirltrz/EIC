@@ -29,25 +29,38 @@
 #define CHASSIS_MAX_SPEED TBD // 底盘最大速度mm/s
 #define CHASSIS_MAX_OMEGA TBD // 底盘最大角速度rad/s
 // 电机控制参数
-#define ACC_VALUE 500    // 位置模式加速度(RPM/s)
-#define DEC_VALUE 500    // 位置模式减速度(RPM/s)
-#define MAX_VELOCITY 2400 // 位置模式最大速度(RPM)
+#define DEFAULT_SPEED 100.0f
+#define DEFAULT_ACC 100
 /* 底盘PID参数 */
+// PID控制参数 - 运动中使用
+#define POS_KP 30.0f     // 位置环比例系数 - 极大增大
+#define POS_KI 0.1f      // 位置环积分系数 - 增大
+#define POS_KD 15.0f     // 位置环微分系数 - 增大
+#define YAW_KP 50.0f     // 偏航角比例系数 - 极大增大
+#define YAW_KI 0.1f      // 偏航角积分系数 - 增大
+#define YAW_KD 15.0f     // 偏航角微分系数 - 增大
 
+// PID控制参数 - 位置锁定时使用（比例系数更高，以增强保持力）
+#define HOLD_POS_KP 50.0f    // 位置保持比例系数
+#define HOLD_POS_KI 0.1f     // 完全禁用积分作用
+#define HOLD_POS_KD 15.0f     // 位置保持微分系数
+#define HOLD_YAW_KP 100.0f    // 偏航角保持比例系数
+#define HOLD_YAW_KI 0.1f     // 完全禁用积分作用
+#define HOLD_YAW_KD 15.0f     // 偏航角保持微分系数
+
+// 运动控制参数
+#define MAX_LINEAR_SPEED 15000.0f  // 最大线速度，单位mm/s - 大幅增加
+#define MAX_ANGULAR_SPEED 720.0f  // 最大角速度，单位度/s - 大幅增加
+#define MIN_SPEED_RPM 0.1f       // 最小速度，单位RPM - 增大最小速度
+#define MAX_SPEED_RPM 2400.0f    // 最大速度，单位RPM - 恢复原始设置
+
+// 位置保持模式参数
+#define HOLD_MAX_LINEAR_SPEED 5000.0f  // 位置保持时最大线速度，单位mm/s
+#define HOLD_MAX_ANGULAR_SPEED 720.0f  // 位置保持时最大角速度，单位度/s
 /* 底盘硬件参数 */
-#define MOTOR_ACC TBD                // 电机加速度RPM/s（可更改，但需要与底盘PID参数匹配）
-#define MOTOR_MAX_SPEED 2400         // 电机最大速度RPM（不可更改）
-#define MOTOR_MIN_SPEED 0.1          // 电机最小速度RPM（不可更改）
-#define WHEEL_RADIUS 41.0f           // 轮子半径，单位mm
-#define ROBOT_RADIUS 106.5f          // 机器人中心到轮子的距离，单位mm
-#define WHEEL_BASE_X 100.0f          // 小车X方向尺寸的一半(mm)
-#define WHEEL_BASE_Y 100.0f          // 小车Y方向尺寸的一半(mm)
-#define GEAR_RATIO 1.0f              // 电机与轮子的传动比
-#define POSITION_TOLERANCE 10.0f     // 粗定位容差(mm)
-#define FINE_POSITION_TOLERANCE 2.0f // 精定位容差(mm)
-#define FINE_VELOCITY 100.0f         // 精定位模式下的最大速度(RPM)
-#define FINE_VELOCITY_RAMP 1000      // 精定位速度斜率(RPM/s)
-#define MIN_VELOCITY 0.1             // 精定位最小速度(RPM)
+// 全向轮底盘参数
+#define WHEEL_RADIUS 41.0f    // 轮子半径，单位mm
+#define ROBOT_RADIUS 106.5f   // 机器人中心到轮子的距离，单位mm
 /******************************************************************************
  * 机械臂参数配置
  ******************************************************************************/
@@ -78,9 +91,6 @@
 #define MOTOR_FL 2        // 前左轮电机地址
 #define MOTOR_BL 1        // 后左轮电机地址
 #define MOTOR_BR 4        // 后右轮电机地址
-// 反馈和控制周期(具体时间待调整)
-#define CONTROL_INTERVAL 10  // 控制周期(ms)
-#define FEEDBACK_INTERVAL 10 // 反馈周期(ms)
 // 定位参数
 
 /* 舵机 */
