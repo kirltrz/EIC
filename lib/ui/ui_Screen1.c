@@ -205,10 +205,10 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_font(ui_Label11, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Button5 = lv_button_create(ui_Screen1);
-    lv_obj_set_width(ui_Button5, 106);
+    lv_obj_set_width(ui_Button5, 50);
     lv_obj_set_height(ui_Button5, 50);
-    lv_obj_set_x(ui_Button5, 73);
-    lv_obj_set_y(ui_Button5, 81);
+    lv_obj_set_x(ui_Button5, 43);
+    lv_obj_set_y(ui_Button5, 82);
     lv_obj_set_align(ui_Button5, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_Button5, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_remove_flag(ui_Button5, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
@@ -221,7 +221,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_width(ui_Label12, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label12, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_Label12, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label12, "舵机卸力");
+    lv_label_set_text(ui_Label12, "舵机\n卸力");
     lv_obj_set_style_text_font(ui_Label12, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Panel2 = lv_obj_create(ui_Screen1);
@@ -317,11 +317,27 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_servo4angle, LV_ALIGN_CENTER);
     lv_label_set_text(ui_servo4angle, "0");
 
+    ui_Button6 = lv_button_create(ui_Screen1);
+    lv_obj_set_width(ui_Button6, 50);
+    lv_obj_set_height(ui_Button6, 50);
+    lv_obj_set_x(ui_Button6, 102);
+    lv_obj_set_y(ui_Button6, 82);
+    lv_obj_set_align(ui_Button6, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Button6, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_Button6, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_Label17 = lv_label_create(ui_Button6);
+    lv_obj_set_width(ui_Label17, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label17, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_Label17, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label17, "OTA");
+
     lv_obj_add_event_cb(ui_Button1, ui_event_Button1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button2, ui_event_Button2, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_enableMotorSwitch, ui_event_enableMotorSwitch, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button3, ui_event_Button3, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button4, ui_event_Button4, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button5, ui_event_Button5, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Button6, ui_event_Button6, LV_EVENT_ALL, NULL);
 
 }

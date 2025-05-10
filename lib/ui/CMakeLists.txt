@@ -1,4 +1,5 @@
 SET(SOURCES ui_Screen1.c
+    ui_otaScreen.c
     ui_theme_manager.cpp
     ui_themes.cpp
     ui.c

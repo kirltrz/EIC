@@ -16,6 +16,7 @@ void enableMotor(lv_event_t * e);
 void armTestFunc(lv_event_t * e);
 void servoSetOringin(lv_event_t * e);
 void stopServo(lv_event_t * e);
+void startOTA(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

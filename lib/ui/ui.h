@@ -69,6 +69,23 @@ extern lv_obj_t * ui_servo1angle;
 extern lv_obj_t * ui_servo2angle;
 extern lv_obj_t * ui_servo3angle;
 extern lv_obj_t * ui_servo4angle;
+void ui_event_Button6(lv_event_t * e);
+extern lv_obj_t * ui_Button6;
+extern lv_obj_t * ui_Label17;
+// CUSTOM VARIABLES
+
+// SCREEN: ui_otaScreen
+void ui_otaScreen_screen_init(void);
+extern lv_obj_t * ui_otaScreen;
+extern lv_obj_t * ui_Label18;
+extern lv_obj_t * ui_wifiStatusLabel;
+extern lv_obj_t * ui_Label20;
+extern lv_obj_t * ui_ipAddressLabel;
+extern lv_obj_t * ui_Label22;
+extern lv_obj_t * ui_otaStatusLabel;
+extern lv_obj_t * ui_Panel3;
+extern lv_obj_t * ui_otaPercent;
+extern lv_obj_t * ui_Label24;
 // CUSTOM VARIABLES
 
 // EVENTS

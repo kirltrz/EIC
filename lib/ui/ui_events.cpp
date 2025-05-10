@@ -5,6 +5,7 @@
 
 #include "ui.h"
 #include "Arduino.h"
+#include "ota.h"
 #include "Wire.h"
 #include "motion.h"
 #include "arm.h"
@@ -92,4 +93,9 @@ void servoSetOringin(lv_event_t * e)
 void stopServo(lv_event_t * e)
 {
 	stopArm(false);
+}
+
+void startOTA(lv_event_t * e)
+{
+	initOTA();
 }

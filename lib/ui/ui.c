@@ -50,6 +50,23 @@ lv_obj_t * ui_servo1angle;
 lv_obj_t * ui_servo2angle;
 lv_obj_t * ui_servo3angle;
 lv_obj_t * ui_servo4angle;
+void ui_event_Button6(lv_event_t * e);
+lv_obj_t * ui_Button6;
+lv_obj_t * ui_Label17;
+// CUSTOM VARIABLES
+
+// SCREEN: ui_otaScreen
+void ui_otaScreen_screen_init(void);
+lv_obj_t * ui_otaScreen;
+lv_obj_t * ui_Label18;
+lv_obj_t * ui_wifiStatusLabel;
+lv_obj_t * ui_Label20;
+lv_obj_t * ui_ipAddressLabel;
+lv_obj_t * ui_Label22;
+lv_obj_t * ui_otaStatusLabel;
+lv_obj_t * ui_Panel3;
+lv_obj_t * ui_otaPercent;
+lv_obj_t * ui_Label24;
 // CUSTOM VARIABLES
 
 // EVENTS
@@ -119,6 +136,16 @@ void ui_event_Button5(lv_event_t * e)
     }
 }
 
+void ui_event_Button6(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        startOTA(e);
+        _ui_screen_change(&ui_otaScreen, LV_SCR_LOAD_ANIM_OVER_LEFT, 500, 0, &ui_otaScreen_screen_init);
+    }
+}
+
 ///////////////////// SCREENS ////////////////////
 
 void ui_init(void)
@@ -128,6 +155,7 @@ void ui_init(void)
                                                false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, theme);
     ui_Screen1_screen_init();
+    ui_otaScreen_screen_init();
     ui____initial_actions0 = lv_obj_create(NULL);
     lv_disp_load_scr(ui_Screen1);
 }
