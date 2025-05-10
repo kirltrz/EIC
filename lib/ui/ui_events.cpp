@@ -14,7 +14,7 @@
 
 void toNextPos(lv_event_t * e)
 {
-	currentState = COARSE_POSITIONING;
+	/*currentState = COARSE_POSITIONING;*/
 }
 
 void lockCurrentPos(lv_event_t * e)
@@ -65,6 +65,7 @@ void lockCurrentPos(lv_event_t * e)
 
 void enableMotor(lv_event_t * e)
 {
+	/*
 	// 获取开关状态
 	lv_obj_t * sw = (lv_obj_t *)lv_event_get_target(e);
 	bool is_checked = lv_obj_has_state(sw, LV_STATE_CHECKED);
@@ -77,7 +78,7 @@ void enableMotor(lv_event_t * e)
 		// 开关关闭，失能电机
 		emergencyStopMotor(false);
 		DEBUG_LOG("电机已失能");
-	}
+	}*/
 }
 
 void armTestFunc(lv_event_t * e)

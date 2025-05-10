@@ -10,65 +10,11 @@ void ui_otaScreen_screen_init(void)
     ui_otaScreen = lv_obj_create(NULL);
     lv_obj_remove_flag(ui_otaScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
-    ui_Label18 = lv_label_create(ui_otaScreen);
-    lv_obj_set_width(ui_Label18, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label18, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label18, -105);
-    lv_obj_set_y(ui_Label18, -85);
-    lv_obj_set_align(ui_Label18, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label18, "WiFi:");
-    lv_obj_set_style_text_font(ui_Label18, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_wifiStatusLabel = lv_label_create(ui_otaScreen);
-    lv_obj_set_width(ui_wifiStatusLabel, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_wifiStatusLabel, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_wifiStatusLabel, -54);
-    lv_obj_set_y(ui_wifiStatusLabel, -85);
-    lv_obj_set_align(ui_wifiStatusLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_wifiStatusLabel, "未连接");
-    lv_obj_set_style_text_font(ui_wifiStatusLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_Label20 = lv_label_create(ui_otaScreen);
-    lv_obj_set_width(ui_Label20, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label20, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label20, -4);
-    lv_obj_set_y(ui_Label20, -85);
-    lv_obj_set_align(ui_Label20, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label20, "IP:");
-    lv_obj_set_style_text_font(ui_Label20, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_ipAddressLabel = lv_label_create(ui_otaScreen);
-    lv_obj_set_width(ui_ipAddressLabel, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_ipAddressLabel, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_ipAddressLabel, 71);
-    lv_obj_set_y(ui_ipAddressLabel, -85);
-    lv_obj_set_align(ui_ipAddressLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_ipAddressLabel, "N/A");
-    lv_obj_set_style_text_font(ui_ipAddressLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_Label22 = lv_label_create(ui_otaScreen);
-    lv_obj_set_width(ui_Label22, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label22, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label22, -2);
-    lv_obj_set_y(ui_Label22, 30);
-    lv_obj_set_align(ui_Label22, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label22, "OTA状态:");
-    lv_obj_set_style_text_font(ui_Label22, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_otaStatusLabel = lv_label_create(ui_otaScreen);
-    lv_obj_set_width(ui_otaStatusLabel, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_otaStatusLabel, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_otaStatusLabel, 0);
-    lv_obj_set_y(ui_otaStatusLabel, 55);
-    lv_obj_set_align(ui_otaStatusLabel, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_otaStatusLabel, "N/A");
-    lv_obj_set_style_text_font(ui_otaStatusLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
     ui_Panel3 = lv_obj_create(ui_otaScreen);
     lv_obj_set_width(ui_Panel3, 280);
     lv_obj_set_height(ui_Panel3, 75);
     lv_obj_set_x(ui_Panel3, 0);
-    lv_obj_set_y(ui_Panel3, -29);
+    lv_obj_set_y(ui_Panel3, 67);
     lv_obj_set_align(ui_Panel3, LV_ALIGN_CENTER);
     lv_obj_remove_flag(ui_Panel3, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
@@ -95,5 +41,110 @@ void ui_otaScreen_screen_init(void)
     lv_obj_set_align(ui_Label24, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label24, "OTA进度:");
     lv_obj_set_style_text_font(ui_Label24, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Panel4 = lv_obj_create(ui_otaScreen);
+    lv_obj_set_width(ui_Panel4, 280);
+    lv_obj_set_height(ui_Panel4, 75);
+    lv_obj_set_x(ui_Panel4, 0);
+    lv_obj_set_y(ui_Panel4, -15);
+    lv_obj_set_align(ui_Panel4, LV_ALIGN_CENTER);
+    lv_obj_remove_flag(ui_Panel4, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_Label18 = lv_label_create(ui_Panel4);
+    lv_obj_set_width(ui_Label18, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label18, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label18, 0);
+    lv_obj_set_y(ui_Label18, -15);
+    lv_obj_set_align(ui_Label18, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_Label18, "WiFi:");
+    lv_obj_set_style_text_font(ui_Label18, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_wifiStatusLabel = lv_label_create(ui_Panel4);
+    lv_obj_set_width(ui_wifiStatusLabel, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_wifiStatusLabel, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_wifiStatusLabel, -52);
+    lv_obj_set_y(ui_wifiStatusLabel, -15);
+    lv_obj_set_align(ui_wifiStatusLabel, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_wifiStatusLabel, "未连接");
+    lv_obj_set_style_text_font(ui_wifiStatusLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Label20 = lv_label_create(ui_Panel4);
+    lv_obj_set_width(ui_Label20, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label20, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label20, -5);
+    lv_obj_set_y(ui_Label20, -15);
+    lv_obj_set_align(ui_Label20, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label20, "IP:");
+    lv_obj_set_style_text_font(ui_Label20, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_ipAddressLabel = lv_label_create(ui_Panel4);
+    lv_obj_set_width(ui_ipAddressLabel, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_ipAddressLabel, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_ipAddressLabel, 65);
+    lv_obj_set_y(ui_ipAddressLabel, -15);
+    lv_obj_set_align(ui_ipAddressLabel, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_ipAddressLabel, "N/A");
+    lv_obj_set_style_text_font(ui_ipAddressLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Label22 = lv_label_create(ui_Panel4);
+    lv_obj_set_width(ui_Label22, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label22, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_Label22, 0);
+    lv_obj_set_y(ui_Label22, 15);
+    lv_obj_set_align(ui_Label22, LV_ALIGN_LEFT_MID);
+    lv_label_set_text(ui_Label22, "OTA状态:");
+    lv_obj_set_style_text_font(ui_Label22, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_otaStatusLabel = lv_label_create(ui_Panel4);
+    lv_obj_set_width(ui_otaStatusLabel, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_otaStatusLabel, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_otaStatusLabel, 30);
+    lv_obj_set_y(ui_otaStatusLabel, 15);
+    lv_obj_set_align(ui_otaStatusLabel, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_otaStatusLabel, "N/A");
+    lv_obj_set_style_text_font(ui_otaStatusLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Button24 = lv_button_create(ui_otaScreen);
+    lv_obj_set_width(ui_Button24, 100);
+    lv_obj_set_height(ui_Button24, 50);
+    lv_obj_set_x(ui_Button24, -89);
+    lv_obj_set_y(ui_Button24, -86);
+    lv_obj_set_align(ui_Button24, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Button24, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_Button24, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    ui_object_set_themeable_style_property(ui_Button24, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_COLOR,
+                                           _ui_theme_color_color1);
+    ui_object_set_themeable_style_property(ui_Button24, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_OPA,
+                                           _ui_theme_alpha_color1);
+
+    ui_Label50 = lv_label_create(ui_Button24);
+    lv_obj_set_width(ui_Label50, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label50, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_Label50, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label50, "返回");
+    lv_obj_set_style_text_font(ui_Label50, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_Button26 = lv_button_create(ui_otaScreen);
+    lv_obj_set_width(ui_Button26, 100);
+    lv_obj_set_height(ui_Button26, 50);
+    lv_obj_set_x(ui_Button26, 89);
+    lv_obj_set_y(ui_Button26, -86);
+    lv_obj_set_align(ui_Button26, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Button26, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_Button26, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    ui_object_set_themeable_style_property(ui_Button26, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_COLOR,
+                                           _ui_theme_color_color2);
+    ui_object_set_themeable_style_property(ui_Button26, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_BG_OPA,
+                                           _ui_theme_alpha_color2);
+
+    ui_Label51 = lv_label_create(ui_Button26);
+    lv_obj_set_width(ui_Label51, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label51, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_Label51, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label51, "启动OTA");
+    lv_obj_set_style_text_font(ui_Label51, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_add_event_cb(ui_Button24, ui_event_Button24, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Button26, ui_event_Button26, LV_EVENT_ALL, NULL);
 
 }

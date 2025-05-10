@@ -51,8 +51,9 @@
 // 运动控制参数
 #define MAX_LINEAR_SPEED 15000.0f  // 最大线速度，单位mm/s - 大幅增加
 #define MAX_ANGULAR_SPEED 720.0f  // 最大角速度，单位度/s - 大幅增加
-#define MIN_SPEED_RPM 0.1f       // 最小速度，单位RPM - 增大最小速度
-#define MAX_SPEED_RPM 2400.0f    // 最大速度，单位RPM - 恢复原始设置
+
+#define MIN_SPEED_RPM 0.1f       // 电机最小速度，单位RPM - 常量，取决于硬件不可更改
+#define MAX_SPEED_RPM 2400.0f    // 最大速度，单位RPM - 常量，取决于硬件不可更改
 
 // 位置保持模式参数
 #define HOLD_MAX_LINEAR_SPEED 5000.0f  // 位置保持时最大线速度，单位mm/s

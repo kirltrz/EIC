@@ -16,7 +16,7 @@ void lvglTask(void *pvParameters)
     while (true)
     {
         lv_timer_handler();
-        vTaskDelay(5);
+        wait(5);
     }
 }
 
