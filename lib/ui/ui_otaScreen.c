@@ -24,11 +24,11 @@ void ui_otaScreen_screen_init(void)
     lv_obj_set_x(ui_otaPercent, 0);
     lv_obj_set_y(ui_otaPercent, 15);
     lv_obj_set_align(ui_otaPercent, LV_ALIGN_CENTER);
+    lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xDAFAEB), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_otaPercent, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    ui_object_set_themeable_style_property(ui_otaPercent, LV_PART_INDICATOR | LV_STATE_DEFAULT, LV_STYLE_BG_COLOR,
-                                           _ui_theme_color_color2);
-    ui_object_set_themeable_style_property(ui_otaPercent, LV_PART_INDICATOR | LV_STATE_DEFAULT, LV_STYLE_BG_OPA,
-                                           _ui_theme_alpha_color2);
+    lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0x6BEDB6), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_otaPercent, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
 
     //Compensating for LVGL9.1 draw crash with bar/slider max value when top-padding is nonzero and right-padding is 0
     if(lv_obj_get_style_pad_top(ui_otaPercent, LV_PART_MAIN) > 0) lv_obj_set_style_pad_right(ui_otaPercent,
@@ -62,9 +62,9 @@ void ui_otaScreen_screen_init(void)
     ui_wifiStatusLabel = lv_label_create(ui_Panel4);
     lv_obj_set_width(ui_wifiStatusLabel, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_wifiStatusLabel, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_wifiStatusLabel, -52);
+    lv_obj_set_x(ui_wifiStatusLabel, 42);
     lv_obj_set_y(ui_wifiStatusLabel, -15);
-    lv_obj_set_align(ui_wifiStatusLabel, LV_ALIGN_CENTER);
+    lv_obj_set_align(ui_wifiStatusLabel, LV_ALIGN_LEFT_MID);
     lv_label_set_text(ui_wifiStatusLabel, "未连接");
     lv_obj_set_style_text_font(ui_wifiStatusLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
@@ -98,9 +98,9 @@ void ui_otaScreen_screen_init(void)
     ui_otaStatusLabel = lv_label_create(ui_Panel4);
     lv_obj_set_width(ui_otaStatusLabel, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_otaStatusLabel, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_otaStatusLabel, 30);
+    lv_obj_set_x(ui_otaStatusLabel, 140);
     lv_obj_set_y(ui_otaStatusLabel, 15);
-    lv_obj_set_align(ui_otaStatusLabel, LV_ALIGN_CENTER);
+    lv_obj_set_align(ui_otaStatusLabel, LV_ALIGN_LEFT_MID);
     lv_label_set_text(ui_otaStatusLabel, "N/A");
     lv_obj_set_style_text_font(ui_otaStatusLabel, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 

@@ -16,7 +16,9 @@
         "ostream": "cpp",
         "mutex": "cpp",
         "new": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "atomic": "cpp",
+        "cstdint": "cpp"
     },
     "commentTranslate.source": "intellsmi.comment-translate-ali.cloud"
 }

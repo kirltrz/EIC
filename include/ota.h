@@ -1,6 +1,5 @@
 #pragma once
 
-
 // OTA状态
 typedef enum {
     EIC_OTA_IDLE,

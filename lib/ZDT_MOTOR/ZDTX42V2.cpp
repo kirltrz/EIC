@@ -6,9 +6,10 @@
 ZDTX42V2::ZDTX42V2(HardwareSerial *serial)
 {
   _serial = serial ? serial : &Serial; // 设置串口，如果serial为空则使用默认Serial
-  _serialMutex = xSemaphoreCreateMutex(); // 创建串口互斥锁
+  _txMutex = xSemaphoreCreateMutex(); // 创建发送互斥锁
+  _rxMutex = xSemaphoreCreateMutex(); // 创建接收互斥锁
   _serial->begin(115200);              // 初始化串口
-  if (_serialMutex != NULL)
+  if (_txMutex != NULL && _rxMutex != NULL)
   {
     DEBUG_LOG("串口互斥锁创建成功");
   }
@@ -509,7 +510,7 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
   currentTime = millis();
   lastTime = currentTime;
   
-  xSemaphoreTake(_serialMutex, portMAX_DELAY); // 获取锁
+  xSemaphoreTake(_rxMutex, portMAX_DELAY); // 获取接收锁
   // 开始接收数据
   for (int i = 0; i < 128; i++)
   {
@@ -519,7 +520,7 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
       if (rxCmd[i] == 0x6B)       // 如果校验字节为0x6B，则一帧数据接收结束
       {
         *rxCount = i + 1;
-        xSemaphoreGive(_serialMutex); // 释放锁
+        xSemaphoreGive(_rxMutex); // 释放接收锁
         return;
       }
       lastTime = millis(); // 更新上一时刻的时间
@@ -531,12 +532,12 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
       if ((int)(currentTime - lastTime) > 100) // 100毫秒内串口没有数据进来，就判定一帧数据接收结束
       {
         *rxCount = i; // 数据长度
-        xSemaphoreGive(_serialMutex); // 释放锁
+        xSemaphoreGive(_rxMutex); // 释放接收锁
         return; // 退出循环
       }
     }
   }
-  xSemaphoreGive(_serialMutex); // 释放锁
+  xSemaphoreGive(_rxMutex); // 释放接收锁
 }
 
 uint16_t ZDTX42V2::getVoltage()
@@ -546,7 +547,7 @@ uint16_t ZDTX42V2::getVoltage()
   uint8_t rxCount = 0;
   readSysParams(1, S_VBUS);
   //DEBUG_LOG("发送读取电压命令");
-  wait(100);
+  //wait(100);//貌似不需要额外等待也可以正确接收
   receiveData(rxCmd, &rxCount);
   //DEBUG_LOG("读取电压命令完成");
   // 调试输出接收到的字节
@@ -558,13 +559,12 @@ uint16_t ZDTX42V2::getVoltage()
     //DEBUG_LOG("成功解析电压命令");
     voltage = (rxCmd[2] << 8) | rxCmd[3];
   }
-  return voltage;
+  return voltage+700/*电机内部电压压降0.7V，在此补偿*/;
 }
 
 void ZDTX42V2::sendCommand(uint8_t *cmd, uint8_t len) {
-  xSemaphoreTake(_serialMutex, portMAX_DELAY);
+  xSemaphoreTake(_txMutex, portMAX_DELAY); // 获取发送锁
   _serial->write(cmd, len);
   _serial->flush(); // 确保数据完全发送
-  xSemaphoreGive(_serialMutex);
-  //wait(10); // 添加命令间的缓冲时间//间隔由外部控制
+  xSemaphoreGive(_txMutex); // 释放发送锁
 }

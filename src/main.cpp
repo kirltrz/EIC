@@ -7,6 +7,7 @@
 #include "motion.h"
 #include "vision.h"
 #include "arm.h"
+#include "ota.h"
 
 void setup()
 {
@@ -20,6 +21,10 @@ void setup()
     initSensor();
     initGUI();
     initTaskManager();
+    
+    #if DEBUG_ENABLE
+    initOTA();
+    #endif
 }
 
 void loop()

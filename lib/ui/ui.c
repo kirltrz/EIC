@@ -21,9 +21,6 @@ lv_obj_t * ui_currentYaw;
 void ui_event_enableMotorSwitch(lv_event_t * e);
 lv_obj_t * ui_enableMotorSwitch;
 lv_obj_t * ui_Label6;
-lv_obj_t * ui_Label7;
-lv_obj_t * ui_voltage;
-lv_obj_t * ui_Label8;
 void ui_event_Button3(lv_event_t * e);
 lv_obj_t * ui_Button3;
 lv_obj_t * ui_Label9;
@@ -47,6 +44,8 @@ lv_obj_t * ui_Label17;
 void ui_event_Button11(lv_event_t * e);
 lv_obj_t * ui_Button11;
 lv_obj_t * ui_Label12;
+lv_obj_t * ui_batteryPercentBar;
+lv_obj_t * ui_Label52;
 // CUSTOM VARIABLES
 
 // SCREEN: ui_otaScreen
