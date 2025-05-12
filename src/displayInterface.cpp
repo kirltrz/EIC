@@ -50,7 +50,7 @@ static void lv_update_task(lv_timer_t *timer)
 
     // 每5s更新一次电压信息（耗时操作）,如果电压为700mV则代表数据获取异常或者第一次更新则获取一次
     static int voltage = 700;
-    if (voltage == 700 || current_time - last_1s_update >= 5000)
+    if (voltage == 700 || current_time - last_1s_update >= 1000)
     {
         last_1s_update = current_time;
 
@@ -107,17 +107,17 @@ static void lv_update_task(lv_timer_t *timer)
         }
 
         // 以下是舵机相关代码，目前被注释
-        // sprintf(buf[4],"%d",servo0.queryCurrent());
-        // sprintf(buf[5],"%d",servo1.queryCurrent());
-        // sprintf(buf[6],"%d",servo2.queryCurrent());
-        // sprintf(buf[7],"%d",servo3.queryCurrent());
-        // sprintf(buf[8],"%d",servo4.queryCurrent());
+        sprintf(buf[4],"%.2f",servo0.queryAngle());
+        sprintf(buf[5],"%.2f",servo1.queryAngle());
+        sprintf(buf[6],"%.2f",servo2.queryAngle());
+        sprintf(buf[7],"%.2f",servo3.queryAngle());
+        sprintf(buf[8],"%.2f",servo4.queryAngle());
 
-        // lv_label_set_text(ui_servo0angle, buf[4]);
-        // lv_label_set_text(ui_servo1angle, buf[5]);
-        // lv_label_set_text(ui_servo2angle, buf[6]);
-        // lv_label_set_text(ui_servo3angle, buf[7]);
-        // lv_label_set_text(ui_servo4angle, buf[8]);
+        lv_label_set_text(ui_servo0angle, buf[4]);
+        lv_label_set_text(ui_servo1angle, buf[5]);
+        lv_label_set_text(ui_servo2angle, buf[6]);
+        lv_label_set_text(ui_servo3angle, buf[7]);
+        lv_label_set_text(ui_servo4angle, buf[8]);
     }
 }
 

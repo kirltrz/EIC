@@ -44,10 +44,10 @@ void initArm(void)
     servo4.init();   // 初始化夹爪舵机
     /*舵机角度限幅 限幅角度待定 宏定义*/
     servo0.setAngleRange(-180, 180); // 云台舵机
-    servo1.setAngleRange(-180, 180); // 一级关节舵机
-    servo2.setAngleRange(-180, 180); // 二级关节舵机
-    servo3.setAngleRange(-180, 180); // 三级关节舵机
-    servo4.setAngleRange(-180, 180); // 夹爪舵机
+    servo1.setAngleRange(-80, 100); // 一级关节舵机
+    servo2.setAngleRange(-120, 60); // 二级关节舵机
+    servo3.setAngleRange(-180, 45); // 三级关节舵机
+    servo4.setAngleRange(0, 40); // 夹爪舵机
     DEBUG_LOG("初始化机械臂完成");
 }
 void setOriginPoint(void)
@@ -228,20 +228,19 @@ void armTestTask(void *pvParameters)
         if (xSemaphoreTake(xSemaphoreArmTest, portMAX_DELAY) == pdTRUE)
         {
             DEBUG_LOG("机械臂测试信号已接收");
-            // setOriginPoint();
-            // DEBUG_LOG("机械臂归零完成");
-            servo0.setAngle(0, 500,50000);
+            /*
+            servo0.setAngle(0, 500);
             servo1.setAngle(0, 500);
             servo2.setAngle(0, 500);
             servo3.setAngle(0, 500);
             servo4.setAngle(0, 500);
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
+            wait(2000);
             servo0.setAngle(0, 500);
-            servo1.setAngle(30, 500);
-            servo2.setAngle(-90, 500);
-            servo3.setAngle(-90, 500);
-            servo4.setAngle(-45, 500);
-            /*
+            servo1.setAngle(50, 500);
+            servo2.setAngle(-22.5, 500);
+            servo3.setAngle(-22.5, 500);
+            servo4.setAngle(30, 500);
+            
             DEBUG_LOG("测试电机是否在线");
             bool u1_valid = servo0.ping();
             if (u1_valid)
@@ -293,34 +292,34 @@ void armTestTask(void *pvParameters)
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
                 servo4.setAngle(45, 1000); // 中间位置
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-                // 测试2: 逆运动学测试
+*/
+            /*    // 测试2: 逆运动学测试
                 DEBUG_LOG("测试2: 逆运动学测试 (XYZ位置控制)");
 
                 // 测试点1: 前方位置
                 DEBUG_LOG("  测试点1: 前方位置");
                 armControl_xyz(0, 150, 100);
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                wait(3000);
 
                 // 测试点2: 右侧位置
                 DEBUG_LOG("  测试点2: 右侧位置");
                 armControl_xyz(100, 150, 100);
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                wait(3000);
 
                 // 测试点3: 左侧位置
                 DEBUG_LOG("  测试点3: 左侧位置");
                 armControl_xyz(-100, 150, 100);
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                wait(3000);
 
                 // 测试点4: 高位置
                 DEBUG_LOG("  测试点4: 高位置");
                 armControl_xyz(0, 150, 150);
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                wait(3000);
 
                 // 测试点5: 低位置
                 DEBUG_LOG("  测试点5: 低位置");
                 armControl_xyz(0, 150, 50);
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                wait(3000);
 
                 // 测试3: 轨迹测试
                 DEBUG_LOG("测试3: 轨迹测试");
@@ -328,15 +327,15 @@ void armTestTask(void *pvParameters)
                 // 绘制矩形
                 DEBUG_LOG("  绘制矩形轨迹");
                 armControl_xyz(50, 150, 100);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                wait(1000);
                 armControl_xyz(50, 150, 150);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                wait(1000);
                 armControl_xyz(-50, 150, 150);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                wait(1000);
                 armControl_xyz(-50, 150, 100);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                wait(1000);
                 armControl_xyz(50, 150, 100);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                wait(1000);
 
                 // 绘制圆形轨迹
                 DEBUG_LOG("  绘制圆形轨迹");
@@ -345,19 +344,80 @@ void armTestTask(void *pvParameters)
                     float x = 50 * cos(rad);
                     float z = 50 * sin(rad) + 100;
                     armControl_xyz(x, 150, z);
-                    vTaskDelay(500 / portTICK_PERIOD_MS);
+                    wait(500);
                 }
 
                 // 回到初始位置
                 DEBUG_LOG("测试完成，回到初始位置");
                 armControl_xyz(0, 150, 100);
-                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                wait(2000);
+*/
+                // 测试4: 沿坐标轴运动测试
+                DEBUG_LOG("测试4: 沿坐标轴运动测试");
+                
+                // 初始位置
+                DEBUG_LOG("  初始位置");
+                armControl_xyz(0, 150, 100);
+                wait(2000);
+                
+                // 沿X轴正向运动
+                DEBUG_LOG("  沿X轴正向运动");
+                for(int x = 0; x <= 100; x += 20) {
+                    armControl_xyz(x, 150, 100);
+                    wait(500);
+                }
+                
+                // 沿X轴负向运动
+                DEBUG_LOG("  沿X轴负向运动");
+                for(int x = 100; x >= -100; x -= 20) {
+                    armControl_xyz(x, 150, 100);
+                    wait(500);
+                }
+                
+                // 回到X轴中心位置
+                armControl_xyz(0, 150, 100);
+                wait(1000);
+                
+                // 沿Y轴运动
+                DEBUG_LOG("  沿Y轴运动");
+                for(int y = 150; y <= 200; y += 10) {
+                    armControl_xyz(0, y, 100);
+                    wait(500);
+                }
+                
+                // 沿Y轴返回
+                for(int y = 200; y >= 100; y -= 10) {
+                    armControl_xyz(0, y, 100);
+                    wait(500);
+                }
+                
+                // 回到Y轴中心位置
+                armControl_xyz(0, 150, 100);
+                wait(1000);
+                
+                // 沿Z轴运动
+                DEBUG_LOG("  沿Z轴运动");
+                for(int z = 100; z <= 150; z += 10) {
+                    armControl_xyz(0, 150, z);
+                    wait(500);
+                }
+                
+                // 沿Z轴返回
+                for(int z = 150; z >= 50; z -= 10) {
+                    armControl_xyz(0, 150, z);
+                    wait(500);
+                }
+                
+                // 回到初始位置
+                DEBUG_LOG("  返回初始位置");
+                armControl_xyz(0, 150, 100);
+                wait(2000);
 
-                DEBUG_LOG("机械臂测试序列完成！"); */
+                DEBUG_LOG("机械臂测试序列完成！");
         }
 
         // 短暂延时，避免空循环占用CPU
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        wait(100);
     }
 }
 void arm_ScanQRcode()

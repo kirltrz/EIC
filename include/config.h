@@ -70,14 +70,14 @@
 #define ARM_SECOND_LENGTH TBD       // 机械臂第二关节至第三关节长度mm
 #define ARM_THIRD_LENGTH TBD        // 机械臂第三关节至夹持点长度mm
 #define ARM_MATERIAL_HEIGHT TBD     // 物料夹持点距地面高度mm
-#define FIRST_ARM_ANGLE_MIN -90.0f  // 大臂最小角度
-#define FIRST_ARM_ANGLE_MAX 90.0f   // 大臂最大角度
-#define SECOND_ARM_ANGLE_MIN -90.0f // 小臂最小角度
-#define SECOND_ARM_ANGLE_MAX 90.0f  // 小臂最大角度
-#define BASIS_ARM_ANGLE_MIN 0.0f    // 小臂最小角度
-#define BASIS_ARM_ANGLE_MAX 360.0f  // 小臂最大角度
-#define ARM_GRIPPER_OPEN_ANGLE TBD  // 机械臂夹爪张开角度
-#define ARM_GRIPPER_CLOSE_ANGLE TBD // 机械臂夹爪闭合角度
+#define FIRST_ARM_ANGLE_MIN -80.0f  // 大臂最小角度
+#define FIRST_ARM_ANGLE_MAX 100.0f   // 大臂最大角度
+#define SECOND_ARM_ANGLE_MIN -120.0f // 小臂最小角度
+#define SECOND_ARM_ANGLE_MAX 60.0f  // 小臂最大角度
+#define BASIS_ARM_ANGLE_MIN -180.0f    // 云台舵机最小角度
+#define BASIS_ARM_ANGLE_MAX 180.0f  // 云台舵机最大角度
+#define ARM_GRIPPER_OPEN_ANGLE 40.0f  // 机械臂夹爪张开角度
+#define ARM_GRIPPER_CLOSE_ANGLE 0.0f // 机械臂夹爪闭合角度
 
 /******************************************************************************
  * 硬件配置
