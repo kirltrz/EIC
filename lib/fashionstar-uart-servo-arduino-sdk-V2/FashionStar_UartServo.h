@@ -25,7 +25,6 @@ public:
     bool isMTurn; // 舵机是否是多圈模式
     float kAngleReal2Raw; // 舵机标定数据-舵机角度与位置之间的比例系数
     float bAngleReal2Raw; // 舵机标定数据-舵机角度与位置转换过程中的偏移量
-    
     FSUS_SERVO_ANGLE_T curAngle; // 真实的当前角度
     FSUS_SERVO_ANGLE_T targetAngle; // 真实的目标角度
 
@@ -69,6 +68,7 @@ public:
     // 设置舵机的平均转速
     void setSpeed(FSUS_SERVO_SPEED_T speed);
     // 设置舵机角度
+     void setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_INTERVAL_T t_acc, FSUS_INTERVAL_T t_dec, FSUS_POWER_T power);
     void setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_POWER_T power);
     void setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval);
     void setAngle(FSUS_SERVO_ANGLE_T angle);
