@@ -107,6 +107,7 @@ static void lv_update_task(lv_timer_t *timer)
         }
 
         // 以下是舵机相关代码，目前被注释
+        /*
         sprintf(buf[4],"%.2f",servo0.queryAngle());
         sprintf(buf[5],"%.2f",servo1.queryAngle());
         sprintf(buf[6],"%.2f",servo2.queryAngle());
@@ -117,7 +118,7 @@ static void lv_update_task(lv_timer_t *timer)
         lv_label_set_text(ui_servo1angle, buf[5]);
         lv_label_set_text(ui_servo2angle, buf[6]);
         lv_label_set_text(ui_servo3angle, buf[7]);
-        lv_label_set_text(ui_servo4angle, buf[8]);
+        lv_label_set_text(ui_servo4angle, buf[8]);*/
     }
 }
 

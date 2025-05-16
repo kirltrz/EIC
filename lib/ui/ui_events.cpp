@@ -11,6 +11,7 @@
 #include "arm.h"
 #include "sensor.h"
 #include "ZDTX42V2.h"
+#include "LED.h"
 
 void toNextPos(lv_event_t * e)
 {
@@ -72,10 +73,12 @@ void enableMotor(lv_event_t * e)
 	if (is_checked) {
 		// 开关打开，使能电机
 		motor->enControl(MOTOR_BROADCAST,is_checked);
+		LED(1);
 		DEBUG_LOG("电机已使能");
 	} else {
 		// 开关关闭，失能电机
 		motor->enControl(MOTOR_BROADCAST,is_checked);
+		LED(0);
 		DEBUG_LOG("电机已失能");
 	}
 }
