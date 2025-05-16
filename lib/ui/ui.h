@@ -46,17 +46,6 @@ extern lv_obj_t * ui_Label9;
 void ui_event_Button4(lv_event_t * e);
 extern lv_obj_t * ui_Button4;
 extern lv_obj_t * ui_Label11;
-extern lv_obj_t * ui_Panel2;
-extern lv_obj_t * ui_Label10;
-extern lv_obj_t * ui_Label13;
-extern lv_obj_t * ui_Label14;
-extern lv_obj_t * ui_Label15;
-extern lv_obj_t * ui_Label16;
-extern lv_obj_t * ui_servo0angle;
-extern lv_obj_t * ui_servo1angle;
-extern lv_obj_t * ui_servo2angle;
-extern lv_obj_t * ui_servo3angle;
-extern lv_obj_t * ui_servo4angle;
 void ui_event_Button6(lv_event_t * e);
 extern lv_obj_t * ui_Button6;
 extern lv_obj_t * ui_Label17;
@@ -65,6 +54,9 @@ extern lv_obj_t * ui_Button11;
 extern lv_obj_t * ui_Label12;
 extern lv_obj_t * ui_batteryPercentBar;
 extern lv_obj_t * ui_Label52;
+void ui_event_Button29(lv_event_t * e);
+extern lv_obj_t * ui_Button29;
+extern lv_obj_t * ui_Label55;
 // CUSTOM VARIABLES
 
 // SCREEN: ui_otaScreen
@@ -94,8 +86,10 @@ extern lv_obj_t * ui_motionScreen;
 void ui_event_Button7(lv_event_t * e);
 extern lv_obj_t * ui_Button7;
 extern lv_obj_t * ui_Label19;
+void ui_event_Button8(lv_event_t * e);
 extern lv_obj_t * ui_Button8;
 extern lv_obj_t * ui_Label21;
+void ui_event_Button9(lv_event_t * e);
 extern lv_obj_t * ui_Button9;
 extern lv_obj_t * ui_Label23;
 extern lv_obj_t * ui_TabView4;
@@ -166,11 +160,42 @@ extern lv_obj_t * ui_Label47;
 void ui_event_Button25(lv_event_t * e);
 extern lv_obj_t * ui_Button25;
 extern lv_obj_t * ui_Label49;
+void ui_event_Button10(lv_event_t * e);
 extern lv_obj_t * ui_Button10;
 extern lv_obj_t * ui_Label25;
+void ui_event_Switch1(lv_event_t * e);
 extern lv_obj_t * ui_Switch1;
 extern lv_obj_t * ui_Label44;
 extern lv_obj_t * ui_Label48;
+// CUSTOM VARIABLES
+
+// SCREEN: ui_servoTestScreen
+void ui_servoTestScreen_screen_init(void);
+extern lv_obj_t * ui_servoTestScreen;
+extern lv_obj_t * ui_Panel6;
+extern lv_obj_t * ui_Label56;
+extern lv_obj_t * ui_Label7;
+extern lv_obj_t * ui_Label8;
+extern lv_obj_t * ui_Label53;
+extern lv_obj_t * ui_Label54;
+extern lv_obj_t * ui_servo0angle;
+extern lv_obj_t * ui_servo1angle;
+extern lv_obj_t * ui_servo2angle;
+extern lv_obj_t * ui_servo3angle;
+extern lv_obj_t * ui_servo4angle;
+void ui_event_Button27(lv_event_t * e);
+extern lv_obj_t * ui_Button27;
+extern lv_obj_t * ui_Label10;
+void ui_event_Button28(lv_event_t * e);
+extern lv_obj_t * ui_Button28;
+extern lv_obj_t * ui_Label13;
+extern lv_obj_t * ui_Panel2;
+extern lv_obj_t * ui_Label14;
+extern lv_obj_t * ui_Label15;
+extern lv_obj_t * ui_Label16;
+extern lv_obj_t * ui_armX;
+extern lv_obj_t * ui_armY;
+extern lv_obj_t * ui_armZ;
 // CUSTOM VARIABLES
 
 // EVENTS

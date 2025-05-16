@@ -68,7 +68,7 @@ public:
     // 设置舵机的平均转速
     void setSpeed(FSUS_SERVO_SPEED_T speed);
     // 设置舵机角度
-     void setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_INTERVAL_T t_acc, FSUS_INTERVAL_T t_dec, FSUS_POWER_T power);
+    void setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_INTERVAL_T t_acc, FSUS_INTERVAL_T t_dec);
     void setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_POWER_T power);
     void setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval);
     void setAngle(FSUS_SERVO_ANGLE_T angle);

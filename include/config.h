@@ -11,7 +11,7 @@
 #define DEBUG_SERIAL Serial
 
 #if DEBUG_ENABLE
-#define DEBUG_LOG(...) Serial.println(__VA_ARGS__)
+#define DEBUG_LOG(...) Serial.printf(__VA_ARGS__)
 #else
 #define DEBUG_LOG(...)
 #endif
@@ -33,31 +33,31 @@
 #define DEFAULT_ACC 100
 /* 底盘PID参数 */
 // PID控制参数 - 运动中使用
-#define POS_KP 30.0f     // 位置环比例系数 - 极大增大
-#define POS_KI 0.1f      // 位置环积分系数 - 增大
-#define POS_KD 15.0f     // 位置环微分系数 - 增大
-#define YAW_KP 50.0f     // 偏航角比例系数 - 极大增大
-#define YAW_KI 0.1f      // 偏航角积分系数 - 增大
-#define YAW_KD 15.0f     // 偏航角微分系数 - 增大
+extern float POS_KP;     // 位置环比例系数
+extern float POS_KI;      // 位置环积分系数
+extern float POS_KD;     // 位置环微分系数
+extern float YAW_KP;     // 偏航角比例系数
+extern float YAW_KI;      // 偏航角积分系数
+extern float YAW_KD;     // 偏航角微分系数
 
 // PID控制参数 - 位置锁定时使用（比例系数更高，以增强保持力）
-#define HOLD_POS_KP 50.0f    // 位置保持比例系数
-#define HOLD_POS_KI 0.1f     // 完全禁用积分作用
-#define HOLD_POS_KD 15.0f     // 位置保持微分系数
-#define HOLD_YAW_KP 100.0f    // 偏航角保持比例系数
-#define HOLD_YAW_KI 0.1f     // 完全禁用积分作用
-#define HOLD_YAW_KD 15.0f     // 偏航角保持微分系数
+extern float HOLD_POS_KP;    // 位置保持比例系数
+extern float HOLD_POS_KI;     // 完全禁用积分作用
+extern float HOLD_POS_KD;     // 位置保持微分系数
+extern float HOLD_YAW_KP;    // 偏航角保持比例系数
+extern float HOLD_YAW_KI;     // 完全禁用积分作用
+extern float HOLD_YAW_KD;     // 偏航角保持微分系数
 
 // 运动控制参数
-#define MAX_LINEAR_SPEED 15000.0f  // 最大线速度，单位mm/s - 大幅增加
-#define MAX_ANGULAR_SPEED 720.0f  // 最大角速度，单位度/s - 大幅增加
+extern float MAX_LINEAR_SPEED;  // 最大线速度，单位mm/s - 大幅增加
+extern float MAX_ANGULAR_SPEED;  // 最大角速度，单位度/s - 大幅增加
 
 #define MIN_SPEED_RPM 0.1f       // 电机最小速度，单位RPM - 常量，取决于硬件不可更改
 #define MAX_SPEED_RPM 2400.0f    // 最大速度，单位RPM - 常量，取决于硬件不可更改
 
 // 位置保持模式参数
-#define HOLD_MAX_LINEAR_SPEED 5000.0f  // 位置保持时最大线速度，单位mm/s
-#define HOLD_MAX_ANGULAR_SPEED 720.0f  // 位置保持时最大角速度，单位度/s
+extern float HOLD_MAX_LINEAR_SPEED;  // 位置保持时最大线速度，单位mm/s
+extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位度/s
 /* 底盘硬件参数 */
 // 全向轮底盘参数
 #define WHEEL_RADIUS 41.0f    // 轮子半径，单位mm
@@ -65,11 +65,13 @@
 /******************************************************************************
  * 机械臂参数配置
  ******************************************************************************/
-#define ARM_FIRST_JOINT_HEIGHT TBD  // 机械臂第一关节距地面高度mm
-#define ARM_FIRST_LENGTH TBD        // 机械臂第一关节至第二关节长度mm
-#define ARM_SECOND_LENGTH TBD       // 机械臂第二关节至第三关节长度mm
-#define ARM_THIRD_LENGTH TBD        // 机械臂第三关节至夹持点长度mm
-#define ARM_MATERIAL_HEIGHT TBD     // 物料夹持点距地面高度mm
+#define ARM_FIRST_JOINT_HEIGHT 139  // 机械臂第一关节距地面高度mm
+#define ARM_FIRST_LENGTH 185        // 机械臂第一关节至第二关节长度mm
+#define ARM_SECOND_LENGTH 185       // 机械臂第二关节至第三关节长度mm
+#define ARM_THIRD_LENGTH 112        // 机械臂第三关节至夹持点长度mm
+#define ARM_MATERIAL_HEIGHT 56     // 物料夹持点距地面高度mm
+#define ARM_MATERIAL_OFFSET_X 5  // 物料夹持点距机械臂中心x轴偏移量mm
+#define ARM_MATERIAL_OFFSET_Y -27.5  // 物料夹持点距机械臂中心y轴偏移量mm
 #define FIRST_ARM_ANGLE_MIN -80.0f  // 大臂最小角度
 #define FIRST_ARM_ANGLE_MAX 100.0f   // 大臂最大角度
 #define SECOND_ARM_ANGLE_MIN -120.0f // 小臂最小角度

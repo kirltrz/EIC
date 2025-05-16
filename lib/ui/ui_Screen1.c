@@ -142,99 +142,6 @@ void ui_Screen1_screen_init(void)
     lv_label_set_text(ui_Label11, "舵机\n置零");
     lv_obj_set_style_text_font(ui_Label11, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
-    ui_Panel2 = lv_obj_create(ui_Screen1);
-    lv_obj_set_width(ui_Panel2, 144);
-    lv_obj_set_height(ui_Panel2, 116);
-    lv_obj_set_x(ui_Panel2, -74);
-    lv_obj_set_y(ui_Panel2, 45);
-    lv_obj_set_align(ui_Panel2, LV_ALIGN_CENTER);
-    lv_obj_remove_flag(ui_Panel2, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-
-    ui_Label10 = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_Label10, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label10, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label10, -5);
-    lv_obj_set_y(ui_Label10, -40);
-    lv_obj_set_align(ui_Label10, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label10, "舵机0:");
-    lv_obj_set_style_text_font(ui_Label10, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_Label13 = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_Label13, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label13, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label13, -5);
-    lv_obj_set_y(ui_Label13, -20);
-    lv_obj_set_align(ui_Label13, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label13, "舵机1:");
-    lv_obj_set_style_text_font(ui_Label13, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_Label14 = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_Label14, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label14, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label14, -5);
-    lv_obj_set_y(ui_Label14, 0);
-    lv_obj_set_align(ui_Label14, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label14, "舵机2:");
-    lv_obj_set_style_text_font(ui_Label14, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_Label15 = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_Label15, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label15, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label15, -5);
-    lv_obj_set_y(ui_Label15, 20);
-    lv_obj_set_align(ui_Label15, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label15, "舵机3:");
-    lv_obj_set_style_text_font(ui_Label15, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_Label16 = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_Label16, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label16, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label16, -5);
-    lv_obj_set_y(ui_Label16, 40);
-    lv_obj_set_align(ui_Label16, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label16, "舵机4:");
-    lv_obj_set_style_text_font(ui_Label16, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_servo0angle = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_servo0angle, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_servo0angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo0angle, 20);
-    lv_obj_set_y(ui_servo0angle, -40);
-    lv_obj_set_align(ui_servo0angle, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_servo0angle, "0");
-
-    ui_servo1angle = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_servo1angle, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_servo1angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo1angle, 20);
-    lv_obj_set_y(ui_servo1angle, -20);
-    lv_obj_set_align(ui_servo1angle, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_servo1angle, "0");
-
-    ui_servo2angle = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_servo2angle, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_servo2angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo2angle, 20);
-    lv_obj_set_y(ui_servo2angle, 0);
-    lv_obj_set_align(ui_servo2angle, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_servo2angle, "0");
-
-    ui_servo3angle = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_servo3angle, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_servo3angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo3angle, 20);
-    lv_obj_set_y(ui_servo3angle, 20);
-    lv_obj_set_align(ui_servo3angle, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_servo3angle, "0");
-
-    ui_servo4angle = lv_label_create(ui_Panel2);
-    lv_obj_set_width(ui_servo4angle, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_servo4angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo4angle, 20);
-    lv_obj_set_y(ui_servo4angle, 40);
-    lv_obj_set_align(ui_servo4angle, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_servo4angle, "0");
-
     ui_Button6 = lv_button_create(ui_Screen1);
     lv_obj_set_width(ui_Button6, 50);
     lv_obj_set_height(ui_Button6, 50);
@@ -311,10 +218,26 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_style_text_color(ui_Label52, lv_color_hex(0x777777), LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui_Label52, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
 
+    ui_Button29 = lv_button_create(ui_Screen1);
+    lv_obj_set_width(ui_Button29, 50);
+    lv_obj_set_height(ui_Button29, 50);
+    lv_obj_set_x(ui_Button29, -18);
+    lv_obj_set_y(ui_Button29, 15);
+    lv_obj_set_align(ui_Button29, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_Button29, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_Button29, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_Label55 = lv_label_create(ui_Button29);
+    lv_obj_set_width(ui_Label55, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label55, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_Label55, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label55, "toSScr");
+
     lv_obj_add_event_cb(ui_enableMotorSwitch, ui_event_enableMotorSwitch, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button3, ui_event_Button3, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button4, ui_event_Button4, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button6, ui_event_Button6, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button11, ui_event_Button11, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Button29, ui_event_Button29, LV_EVENT_ALL, NULL);
 
 }

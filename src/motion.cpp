@@ -28,7 +28,7 @@ static float yaw_last_error = 0;
 void initMotor()
 {
     // 初始化串口通信，用于与电机通信
-    MOTOR_SERIAL.begin(SERIAL_BAUDRATE, SERIAL_8N1,PIN_MOTOR_RX, PIN_MOTOR_TX);
+    MOTOR_SERIAL.begin(SERIAL_BAUDRATE, SERIAL_8N1, PIN_MOTOR_RX, PIN_MOTOR_TX);
     delay(1000); // 等待通信稳定
 
     DEBUG_LOG("开始初始化电机...");
@@ -97,7 +97,7 @@ float constrain_float(float value, float min_value, float max_value)
     return value;
 }
 
-void moveTo(POS pos, float speed, int acc, int dec)
+void moveTo(POS pos)
 {
     /*移动到目标点，仅用于传入目标点*/
     // 保存目标位置
@@ -107,6 +107,11 @@ void moveTo(POS pos, float speed, int acc, int dec)
     isMoving = true;
     isHolding = false;
 
+    resetPIDparam();
+}
+
+void resetPIDparam()
+{
     // 重置PID积分项
     pos_x_integral = 0;
     pos_y_integral = 0;
@@ -117,7 +122,6 @@ void moveTo(POS pos, float speed, int acc, int dec)
     pos_y_last_error = 0;
     yaw_last_error = 0;
 }
-
 // 停止运动并释放电机控制
 void stopMotion()
 {
@@ -283,7 +287,7 @@ void moveTask(void *pvParameters)
                 lastCmd_Time = currentTime;
 
                 // 获取每个电机的地址
-                uint8_t motor_addrs[4] = {MOTOR_FR, MOTOR_FL, MOTOR_BL, MOTOR_BR};
+                uint8_t motor_addrs[4] = {MOTOR_FR, MOTOR_BR, MOTOR_BL, MOTOR_FL};
 
                 // 直接使用速度控制模式控制电机
                 for (int i = 0; i < 4; i++)
@@ -313,7 +317,7 @@ void moveTask(void *pvParameters)
                     motor->velocityControl(motor_addrs[i], dir, DEFAULT_ACC, abs_speed, 0);
 
                     // 接收并处理来自电机的反馈数据
-                    motor->receiveData(rxCmd, &rxCount);
+                    // motor->receiveData(rxCmd, &rxCount);
 
                     // 添加调试信息，显示电机回复
                     /*if (i == 0 && (currentTime % 1000) < 10) { // 每秒输出一次第一个电机的回复情况

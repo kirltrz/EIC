@@ -12,93 +12,249 @@
 #include "sensor.h"
 #include "ZDTX42V2.h"
 #include "LED.h"
+#include "mainSequence.h"
 
-void toNextPos(lv_event_t * e)
+void toNextPos(lv_event_t *e)
 {
-	/*currentState = COARSE_POSITIONING;*/
+	static int current_pos_index = 0;
+	moveTo(pos[current_pos_index]);
+	current_pos_index++;
+	if (current_pos_index >= sizeof(pos) / sizeof(pos[0]))
+	{
+		current_pos_index = 0;
+	}
 }
 
-void lockCurrentPos(lv_event_t * e)
+void lockCurrentPos(lv_event_t *e)
 {
 	// 静态变量记录当前状态：是否已锁定位置
 	static bool is_position_locked = false;
-	
+
 	// 获取当前位置
 	global_position_t currentPosition;
 	getGlobalPosition(&currentPosition);
-	
-	if (!is_position_locked) {
+
+	if (!is_position_locked)
+	{
 		// 当前未锁定，按下按钮后锁定当前位置
 		POS currentPos = {currentPosition.x, currentPosition.y, currentPosition.rawYaw};
-		
+
 		// 重要：先调用stopMotion停止任何现有运动，然后再锁定位置
 		stopMotion();
 		delay(50); // 短暂延时，确保电机停止
-		
+
 		// 现在锁定在当前位置
 		moveTo(currentPos); // 移动到当前位置（实际上是锁定位置）
-		
+
 		// 修改按钮显示文本
-		lv_obj_t * btn = (lv_obj_t *)lv_event_get_target(e);
-		lv_obj_t * label = lv_obj_get_child(btn, 0);
-		if (label != NULL) {
-			lv_label_set_text(label, "解锁位置");
+		lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+		lv_obj_t *label = lv_obj_get_child(btn, 0);
+		if (label != NULL)
+		{
+			lv_label_set_text(label, "unlock");
 		}
-		
+
 		// 更新状态
 		is_position_locked = true;
-	} else {
+	}
+	else
+	{
 		// 当前已锁定，按下按钮后解锁
 		stopMotion();
-		delay(50);  // 短暂延时，确保电机完全停止
-		
+		delay(50); // 短暂延时，确保电机完全停止
+
 		// 恢复按钮显示文本
-		lv_obj_t * btn = (lv_obj_t *)lv_event_get_target(e);
-		lv_obj_t * label = lv_obj_get_child(btn, 0);
-		if (label != NULL) {
-			lv_label_set_text(label, "锁定位置");
+		lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+		lv_obj_t *label = lv_obj_get_child(btn, 0);
+		if (label != NULL)
+		{
+			lv_label_set_text(label, "lock");
 		}
-		
+
 		// 更新状态
 		is_position_locked = false;
 	}
 }
 
-void enableMotor(lv_event_t * e)
+void enableMotor(lv_event_t *e)
 {
 	// 获取开关状态
-	lv_obj_t * sw = (lv_obj_t *)lv_event_get_target(e);
+	lv_obj_t *sw = (lv_obj_t *)lv_event_get_target(e);
 	bool is_checked = lv_obj_has_state(sw, LV_STATE_CHECKED);
-	
-	if (is_checked) {
+
+	if (is_checked)
+	{
 		// 开关打开，使能电机
-		motor->enControl(MOTOR_BROADCAST,is_checked);
-		LED(1);
+		motor->enControl(MOTOR_BROADCAST, is_checked);
+		//LED(1);
 		DEBUG_LOG("电机已使能");
-	} else {
+	}
+	else
+	{
 		// 开关关闭，失能电机
-		motor->enControl(MOTOR_BROADCAST,is_checked);
-		LED(0);
+		motor->enControl(MOTOR_BROADCAST, is_checked);
+		//LED(0);
 		DEBUG_LOG("电机已失能");
 	}
 }
 
-void armTestFunc(lv_event_t * e)
+void armTestFunc(lv_event_t *e)
 {
 	startArmTest();
 }
 
-void servoSetOringin(lv_event_t * e)
+void servoSetOringin(lv_event_t *e)
 {
 	setOriginPoint();
 }
 
-void stopServo(lv_event_t * e)
+void stopServo(lv_event_t *e)
 {
 	stopArm(false);
 }
 
-void startOTA(lv_event_t * e)
+void startOTA(lv_event_t *e)
 {
 	initOTA();
+}
+
+void updateArmInfo(lv_event_t *e)
+{
+	char buf[10][30];
+	float angle[5];
+	float xyz[3];
+
+	/*获取舵机角度*/
+	angle[0] = servo0.queryAngle();
+	angle[1] = servo1.queryAngle();
+	angle[2] = servo2.queryAngle();
+	angle[3] = servo3.queryAngle();
+	angle[4] = servo4.queryAngle();
+
+	/*将角度转换为字符串*/
+	sprintf(buf[0], "%.2f", angle[0]);
+	sprintf(buf[1], "%.2f", angle[1]);
+	sprintf(buf[2], "%.2f", angle[2]);
+	sprintf(buf[3], "%.2f", angle[3]);
+	sprintf(buf[4], "%.2f", angle[4]);
+
+	/*根据角度计算xyz坐标*/
+	armCalculate_forward(angle[0], angle[1], angle[2], xyz);
+
+	/*将xyz坐标转换为字符串*/
+	sprintf(buf[5], "%.2f", xyz[0]);
+	sprintf(buf[6], "%.2f", xyz[1]);
+	sprintf(buf[7], "%.2f", xyz[2]);
+
+	/*更新ui中舵机角度*/
+	lv_label_set_text(ui_servo0angle, buf[0]);
+	lv_label_set_text(ui_servo1angle, buf[1]);
+	lv_label_set_text(ui_servo2angle, buf[2]);
+	lv_label_set_text(ui_servo3angle, buf[3]);
+	lv_label_set_text(ui_servo4angle, buf[4]);
+
+	/*更新ui中xyz坐标*/
+	lv_label_set_text(ui_armX, buf[5]);
+	lv_label_set_text(ui_armY, buf[6]);
+	lv_label_set_text(ui_armZ, buf[7]);
+}
+
+void applyPID(lv_event_t *e)
+{
+	// 从UI控件中获取PID参数
+	float pos_kp = lv_spinbox_get_value(ui_moving_pos_Kp) / 1000.0f; // 位置环比例系数
+	float pos_ki = lv_spinbox_get_value(ui_moving_pos_Ki) / 1000.0f; // 位置环积分系数
+	float pos_kd = lv_spinbox_get_value(ui_moving_pos_Kd) / 1000.0f; // 位置环微分系数
+
+	float yaw_kp = lv_spinbox_get_value(ui_moving_yaw_Kp) / 1000.0f; // 偏航角比例系数
+	float yaw_ki = lv_spinbox_get_value(ui_moving_yaw_Ki) / 1000.0f; // 偏航角积分系数
+	float yaw_kd = lv_spinbox_get_value(ui_moving_yaw_Kd) / 1000.0f; // 偏航角微分系数
+
+	// 从UI控件中获取速度参数
+	float linear_speed = lv_spinbox_get_value(ui_moving_spd_linear) / 10.0f;   // 线速度，单位mm/s
+	float angular_speed = lv_spinbox_get_value(ui_moving_spd_angular) / 1000.0f; // 角速度，单位度/s
+
+	// 检查开关状态，决定更新哪组PID参数
+	bool is_holding_mode = lv_obj_has_state(ui_Switch1, LV_STATE_CHECKED);
+
+	if (is_holding_mode)
+	{
+		// 更新保持模式的PID参数
+		HOLD_POS_KP = pos_kp;
+		HOLD_POS_KI = pos_ki;
+		HOLD_POS_KD = pos_kd;
+		HOLD_YAW_KP = yaw_kp;
+		HOLD_YAW_KI = yaw_ki;
+		HOLD_YAW_KD = yaw_kd;
+
+		// 更新保持模式的速度参数
+		HOLD_MAX_LINEAR_SPEED = linear_speed;
+		HOLD_MAX_ANGULAR_SPEED = angular_speed;
+
+		DEBUG_LOG("已应用保持模式PID参数: POS(%.2f,%.2f,%.2f) YAW(%.2f,%.2f,%.2f) SPD(%.1f,%.1f)",
+				  HOLD_POS_KP, HOLD_POS_KI, HOLD_POS_KD,
+				  HOLD_YAW_KP, HOLD_YAW_KI, HOLD_YAW_KD,
+				  HOLD_MAX_LINEAR_SPEED, HOLD_MAX_ANGULAR_SPEED);
+	}
+	else
+	{
+		// 更新移动模式的PID参数
+		POS_KP = pos_kp;
+		POS_KI = pos_ki;
+		POS_KD = pos_kd;
+		YAW_KP = yaw_kp;
+		YAW_KI = yaw_ki;
+		YAW_KD = yaw_kd;
+
+		// 更新移动模式的速度参数
+		MAX_LINEAR_SPEED = linear_speed;
+		MAX_ANGULAR_SPEED = angular_speed;
+
+		DEBUG_LOG("已应用移动模式PID参数: POS(%.2f,%.2f,%.2f) YAW(%.2f,%.2f,%.2f) SPD(%.1f,%.1f)",
+				  POS_KP, POS_KI, POS_KD,
+				  YAW_KP, YAW_KI, YAW_KD,
+				  MAX_LINEAR_SPEED, MAX_ANGULAR_SPEED);
+	}
+	resetPIDparam(); // 重置PID积分项及last_error
+}
+
+void switchPIDtarget(lv_event_t *e)
+{
+	// 获取开关状态（是否切换到保持模式）
+	lv_obj_t *sw = (lv_obj_t *)lv_event_get_target(e);
+	bool is_holding_mode = lv_obj_has_state(sw, LV_STATE_CHECKED);
+
+	// 根据模式切换，更新UI显示的参数值
+	if (is_holding_mode)
+	{
+		// 切换到保持模式，显示保持模式的参数
+		lv_spinbox_set_value(ui_moving_pos_Kp, (int32_t)(HOLD_POS_KP * 1000));
+		lv_spinbox_set_value(ui_moving_pos_Ki, (int32_t)(HOLD_POS_KI * 1000));
+		lv_spinbox_set_value(ui_moving_pos_Kd, (int32_t)(HOLD_POS_KD * 1000));
+
+		lv_spinbox_set_value(ui_moving_yaw_Kp, (int32_t)(HOLD_YAW_KP * 1000));
+		lv_spinbox_set_value(ui_moving_yaw_Ki, (int32_t)(HOLD_YAW_KI * 1000));
+		lv_spinbox_set_value(ui_moving_yaw_Kd, (int32_t)(HOLD_YAW_KD * 1000));
+
+		lv_spinbox_set_value(ui_moving_spd_linear, (int32_t)(HOLD_MAX_LINEAR_SPEED * 10));
+		lv_spinbox_set_value(ui_moving_spd_angular, (int32_t)(HOLD_MAX_ANGULAR_SPEED * 1000));
+
+		DEBUG_LOG("已切换到保持模式参数");
+	}
+	else
+	{
+		// 切换到移动模式，显示移动模式的参数
+		lv_spinbox_set_value(ui_moving_pos_Kp, (int32_t)(POS_KP * 1000));
+		lv_spinbox_set_value(ui_moving_pos_Ki, (int32_t)(POS_KI * 1000));
+		lv_spinbox_set_value(ui_moving_pos_Kd, (int32_t)(POS_KD * 1000));
+
+		lv_spinbox_set_value(ui_moving_yaw_Kp, (int32_t)(YAW_KP * 1000));
+		lv_spinbox_set_value(ui_moving_yaw_Ki, (int32_t)(YAW_KI * 1000));
+		lv_spinbox_set_value(ui_moving_yaw_Kd, (int32_t)(YAW_KD * 1000));
+
+		lv_spinbox_set_value(ui_moving_spd_linear, (int32_t)(MAX_LINEAR_SPEED * 10));
+		lv_spinbox_set_value(ui_moving_spd_angular, (int32_t)(MAX_ANGULAR_SPEED * 1000));
+
+		DEBUG_LOG("已切换到移动模式参数");
+	}
 }

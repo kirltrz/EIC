@@ -14,6 +14,11 @@ void enableMotor(lv_event_t * e);
 void armTestFunc(lv_event_t * e);
 void servoSetOringin(lv_event_t * e);
 void startOTA(lv_event_t * e);
+void applyPID(lv_event_t * e);
+void lockCurrentPos(lv_event_t * e);
+void toNextPos(lv_event_t * e);
+void switchPIDtarget(lv_event_t * e);
+void updateArmInfo(lv_event_t * e);
 
 #ifdef __cplusplus
 } /*extern "C"*/

@@ -13,7 +13,8 @@ struct POS{
 extern ZDTX42V2 *motor;
 //extern systemState currentState;
 void initMotor(void);
-void moveTo(POS pos, float speed=DEFAULT_SPEED, int acc=DEFAULT_ACC, int dec=DEFAULT_ACC);
+void moveTo(POS pos);
+void resetPIDparam(void);
 void moveTask(void*pvParameters);
 bool arrived(void);//返回true表示到达目标点
 void stopMotion(void);//停止运动并释放电机控制

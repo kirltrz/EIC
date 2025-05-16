@@ -67,7 +67,7 @@ void ui_motionScreen_screen_init(void)
     lv_obj_set_width(ui_Label23, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label23, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_Label23, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label23, "test1");
+    lv_label_set_text(ui_Label23, "lock");
 
     ui_TabView4 = lv_tabview_create(ui_motionScreen);
     lv_tabview_set_tab_bar_size(ui_TabView4, 30);
@@ -558,7 +558,7 @@ void ui_motionScreen_screen_init(void)
     lv_obj_set_width(ui_Label25, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label25, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_Label25, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label25, "test2");
+    lv_label_set_text(ui_Label25, "next");
 
     ui_Switch1 = lv_switch_create(ui_motionScreen);
     lv_obj_set_width(ui_Switch1, 50);
@@ -597,6 +597,8 @@ void ui_motionScreen_screen_init(void)
     lv_label_set_text(ui_Label48, "HOLDING");
 
     lv_obj_add_event_cb(ui_Button7, ui_event_Button7, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Button8, ui_event_Button8, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Button9, ui_event_Button9, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button12, ui_event_Button12, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button1, ui_event_Button1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button2, ui_event_Button2, LV_EVENT_ALL, NULL);
@@ -613,5 +615,7 @@ void ui_motionScreen_screen_init(void)
     lv_obj_add_event_cb(ui_Button22, ui_event_Button22, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button23, ui_event_Button23, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button25, ui_event_Button25, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Button10, ui_event_Button10, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_Switch1, ui_event_Switch1, LV_EVENT_ALL, NULL);
 
 }

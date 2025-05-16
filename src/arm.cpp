@@ -49,10 +49,10 @@ void initArm(void)
     servo4.init();   // 初始化夹爪舵机
     /*舵机角度限幅 */
     servo0.setAngleRange(-180, 180); // 云台舵机
-    servo1.setAngleRange(-80, 100); // 一级关节舵机
-    servo2.setAngleRange(-120, 60); // 二级关节舵机
-    servo3.setAngleRange(-180, 45); // 三级关节舵机
-    servo4.setAngleRange(0, 40); // 夹爪舵机
+    servo1.setAngleRange(-80, 100);  // 一级关节舵机
+    servo2.setAngleRange(-120, 60);  // 二级关节舵机
+    servo3.setAngleRange(-180, 45);  // 三级关节舵机
+    servo4.setAngleRange(0, 40);     // 夹爪舵机
     DEBUG_LOG("初始化机械臂完成");
 }
 void setOriginPoint(void)
@@ -76,7 +76,7 @@ void stopArm(bool stop)
     }
 }
 /*逆解算 根据下y,z坐标解算出具体关节的舵机角度*/
-void armCalculate_inverse(float y, float z, float *out_arm_degree)
+void armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
 {
     float shortSide;        // 短边长度
     float hypotenuse;       // 斜边长度
@@ -143,9 +143,10 @@ void armCalculate_inverse(float y, float z, float *out_arm_degree)
     /* 机械臂xy平面逆解算 */
     // float theta0 = atan2(y, x) * 180.0 / PI; // 云台舵机角度(度)
 
-    out_arm_degree[0] = first_arm_degree;  // 大臂角度
-    out_arm_degree[1] = second_arm_degree; // 小臂角度(度)
-    // out_arm_degree[2] = theta0;            // 云台舵机角度(度)
+    // out_arm_degree[0] = theta0;            // 云台舵机角度(度)
+    out_arm_degree[1] = first_arm_degree;  // 大臂角度
+    out_arm_degree[2] = second_arm_degree; // 小臂角度(度)
+    // out_arm_degree[3]= third_arm_degree; // 三级关节舵机角度(度)
 }
 /**
  * 根据大小臂角度计算末端执行器的位置坐标 用于示教 具体有待实现
@@ -153,24 +154,32 @@ void armCalculate_inverse(float y, float z, float *out_arm_degree)
  *@param first_arm_degree: 大臂角度,竖直方向为0,向前为正角度
  *@param second_arm_degree: 小臂角度,水平方向为0,向上为正角度
  *@param theta0   云台舵机角度(度)
- *@param out_arm_location_yz[0]: 输出坐标y
- *@param out_arm_location_yz[1]: 输出坐标z
- *@param out_arm_location_yz[1]: 输出坐标x
+ *@param out_arm_location_xyz[0]: 输出坐标x
+ *@param out_arm_location_xyz[1]: 输出坐标y
+ *@param out_arm_location_xyz[2]: 输出坐标z
  */
-float *armCalculate_forward(float first_arm_degree, float second_arm_degree, float *out_arm_location_yz)
+void armCalculate_forward(float theta0, float first_arm_degree, float second_arm_degree, float *out_arm_location_xyz)
 {
-    float z1, z2, y1, y2;                                        // 大臂和小臂的z轴和y轴增量
-    float x1, x2;                                                // 大臂和小臂的x轴增量
-    z1 = ARM_SECOND_LENGTH * cos(first_arm_degree * PI / 180.0); // 大臂z轴增量
-    y1 = ARM_SECOND_LENGTH * sin(first_arm_degree * PI / 180.0); // 大臂y轴增量
+    float x, x1, x2;
+    float y, w, w1, w2; // w为机械臂坐标系下的y轴
+    float z, z1, z2;
 
-    z2 = ARM_FIRST_LENGTH * sin(second_arm_degree * PI / 180.0);
-    y2 = ARM_FIRST_LENGTH * cos(second_arm_degree * PI / 180.0);
+    w1 = ARM_FIRST_LENGTH * sin(first_arm_degree * DEG_TO_RAD); // 大臂y轴增量
+    w2 = ARM_SECOND_LENGTH * cos((first_arm_degree + second_arm_degree) * DEG_TO_RAD);
+    w = w1 + w2 + ARM_MATERIAL_OFFSET_Y;
+    y = w * cos(theta0 * DEG_TO_RAD); // 将w轴增量转换到机械臂中心坐标系下的y轴增量
 
-    out_arm_location_yz[0] = y1 + y2 + ARM_THIRD_LENGTH;                          // 末端执行器y坐标
-    out_arm_location_yz[1] = z1 + z2 - ARM_THIRD_LENGTH + ARM_FIRST_JOINT_HEIGHT; // 末端执行器z坐标
+    x1 = w * sin(theta0 * DEG_TO_RAD);                     // 使用机械臂坐标系下的y轴增量计算小车坐标系下的x轴增量
+    x2 = ARM_MATERIAL_OFFSET_X * cos(theta0 * DEG_TO_RAD); // 将机械臂坐标系下的物料x轴偏移转换到小车坐标系下
+    x = x1 + x2;
 
-    return out_arm_location_yz;
+    z1 = ARM_FIRST_LENGTH * cos(first_arm_degree * DEG_TO_RAD); // 大臂z轴增量
+    z2 = ARM_SECOND_LENGTH * sin((first_arm_degree + second_arm_degree) * DEG_TO_RAD);
+    z = z1 - z2 - ARM_THIRD_LENGTH + ARM_FIRST_JOINT_HEIGHT - ARM_MATERIAL_HEIGHT; // 末端执行器z坐标
+
+    out_arm_location_xyz[0] = x;
+    out_arm_location_xyz[1] = y;
+    out_arm_location_xyz[2] = z;
 }
 /**
  *@brief 机械大小臂角度控制
@@ -178,10 +187,8 @@ float *armCalculate_forward(float first_arm_degree, float second_arm_degree, flo
  *@param second_arm_degree: 小臂相对角度
  *@return 无
  */
-void armSet_position(float first_arm_degree, float second_arm_degree)
+void armSet_position(float theta0, float first_arm_degree, float second_arm_degree, float third_arm_degree, uint16_t interval, uint16_t acc, uint16_t dec)
 {
-    float T;
-    float acc, dcc, power;
     // 角度限制
     if (first_arm_degree < FIRST_ARM_ANGLE_MIN)
         first_arm_degree = FIRST_ARM_ANGLE_MIN;
@@ -193,22 +200,25 @@ void armSet_position(float first_arm_degree, float second_arm_degree)
         second_arm_degree = SECOND_ARM_ANGLE_MAX;
 
     // 设置舵机角度 这里启用舵机加减速 但加速减速参数待调
-    servo1.setAngle(first_arm_degree, T, acc, dcc, power);  // 一级关节舵机
-    servo2.setAngle(second_arm_degree, T, acc, dcc, power); // 二级关节舵机
+    // servo0.setAngle(theta0, T, acc, dcc, power); // 云台舵机
+    servo1.setAngle(first_arm_degree, interval, acc, dec);  // 一级关节舵机
+    servo2.setAngle(second_arm_degree, interval, acc, dec); // 二级关节舵机
+    // servo3.setAngle(third_arm_degree, T, acc, dcc, power); // 三级关节舵机
 }
 /**
- *@brief 机械臂yz平面位置控制
+ *@brief 机械臂xyz平面位置控制
+ *@param x: x坐标,单位mm
  *@param y: y坐标,单位mm
- *@param z: z轴坐标,单位mm
+ *@param z: z坐标,单位mm
  *@return void
  */
-void armControl_xyz(float x, float y, float z)
+void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, uint16_t dec)
 {
-    float xyz_to_angle[2];
+    float xyz_to_angle[4];
 
-    armCalculate_inverse(y, z, xyz_to_angle); // 逆解算
+    armCalculate_inverse(x, y, z, xyz_to_angle); // 逆解算
     DEBUG_LOG("机械臂xyz坐标: x=%f, y=%f, z=%f", x, y, z);
-    armSet_position(xyz_to_angle[0], xyz_to_angle[1]);
+    armSet_position(xyz_to_angle[0], xyz_to_angle[1], xyz_to_angle[2], xyz_to_angle[3], interval, acc, dec);
 }
 // 更新机械臂舵机位置 但queryAngle是一个阻塞型操作 发出问答 等待 接受执行 可能会有延时 可以考虑一次性全部查询 或者在freertos中使用不断更新
 void updateArmServoPositions()
@@ -266,43 +276,44 @@ void armTestTask(void *pvParameters)
         // 等待测试信号
         if (xSemaphoreTake(xSemaphoreArmTest, portMAX_DELAY) == pdTRUE)
         {
-
-            if (millis() - last_update_time > SERVO_UPDATE_INTERVAL_MS)
-            {
-                updateArmServoPositions();
-                // 打印当前舵机角度
-                DEBUG_LOG("当前角度 - 底座: %.2f, 大臂: %.2f, 小臂: %.2f, 夹爪: %.2f\n", servo0.queryAngle(), servo1.queryAngle(), servo2.queryAngle(), servo4.queryAngle());
-                last_update_time = millis();
-            }
-            // 机械臂运动正解算示教
-            armCalculate_forward(current_servo1_angle, current_servo2_angle, out_degree);
-            armCalculate_inverse(yz[0], yz[1], out_degree);
-            // 短暂延时，避免空循环占用CPU
-            vTaskDelay(100 / portTICK_PERIOD_MS);
+            /*
+                        if (millis() - last_update_time > SERVO_UPDATE_INTERVAL_MS)
+                        {
+                            updateArmServoPositions();
+                            // 打印当前舵机角度
+                            DEBUG_LOG("当前角度 - 底座: %.2f, 大臂: %.2f, 小臂: %.2f, 夹爪: %.2f\n", servo0.queryAngle(), servo1.queryAngle(), servo2.queryAngle(), servo4.queryAngle());
+                            last_update_time = millis();
+                        }
+                        // 机械臂运动正解算示教
+                        armCalculate_forward(current_servo1_angle, current_servo2_angle, out_degree);
+                        armCalculate_inverse(yz[0], yz[1], out_degree);
+                        // 短暂延时，避免空循环占用CPU
+                        vTaskDelay(100 / portTICK_PERIOD_MS);*/
         }
     }
-    void arm_ScanQRcode()
-    {
-        /*扫描二维码，与控制xyz不同，机械臂前端需抬起使摄像头朝向二维码，无需处理视觉部分*/
-    }
+}
+void arm_ScanQRcode()
+{
+    /*扫描二维码，与控制xyz不同，机械臂前端需抬起使摄像头朝向二维码，无需处理视觉部分*/
+}
 
-    void arm_catchFromTurntable(int taskcode[3])
-    {
-        /*从转盘抓取，需要通过视觉识别抓取物料，因为转盘不断转动，故需要等待物料停止再抓取或者实时跟踪*/
-        const int turntableHeight = 80; // 转盘高度
-    }
+void arm_catchFromTurntable(int taskcode[3])
+{
+    /*从转盘抓取，需要通过视觉识别抓取物料，因为转盘不断转动，故需要等待物料停止再抓取或者实时跟踪*/
+    const int turntableHeight = 80; // 转盘高度
+}
 
-    void arm_putToGround(int taskcode[3], int circleOffset[3][2] /*传出当前色环偏移量*/)
-    {
-        /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
-    }
+void arm_putToGround(int taskcode[3], int circleOffset[3][2] /*传出当前色环偏移量*/)
+{
+    /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
+}
 
-    void arm_catchFromGround(int taskcode[3], const int circleOffset[3][2] /*传入当前色环偏移量*/)
-    {
-        /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
-    }
+void arm_catchFromGround(int taskcode[3], const int circleOffset[3][2] /*传入当前色环偏移量*/)
+{
+    /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
+}
 
-    void arm_putToMaterial(int taskcode[3])
-    {
-        /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
-    }
+void arm_putToMaterial(int taskcode[3])
+{
+    /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
+}

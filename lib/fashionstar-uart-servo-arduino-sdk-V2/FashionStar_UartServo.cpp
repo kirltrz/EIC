@@ -128,16 +128,6 @@ void FSUS_Servo::setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FS
     this->targetAngle = angle; // 设置目标角度
     setRawAngle(angleReal2Raw(this->targetAngle), interval, power);
 }
-// ... existing code ...
-/* 设置舵机角度 */
-void FSUS_Servo::setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_POWER_T power){
-    // 约束角度的范围
-    angle = (angle < this->angleMin) ? this->angleMin: angle;
-    angle = (angle > this->angleMax) ? this->angleMax: angle;
-    // 发送舵机角度控制指令
-    this->targetAngle = angle; // 设置目标角度
-    setRawAngle(angleReal2Raw(this->targetAngle), interval, power);
-}
 
 /* 设置舵机角度 (带加减速，指定总时间) */
 // angle: 目标角度 (单位: 度)
@@ -145,7 +135,7 @@ void FSUS_Servo::setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FS
 // t_acc: 加速时间 (单位: 毫秒)
 // t_dec: 减速时间 (单位: 毫秒)
 // power: 舵机功率 (单位: mW, 0表示最大功率)
-void FSUS_Servo::setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_INTERVAL_T t_acc, FSUS_INTERVAL_T t_dec, FSUS_POWER_T power){
+void FSUS_Servo::setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FSUS_INTERVAL_T t_acc, FSUS_INTERVAL_T t_dec){
     // 约束角度的范围
     angle = (angle < this->angleMin) ? this->angleMin : angle;
     angle = (angle > this->angleMax) ? this->angleMax : angle;
@@ -163,7 +153,7 @@ void FSUS_Servo::setAngle(FSUS_SERVO_ANGLE_T angle, FSUS_INTERVAL_T interval, FS
     this->targetRawAngle = rawAngleToSet;
     
     // 发送指令到底层协议
-    this->protocol->sendSetAngleByInterval(this->servoId, rawAngleToSet, interval, t_acc, t_dec, power);
+    this->protocol->sendSetAngleByInterval(this->servoId, rawAngleToSet, interval, t_acc, t_dec, 0);
 }
 
 /* 设置舵机的原始角度 */

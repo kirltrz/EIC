@@ -27,17 +27,6 @@ lv_obj_t * ui_Label9;
 void ui_event_Button4(lv_event_t * e);
 lv_obj_t * ui_Button4;
 lv_obj_t * ui_Label11;
-lv_obj_t * ui_Panel2;
-lv_obj_t * ui_Label10;
-lv_obj_t * ui_Label13;
-lv_obj_t * ui_Label14;
-lv_obj_t * ui_Label15;
-lv_obj_t * ui_Label16;
-lv_obj_t * ui_servo0angle;
-lv_obj_t * ui_servo1angle;
-lv_obj_t * ui_servo2angle;
-lv_obj_t * ui_servo3angle;
-lv_obj_t * ui_servo4angle;
 void ui_event_Button6(lv_event_t * e);
 lv_obj_t * ui_Button6;
 lv_obj_t * ui_Label17;
@@ -46,6 +35,9 @@ lv_obj_t * ui_Button11;
 lv_obj_t * ui_Label12;
 lv_obj_t * ui_batteryPercentBar;
 lv_obj_t * ui_Label52;
+void ui_event_Button29(lv_event_t * e);
+lv_obj_t * ui_Button29;
+lv_obj_t * ui_Label55;
 // CUSTOM VARIABLES
 
 // SCREEN: ui_otaScreen
@@ -75,8 +67,10 @@ lv_obj_t * ui_motionScreen;
 void ui_event_Button7(lv_event_t * e);
 lv_obj_t * ui_Button7;
 lv_obj_t * ui_Label19;
+void ui_event_Button8(lv_event_t * e);
 lv_obj_t * ui_Button8;
 lv_obj_t * ui_Label21;
+void ui_event_Button9(lv_event_t * e);
 lv_obj_t * ui_Button9;
 lv_obj_t * ui_Label23;
 lv_obj_t * ui_TabView4;
@@ -147,11 +141,42 @@ lv_obj_t * ui_Label47;
 void ui_event_Button25(lv_event_t * e);
 lv_obj_t * ui_Button25;
 lv_obj_t * ui_Label49;
+void ui_event_Button10(lv_event_t * e);
 lv_obj_t * ui_Button10;
 lv_obj_t * ui_Label25;
+void ui_event_Switch1(lv_event_t * e);
 lv_obj_t * ui_Switch1;
 lv_obj_t * ui_Label44;
 lv_obj_t * ui_Label48;
+// CUSTOM VARIABLES
+
+// SCREEN: ui_servoTestScreen
+void ui_servoTestScreen_screen_init(void);
+lv_obj_t * ui_servoTestScreen;
+lv_obj_t * ui_Panel6;
+lv_obj_t * ui_Label56;
+lv_obj_t * ui_Label7;
+lv_obj_t * ui_Label8;
+lv_obj_t * ui_Label53;
+lv_obj_t * ui_Label54;
+lv_obj_t * ui_servo0angle;
+lv_obj_t * ui_servo1angle;
+lv_obj_t * ui_servo2angle;
+lv_obj_t * ui_servo3angle;
+lv_obj_t * ui_servo4angle;
+void ui_event_Button27(lv_event_t * e);
+lv_obj_t * ui_Button27;
+lv_obj_t * ui_Label10;
+void ui_event_Button28(lv_event_t * e);
+lv_obj_t * ui_Button28;
+lv_obj_t * ui_Label13;
+lv_obj_t * ui_Panel2;
+lv_obj_t * ui_Label14;
+lv_obj_t * ui_Label15;
+lv_obj_t * ui_Label16;
+lv_obj_t * ui_armX;
+lv_obj_t * ui_armY;
+lv_obj_t * ui_armZ;
 // CUSTOM VARIABLES
 
 // EVENTS
@@ -212,6 +237,15 @@ void ui_event_Button11(lv_event_t * e)
     }
 }
 
+void ui_event_Button29(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        _ui_screen_change(&ui_servoTestScreen, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_servoTestScreen_screen_init);
+    }
+}
+
 void ui_event_Button24(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
@@ -236,6 +270,24 @@ void ui_event_Button7(lv_event_t * e)
 
     if(event_code == LV_EVENT_CLICKED) {
         _ui_screen_change(&ui_Screen1, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_Screen1_screen_init);
+    }
+}
+
+void ui_event_Button8(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        applyPID(e);
+    }
+}
+
+void ui_event_Button9(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        lockCurrentPos(e);
     }
 }
 
@@ -383,6 +435,42 @@ void ui_event_Button25(lv_event_t * e)
     }
 }
 
+void ui_event_Button10(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        toNextPos(e);
+    }
+}
+
+void ui_event_Switch1(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        switchPIDtarget(e);
+    }
+}
+
+void ui_event_Button27(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        updateArmInfo(e);
+    }
+}
+
+void ui_event_Button28(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        _ui_screen_change(&ui_Screen1, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_Screen1_screen_init);
+    }
+}
+
 ///////////////////// SCREENS ////////////////////
 
 void ui_init(void)
@@ -394,6 +482,7 @@ void ui_init(void)
     ui_Screen1_screen_init();
     ui_otaScreen_screen_init();
     ui_motionScreen_screen_init();
+    ui_servoTestScreen_screen_init();
     ui____initial_actions0 = lv_obj_create(NULL);
     lv_disp_load_scr(ui_Screen1);
 }
