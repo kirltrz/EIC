@@ -11,7 +11,7 @@ struct POS{
 };
 // 外部声明电机驱动实例，使其全局可用
 extern ZDTX42V2 *motor;
-extern systemState currentState;
+//extern systemState currentState;
 void initMotor(void);
 void moveTo(POS pos, float speed=DEFAULT_SPEED, int acc=DEFAULT_ACC, int dec=DEFAULT_ACC);
 void moveTask(void*pvParameters);

@@ -5,6 +5,7 @@
 
 #include "ui.h"
 #include "Arduino.h"
+#include "ota.h"
 #include "Wire.h"
 #include "motion.h"
 #include "arm.h"
@@ -13,7 +14,7 @@
 
 void toNextPos(lv_event_t * e)
 {
-	currentState = COARSE_POSITIONING;
+	/*currentState = COARSE_POSITIONING;*/
 }
 
 void lockCurrentPos(lv_event_t * e)
@@ -70,11 +71,11 @@ void enableMotor(lv_event_t * e)
 	
 	if (is_checked) {
 		// 开关打开，使能电机
-		emergencyStopMotor(true);
+		motor->enControl(MOTOR_BROADCAST,is_checked);
 		DEBUG_LOG("电机已使能");
 	} else {
 		// 开关关闭，失能电机
-		emergencyStopMotor(false);
+		motor->enControl(MOTOR_BROADCAST,is_checked);
 		DEBUG_LOG("电机已失能");
 	}
 }
@@ -92,4 +93,9 @@ void servoSetOringin(lv_event_t * e)
 void stopServo(lv_event_t * e)
 {
 	stopArm(false);
+}
+
+void startOTA(lv_event_t * e)
+{
+	initOTA();
 }

@@ -71,5 +71,6 @@ public:
 
 private:
   HardwareSerial* _serial;
-  SemaphoreHandle_t _serialMutex;
+  SemaphoreHandle_t _txMutex;  // 发送互斥锁
+  SemaphoreHandle_t _rxMutex;  // 接收互斥锁
 };

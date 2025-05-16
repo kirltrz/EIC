@@ -8,4 +8,6 @@
 
 extern SemaphoreHandle_t xSemaphoreMainsequence;
 extern SemaphoreHandle_t xSemaphoreArmTest;
+extern SemaphoreHandle_t xSemaphoreOTA;
+
 void initTaskManager(void);
