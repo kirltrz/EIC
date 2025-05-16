@@ -317,7 +317,7 @@ void moveTask(void *pvParameters)
                     motor->velocityControl(motor_addrs[i], dir, DEFAULT_ACC, abs_speed, 0);
 
                     // 接收并处理来自电机的反馈数据
-                    // motor->receiveData(rxCmd, &rxCount);
+                    motor->receiveData(rxCmd, &rxCount);
 
                     // 添加调试信息，显示电机回复
                     /*if (i == 0 && (currentTime % 1000) < 10) { // 每秒输出一次第一个电机的回复情况

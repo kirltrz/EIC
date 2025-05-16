@@ -49,12 +49,12 @@ static void lv_update_task(lv_timer_t *timer)
     }
 
     // 每5s更新一次电压信息（耗时操作）,如果电压为700mV则代表数据获取异常或者第一次更新则获取一次
-    static int voltage = 700;
+    /*static int voltage = 700;
     if (voltage == 700 || current_time - last_1s_update >= 1000)
     {
         last_1s_update = current_time;
 
-        /*在此调用获取数据的函数会阻塞任务导致CPU占用极高，降低更新频率*/
+        //在此调用获取数据的函数会阻塞任务导致CPU占用极高，降低更新频率
         voltage = motor->getVoltage();
         //sprintf(buf[3], "%d", voltage);
         //lv_label_set_text(ui_voltage, buf[3]);//不显示具体电压值，只显示电量条和百分比
@@ -105,7 +105,8 @@ static void lv_update_task(lv_timer_t *timer)
             lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xF5F5F5), LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xB0BEC5), LV_PART_INDICATOR | LV_STATE_DEFAULT);
         }
-    }
+    }*/
+
 }
 
 void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)

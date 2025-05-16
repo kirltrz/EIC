@@ -510,7 +510,7 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
   currentTime = millis();
   lastTime = currentTime;
   
-  xSemaphoreTake(_rxMutex, portMAX_DELAY); // 获取接收锁
+  xSemaphoreTake(_rxMutex, 100); // 获取接收锁
   // 开始接收数据
   for (int i = 0; i < 128; i++)
   {

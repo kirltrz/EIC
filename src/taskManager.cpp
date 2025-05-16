@@ -26,7 +26,7 @@ void initTaskManager(void)
         NULL         // 任务句柄
     );
     xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
-    xTaskCreate(moveTask, "Move Task", 4096, NULL, 1, NULL);
+    xTaskCreate(moveTask, "Move Task", 8192*2, NULL, 1, NULL);
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
     xTaskCreate(armTestTask, "Arm Test Task", 4096, NULL, 1, NULL);
     

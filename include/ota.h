@@ -9,7 +9,7 @@ typedef enum {
 } EIC_OTAState_t;
 
 // OTA配置
-void initOTA(const char* ssid="kirl", const char* password="TRZtrz20060906", const char* hostname = "ESP32-OTA");
+void initOTA(const char* ssid="gcs", const char* password="abababab", const char* hostname = "ESP32-OTA");
 
 // OTA任务
 void otaTask(void* pvParameters);
