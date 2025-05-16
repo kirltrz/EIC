@@ -49,10 +49,10 @@ void initArm(void)
     servo4.init();   // 初始化夹爪舵机
     /*舵机角度限幅 */
     servo0.setAngleRange(-180, 180); // 云台舵机
-    servo1.setAngleRange(-180, 180); // 一级关节舵机
-    servo2.setAngleRange(-180, 180); // 二级关节舵机
-    servo3.setAngleRange(-180, 180); // 三级关节舵机
-    servo4.setAngleRange(-180, 180); // 夹爪舵机
+    servo1.setAngleRange(-80, 100); // 一级关节舵机
+    servo2.setAngleRange(-120, 60); // 二级关节舵机
+    servo3.setAngleRange(-180, 45); // 三级关节舵机
+    servo4.setAngleRange(0, 40); // 夹爪舵机
     DEBUG_LOG("初始化机械臂完成");
 }
 void setOriginPoint(void)
