@@ -86,14 +86,14 @@ void enableMotor(lv_event_t *e)
 	{
 		// 开关打开，使能电机
 		motor->enControl(MOTOR_BROADCAST, is_checked);
-		//LED(1);
+		// LED(1);
 		DEBUG_LOG("电机已使能");
 	}
 	else
 	{
 		// 开关关闭，失能电机
 		motor->enControl(MOTOR_BROADCAST, is_checked);
-		//LED(0);
+		// LED(0);
 		DEBUG_LOG("电机已失能");
 	}
 }
@@ -157,6 +157,11 @@ void updateArmInfo(lv_event_t *e)
 	lv_label_set_text(ui_armX, buf[5]);
 	lv_label_set_text(ui_armY, buf[6]);
 	lv_label_set_text(ui_armZ, buf[7]);
+
+	/*更新xyz坐标滑动条*/
+	lv_slider_set_value(ui_armXSlider, xyz[0], LV_ANIM_OFF);
+	lv_slider_set_value(ui_armYSlider, xyz[1], LV_ANIM_OFF);
+	lv_slider_set_value(ui_armZSlider, xyz[2], LV_ANIM_OFF);
 }
 
 void applyPID(lv_event_t *e)
@@ -171,7 +176,7 @@ void applyPID(lv_event_t *e)
 	float yaw_kd = lv_spinbox_get_value(ui_moving_yaw_Kd) / 1000.0f; // 偏航角微分系数
 
 	// 从UI控件中获取速度参数
-	float linear_speed = lv_spinbox_get_value(ui_moving_spd_linear) / 10.0f;   // 线速度，单位mm/s
+	float linear_speed = lv_spinbox_get_value(ui_moving_spd_linear) / 10.0f;	 // 线速度，单位mm/s
 	float angular_speed = lv_spinbox_get_value(ui_moving_spd_angular) / 1000.0f; // 角速度，单位度/s
 
 	// 检查开关状态，决定更新哪组PID参数
@@ -257,4 +262,25 @@ void switchPIDtarget(lv_event_t *e)
 
 		DEBUG_LOG("已切换到移动模式参数");
 	}
+}
+
+void setArmPos(lv_event_t *e)
+{
+	float xyz[3];
+	uint16_t interval, acc, dec;
+	xyz[0] = lv_slider_get_value(ui_armXSlider);
+	xyz[1] = lv_slider_get_value(ui_armYSlider);
+	xyz[2] = lv_slider_get_value(ui_armZSlider);
+
+	interval = lv_spinbox_get_value(ui_armIntervalSpinbox);
+	acc = lv_spinbox_get_value(ui_armACC_DECSpinbox);
+	dec = acc;
+
+	armControl_xyz(xyz[0], xyz[1], xyz[2], interval, acc, dec);
+}
+
+void uiSetClaw(lv_event_t * e)
+{
+    bool state = lv_obj_has_state(ui_uiSetClawSwitch, LV_STATE_CHECKED);
+    servo4.setAngle(state ? ARM_GRIPPER_CLOSE_ANGLE : ARM_GRIPPER_OPEN_ANGLE);
 }

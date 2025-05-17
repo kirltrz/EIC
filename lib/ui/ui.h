@@ -196,6 +196,33 @@ extern lv_obj_t * ui_Label16;
 extern lv_obj_t * ui_armX;
 extern lv_obj_t * ui_armY;
 extern lv_obj_t * ui_armZ;
+void ui_event_armXSlider(lv_event_t * e);
+extern lv_obj_t * ui_armXSlider;
+extern lv_obj_t * ui_Label57;
+void ui_event_armYSlider(lv_event_t * e);
+extern lv_obj_t * ui_armYSlider;
+void ui_event_armZSlider(lv_event_t * e);
+extern lv_obj_t * ui_armZSlider;
+extern lv_obj_t * ui_Label58;
+extern lv_obj_t * ui_Label59;
+extern lv_obj_t * ui_Label60;
+extern lv_obj_t * ui_armIntervalSpinbox;
+void ui_event_Button30(lv_event_t * e);
+extern lv_obj_t * ui_Button30;
+extern lv_obj_t * ui_Label61;
+void ui_event_Button31(lv_event_t * e);
+extern lv_obj_t * ui_Button31;
+extern lv_obj_t * ui_Label62;
+extern lv_obj_t * ui_Label63;
+extern lv_obj_t * ui_armACC_DECSpinbox;
+void ui_event_Button32(lv_event_t * e);
+extern lv_obj_t * ui_Button32;
+extern lv_obj_t * ui_Label64;
+void ui_event_Button33(lv_event_t * e);
+extern lv_obj_t * ui_Button33;
+extern lv_obj_t * ui_Label65;
+void ui_event_uiSetClawSwitch(lv_event_t * e);
+extern lv_obj_t * ui_uiSetClawSwitch;
 // CUSTOM VARIABLES
 
 // EVENTS

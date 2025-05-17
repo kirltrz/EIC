@@ -48,11 +48,11 @@ void initArm(void)
     servo3.init();   // 初始化三级关节舵机
     servo4.init();   // 初始化夹爪舵机
     /*舵机角度限幅 */
-    servo0.setAngleRange(-180, 180); // 云台舵机
-    servo1.setAngleRange(-80, 100);  // 一级关节舵机
-    servo2.setAngleRange(-120, 60);  // 二级关节舵机
-    servo3.setAngleRange(-180, 45);  // 三级关节舵机
-    servo4.setAngleRange(0, 40);     // 夹爪舵机
+    servo0.setAngleRange(BASIS_ARM_ANGLE_MIN, BASIS_ARM_ANGLE_MAX);        // 云台舵机
+    servo1.setAngleRange(FIRST_ARM_ANGLE_MIN, FIRST_ARM_ANGLE_MAX);        // 一级关节舵机
+    servo2.setAngleRange(SECOND_ARM_ANGLE_MIN, SECOND_ARM_ANGLE_MAX);      // 二级关节舵机
+    servo3.setAngleRange(THIRD_ARM_ANGLE_MIN, THIRD_ARM_ANGLE_MAX);        // 三级关节舵机
+    servo4.setAngleRange(ARM_GRIPPER_CLOSE_ANGLE, ARM_GRIPPER_OPEN_ANGLE); // 夹爪舵机
     DEBUG_LOG("初始化机械臂完成");
 }
 void setOriginPoint(void)
@@ -76,77 +76,74 @@ void stopArm(bool stop)
     }
 }
 /*逆解算 根据下y,z坐标解算出具体关节的舵机角度*/
-void armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
+bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
 {
+    float theta0;
+    float w;
     float shortSide;        // 短边长度
     float hypotenuse;       // 斜边长度
     float first_arm_degree, // 大臂角度
-        second_arm_degree,  // 小臂角度
         first_arm_rad_1,    // 大臂弧度计算中间值1
-        first_arm_rad_2;    // 大臂弧度计算中间值2
-    /*移动机械臂*/
-    // 机械臂参数定义
-    const float L1 = 100.0; // 一级臂长度(mm)
-    const float L2 = 100.0; // 二级臂长度(mm)
-    const float L3 = 100.0; // 三级臂长度(mm)
+        first_arm_rad_2,
+        second_arm_degree,  // 小臂角度
+        _second_arm_degree, // 小臂角度计算中间值
+        third_arm_degree;   // 大臂弧度计算中间值2
 
-    // 逆运动学计算
-    float R = sqrt(y * y + z * z); // 空间距离
-
-    // 检查是否超出工作范围
-    if (R > (L1 + L2 + L3) || R < abs(L1 - L2 - L3))
-    {
-        // 目标点超出工作范围
-        return;
-    }
-    /* 机械臂yoz平面逆解算 */
+    /*通过xy坐标计算云台角度*/
+    theta0 = atan2(x, y) * RAD_TO_DEG;
+    
+    // 考虑物料偏移
+    x = x + ARM_MATERIAL_OFFSET_X * cos(theta0 * DEG_TO_RAD);
+    y = y - ARM_MATERIAL_OFFSET_X * sin(theta0 * DEG_TO_RAD);
+    
+    /*计算w轴长度*/
+    w = sqrt(x * x + y * y);
 
     // 考虑爪子长度高度,修正坐标系
-    y = y - ARM_THIRD_LENGTH;
-    z = z + ARM_MATERIAL_HEIGHT;
-    if (y < 0)
-        y = 0;
+    w = w - ARM_FIRST_JOINT_OFFSET_W + ARM_MATERIAL_OFFSET_W;
+    z = z + ARM_THIRD_LENGTH + ARM_MATERIAL_HEIGHT;
+    if (w < 0)
+        w = 0;
 
     // 计算斜边
-    shortSide = ARM_FIRST_JOINT_HEIGHT - z;
-    if (shortSide < 0)
-        shortSide = shortSide * -1.0f;
-    hypotenuse = sqrt(y * y + shortSide * shortSide); // 斜边长度
+    shortSide = z - ARM_FIRST_JOINT_HEIGHT;
+    hypotenuse = sqrt(w * w + shortSide * shortSide);
+
+    // 检查三角形是否成立
+    if (hypotenuse > (ARM_FIRST_LENGTH + ARM_SECOND_LENGTH) || 
+        hypotenuse < fabs(ARM_FIRST_LENGTH - ARM_SECOND_LENGTH)) {
+        DEBUG_LOG("\n目标位置无法到达");
+        return false;
+    }
 
     // 计算大臂角度
-    first_arm_rad_1 = acos(((ARM_SECOND_LENGTH * ARM_SECOND_LENGTH) -
-                            (ARM_FIRST_LENGTH * ARM_FIRST_LENGTH) +
-                            hypotenuse * hypotenuse) /
-                           (2.0f * ARM_SECOND_LENGTH * hypotenuse));
+    first_arm_rad_1 =
+        acos(((ARM_FIRST_LENGTH * ARM_FIRST_LENGTH) - (ARM_SECOND_LENGTH * ARM_SECOND_LENGTH) + hypotenuse * hypotenuse) /
+             (2.0f * ARM_FIRST_LENGTH * hypotenuse));
 
-    // 计算大臂中间值2弧度
+    first_arm_rad_2 = atan2(abs(shortSide), w);
 
-    if (ARM_FIRST_JOINT_HEIGHT > z)
-        first_arm_rad_2 = atan(y / shortSide) - PI / 2.0f;
-    else if (ARM_FIRST_JOINT_HEIGHT < z)
-        first_arm_rad_2 = atan(shortSide / y);
+    // 计算大臂角度
+    if (z > ARM_FIRST_JOINT_HEIGHT)
+        first_arm_degree = 90.0f - (first_arm_rad_1 + first_arm_rad_2) * RAD_TO_DEG; // 大臂角度(度)
     else
-        first_arm_rad_2 = 0.0f;
-
-    // 计算大臂角度
-    first_arm_degree = (first_arm_rad_1 + first_arm_rad_2) * 180.0f / PI; // 大臂角度(度)
+        first_arm_degree = 90.0f - (first_arm_rad_1 - first_arm_rad_2) * RAD_TO_DEG;
 
     // 计算小臂角度
-    second_arm_degree = acos(((ARM_SECOND_LENGTH * ARM_SECOND_LENGTH) +
-                              (ARM_FIRST_LENGTH * ARM_FIRST_LENGTH) -
-                              hypotenuse * hypotenuse) /
-                             (2.0f * ARM_SECOND_LENGTH * ARM_SECOND_LENGTH)) *
-                        180.0f / PI; // 小臂角度(度)
+    _second_arm_degree =
+        acos(((ARM_SECOND_LENGTH * ARM_SECOND_LENGTH) + (ARM_FIRST_LENGTH * ARM_FIRST_LENGTH) - hypotenuse * hypotenuse) /
+             (2.0f * ARM_FIRST_LENGTH * ARM_SECOND_LENGTH)) *
+        RAD_TO_DEG; // 小臂角度(度)
 
-    first_arm_degree = 90.0f - first_arm_degree;                       // 将大臂角转换为相对于竖直方向的角度 ，向前为正值
-    second_arm_degree = -90.0f + second_arm_degree - first_arm_degree; // 将小臂角转换为相对于水平线的角度，低于水平线为负值
-    /* 机械臂xy平面逆解算 */
-    // float theta0 = atan2(y, x) * 180.0 / PI; // 云台舵机角度(度)
+    second_arm_degree = 90.0f - _second_arm_degree; //
 
-    // out_arm_degree[0] = theta0;            // 云台舵机角度(度)
+    third_arm_degree = -(90.0f - (_second_arm_degree - first_arm_degree));
+
+    out_arm_degree[0] = theta0;            // 云台舵机角度(度)
     out_arm_degree[1] = first_arm_degree;  // 大臂角度
     out_arm_degree[2] = second_arm_degree; // 小臂角度(度)
-    // out_arm_degree[3]= third_arm_degree; // 三级关节舵机角度(度)
+    out_arm_degree[3] = third_arm_degree;  // 三级关节舵机角度(度)
+    return true;
 }
 /**
  * 根据大小臂角度计算末端执行器的位置坐标 用于示教 具体有待实现
@@ -166,7 +163,7 @@ void armCalculate_forward(float theta0, float first_arm_degree, float second_arm
 
     w1 = ARM_FIRST_LENGTH * sin(first_arm_degree * DEG_TO_RAD); // 大臂y轴增量
     w2 = ARM_SECOND_LENGTH * cos((first_arm_degree + second_arm_degree) * DEG_TO_RAD);
-    w = w1 + w2 + ARM_MATERIAL_OFFSET_Y;
+    w = w1 + w2 + ARM_MATERIAL_OFFSET_W + ARM_FIRST_JOINT_OFFSET_W;
     y = w * cos(theta0 * DEG_TO_RAD); // 将w轴增量转换到机械臂中心坐标系下的y轴增量
 
     x1 = w * sin(theta0 * DEG_TO_RAD);                     // 使用机械臂坐标系下的y轴增量计算小车坐标系下的x轴增量
@@ -189,21 +186,11 @@ void armCalculate_forward(float theta0, float first_arm_degree, float second_arm
  */
 void armSet_position(float theta0, float first_arm_degree, float second_arm_degree, float third_arm_degree, uint16_t interval, uint16_t acc, uint16_t dec)
 {
-    // 角度限制
-    if (first_arm_degree < FIRST_ARM_ANGLE_MIN)
-        first_arm_degree = FIRST_ARM_ANGLE_MIN;
-    if (first_arm_degree > FIRST_ARM_ANGLE_MAX)
-        first_arm_degree = FIRST_ARM_ANGLE_MAX;
-    if (second_arm_degree < SECOND_ARM_ANGLE_MIN)
-        second_arm_degree = SECOND_ARM_ANGLE_MIN;
-    if (second_arm_degree > SECOND_ARM_ANGLE_MAX)
-        second_arm_degree = SECOND_ARM_ANGLE_MAX;
-
     // 设置舵机角度 这里启用舵机加减速 但加速减速参数待调
-    // servo0.setAngle(theta0, T, acc, dcc, power); // 云台舵机
-    servo1.setAngle(first_arm_degree, interval, acc, dec);  // 一级关节舵机
-    servo2.setAngle(second_arm_degree, interval, acc, dec); // 二级关节舵机
-    // servo3.setAngle(third_arm_degree, T, acc, dcc, power); // 三级关节舵机
+    servo0.setAngle(theta0, interval, acc, dec);                   // 云台舵机
+    servo1.setAngle(first_arm_degree - 1.0f, interval, acc, dec);  // 一级关节舵机
+    servo2.setAngle(second_arm_degree - 0.5f, interval, acc, dec); // 二级关节舵机
+    servo3.setAngle(third_arm_degree, interval, acc, dec);         // 三级关节舵机
 }
 /**
  *@brief 机械臂xyz平面位置控制
@@ -216,44 +203,10 @@ void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, 
 {
     float xyz_to_angle[4];
 
-    armCalculate_inverse(x, y, z, xyz_to_angle); // 逆解算
+    if(armCalculate_inverse(x, y, z, xyz_to_angle)) // 逆解算
+    {
     DEBUG_LOG("机械臂xyz坐标: x=%f, y=%f, z=%f", x, y, z);
     armSet_position(xyz_to_angle[0], xyz_to_angle[1], xyz_to_angle[2], xyz_to_angle[3], interval, acc, dec);
-}
-// 更新机械臂舵机位置 但queryAngle是一个阻塞型操作 发出问答 等待 接受执行 可能会有延时 可以考虑一次性全部查询 或者在freertos中使用不断更新
-void updateArmServoPositions()
-{
-    // 查询云台舵机
-    float angle = servo0.queryAngle();
-    if (servo0.protocol->responsePack.recv_status == FSUS_STATUS_SUCCESS)
-    {
-        current_servo0_angle = angle;
-    }
-    else
-    {
-        DEBUG_LOG("ERROR");
-    }
-
-    // 查询一级关节舵机
-    angle = servo1.queryAngle();
-    if (servo1.protocol->responsePack.recv_status == FSUS_STATUS_SUCCESS)
-    {
-        current_servo1_angle = angle;
-    }
-    else
-    {
-        DEBUG_LOG("ERROR");
-    }
-
-    // 查询二级关节舵机
-    angle = servo2.queryAngle();
-    if (servo2.protocol->responsePack.recv_status == FSUS_STATUS_SUCCESS)
-    {
-        current_servo2_angle = angle;
-    }
-    else
-    {
-        DEBUG_LOG("ERROR");
     }
 }
 

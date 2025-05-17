@@ -158,7 +158,7 @@ void stopMotion()
 void moveTask(void *pvParameters)
 {
     /*移动任务,不断向电机发送控制指令*/
-    uint8_t rxCmd[128] = {0};
+    static uint8_t rxCmd[128] = {0};
     uint8_t rxCount = 0;
     global_position_t currentPosition;
     float wheel_speeds[4] = {0}; // 改为直接存储速度而不是位置增量
@@ -316,8 +316,15 @@ void moveTask(void *pvParameters)
                     // 使用速度控制模式
                     motor->velocityControl(motor_addrs[i], dir, DEFAULT_ACC, abs_speed, 0);
 
+                    // 在receiveData之前添加
+                    memset(rxCmd, 0, sizeof(rxCmd)); // 每次使用前清空
+
                     // 接收并处理来自电机的反馈数据
                     motor->receiveData(rxCmd, &rxCount);
+                    
+                    // 限制rxCount大小
+                    if (rxCount >= sizeof(rxCmd))
+                        rxCount = sizeof(rxCmd) - 1;
 
                     // 添加调试信息，显示电机回复
                     /*if (i == 0 && (currentTime % 1000) < 10) { // 每秒输出一次第一个电机的回复情况

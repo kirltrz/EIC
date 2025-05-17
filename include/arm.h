@@ -23,7 +23,7 @@ void arm_catchFromGround(int taskcode[3], const int circleOffset[3][2] /*传入�
 void arm_putToMaterial(int taskcode[3]);
 void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, uint16_t dec);
 void armSet_position(float theta0, float first_arm_degree, float second_arm_degree, float third_arm_degree, uint16_t interval, uint16_t acc, uint16_t dec);
-void armCalculate_inverse(float x, float y, float z, float *out_arm_degree);
+bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree);
 void armCalculate_forward(float theta0, float first_arm_degree, float second_arm_degree, float *out_arm_location_xyz);
 void armTestTask(void *pvParameters);
 void startArmTest(void);
