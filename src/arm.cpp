@@ -39,7 +39,7 @@ struct
 } circlePosition;
 void initArm(void)
 {
-    Serial1.begin(115200, SERIAL_8N1, PIN_SERVO_RX, PIN_SERVO_TX);
+    SERVO_SERIAL.begin(115200, SERIAL_8N1, PIN_SERVO_RX, PIN_SERVO_TX);
     /*初始化机械臂*/
     protocol.init(); // 初始化协议
     servo0.init();   // 初始化云台舵机
@@ -61,7 +61,7 @@ void setOriginPoint(void)
     servo1.SetOriginPoint();
     servo2.SetOriginPoint();
     servo3.SetOriginPoint();
-    servo4.SetOriginPoint();
+    //servo4.SetOriginPoint();//夹爪舵机一般不需要归零
 }
 void stopArm(bool stop)
 {
@@ -210,41 +210,6 @@ void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, 
     }
 }
 
-void startArmTest(void)
-{
-    if (xSemaphoreArmTest != NULL)
-    {
-        xSemaphoreGive(xSemaphoreArmTest);
-        DEBUG_LOG("机械臂测试信号已发送");
-    }
-}
-
-// 机械臂测试任务
-void armTestTask(void *pvParameters)
-{
-    float yz[2];
-    float out_degree[2];
-    while (1)
-    {
-        // 等待测试信号
-        if (xSemaphoreTake(xSemaphoreArmTest, portMAX_DELAY) == pdTRUE)
-        {
-            /*
-                        if (millis() - last_update_time > SERVO_UPDATE_INTERVAL_MS)
-                        {
-                            updateArmServoPositions();
-                            // 打印当前舵机角度
-                            DEBUG_LOG("当前角度 - 底座: %.2f, 大臂: %.2f, 小臂: %.2f, 夹爪: %.2f\n", servo0.queryAngle(), servo1.queryAngle(), servo2.queryAngle(), servo4.queryAngle());
-                            last_update_time = millis();
-                        }
-                        // 机械臂运动正解算示教
-                        armCalculate_forward(current_servo1_angle, current_servo2_angle, out_degree);
-                        armCalculate_inverse(yz[0], yz[1], out_degree);
-                        // 短暂延时，避免空循环占用CPU
-                        vTaskDelay(100 / portTICK_PERIOD_MS);*/
-        }
-    }
-}
 void arm_ScanQRcode()
 {
     /*扫描二维码，与控制xyz不同，机械臂前端需抬起使摄像头朝向二维码，无需处理视觉部分*/

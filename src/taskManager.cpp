@@ -7,13 +7,11 @@
 #include "ota.h"
 
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
-SemaphoreHandle_t xSemaphoreArmTest = NULL;
 SemaphoreHandle_t xSemaphoreOTA = NULL;
 
 void initTaskManager(void)
 {
     xSemaphoreMainsequence = xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量
-    xSemaphoreArmTest = xSemaphoreCreateBinary();
     xSemaphoreOTA = xSemaphoreCreateBinary();
     
     /*初始化任务管理器*/
@@ -22,14 +20,13 @@ void initTaskManager(void)
         "LVGL Task", // 任务名称
         8192,        // 堆栈大小（1 字 = 4 字节）
         NULL,        // 任务参数
-        1,           // 任务优先级
+        2,           // 任务优先级
         NULL         // 任务句柄
     );
     xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
-    xTaskCreate(moveTask, "Move Task", 8192*2, NULL, 1, NULL);
+    xTaskCreate(moveTask, "Move Task", 4096, NULL, 1, NULL);
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
-    xTaskCreate(armTestTask, "Arm Test Task", 4096, NULL, 1, NULL);
     
-    // 创建OTA任务
+    // OTA任务
     xTaskCreate(otaTask, "OTA Task", 4096, NULL, 1, NULL);
 }

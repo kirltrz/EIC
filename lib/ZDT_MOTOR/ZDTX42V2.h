@@ -38,12 +38,22 @@ typedef enum {
   S_State = 20,     /* 读取系统状态参数 */
 } SysParams_t;
 
+#define TX_QUEUE_SIZE 10   // 定义队列长度
+#define MAX_CMD_LEN 20     // 定义最大命令长度
+
+typedef struct {
+  uint8_t data[MAX_CMD_LEN];  // 命令数据
+  uint8_t len;                // 命令长度
+} motor_cmd_t;
+
 class ZDTX42V2 {
 public:
   // 构造函数自动初始化，可选传入串口指针
   ZDTX42V2(HardwareSerial* serial = nullptr);
   // 发送命令
   void sendCommand(uint8_t *cmd, uint8_t len);
+  // 发送任务
+  void txTask(void *pvParameters);
   // 基本控制函数
   void resetCurPosToZero(uint8_t addr);                          // 将当前位置清零
   void resetClogPro(uint8_t addr);                               // 解除堵转保护
@@ -71,6 +81,6 @@ public:
 
 private:
   HardwareSerial* _serial;
-  SemaphoreHandle_t _txMutex;  // 发送互斥锁
-  SemaphoreHandle_t _rxMutex;  // 接收互斥锁
+  QueueHandle_t _txQueue;     // 替换 SemaphoreHandle_t _txMutex
+  TaskHandle_t _txTaskHandle; // 发送任务句柄
 };

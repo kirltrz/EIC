@@ -100,7 +100,7 @@ void enableMotor(lv_event_t *e)
 
 void armTestFunc(lv_event_t *e)
 {
-	startArmTest();
+	
 }
 
 void servoSetOringin(lv_event_t *e)
@@ -282,5 +282,5 @@ void setArmPos(lv_event_t *e)
 void uiSetClaw(lv_event_t * e)
 {
     bool state = lv_obj_has_state(ui_uiSetClawSwitch, LV_STATE_CHECKED);
-    servo4.setAngle(state ? ARM_GRIPPER_CLOSE_ANGLE : ARM_GRIPPER_OPEN_ANGLE);
+    servo4.setAngle(state ? ARM_GRIPPER_CLOSE_ANGLE : ARM_GRIPPER_OPEN_ANGLE,100);
 }

@@ -30,7 +30,7 @@
 #define CHASSIS_MAX_OMEGA TBD // 底盘最大角速度rad/s
 // 电机控制参数
 #define DEFAULT_SPEED 100.0f
-#define DEFAULT_ACC 100
+#define DEFAULT_ACC 2000
 /* 底盘PID参数 */
 // PID控制参数 - 运动中使用
 extern float POS_KP;     // 位置环比例系数
@@ -84,7 +84,7 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 #define THIRD_ARM_ANGLE_MAX 45.0f
 
 #define ARM_GRIPPER_OPEN_ANGLE 40.0f  // 机械臂夹爪张开角度
-#define ARM_GRIPPER_CLOSE_ANGLE 0.0f // 机械臂夹爪闭合角度
+#define ARM_GRIPPER_CLOSE_ANGLE -5.0f // 机械臂夹爪闭合角度
 
 /******************************************************************************
  * 硬件配置

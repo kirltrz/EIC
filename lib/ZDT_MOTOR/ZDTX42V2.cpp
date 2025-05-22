@@ -5,28 +5,13 @@
 // 构造函数，自动初始化
 ZDTX42V2::ZDTX42V2(HardwareSerial *serial)
 {
-  _serial = serial ? serial : &Serial; // 设置串口，如果serial为空则使用默认Serial
-  _txMutex = xSemaphoreCreateMutex(); // 创建发送互斥锁
-  _rxMutex = xSemaphoreCreateMutex(); // 创建接收互斥锁
-  _serial->begin(115200);              // 初始化串口
-  if (_txMutex != NULL && _rxMutex != NULL)
-  {
-    DEBUG_LOG("串口互斥锁创建成功");
-  }
-  else
-  {
-    DEBUG_LOG("串口互斥锁创建失败");
-  }
-  /*
-    // 等待串口初始化完成
-    while (!(*_serial))
-    {
-      ; // 等待串行端口连接。仅本机USB端口需要
-    }
-
-    // 上电延时0.5秒等待ZDT_X42_V2闭环初始化完毕
-    delay(500);
-    */
+  _serial = serial;
+  _serial->begin(115200);
+  // 创建队列替代互斥锁
+  _txQueue = xQueueCreate(TX_QUEUE_SIZE, sizeof(motor_cmd_t));
+  
+  // 创建发送任务
+  //xTaskCreate([](void* _this){((ZDTX42V2*)_this)->txTask(_this);}, "MOTOR_TX", 2048, this, 3, &_txTaskHandle);
 }
 
 /**
@@ -510,7 +495,6 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
   currentTime = millis();
   lastTime = currentTime;
   
-  xSemaphoreTake(_rxMutex, 100); // 获取接收锁
   // 开始接收数据
   for (int i = 0; i < 128; i++)
   {
@@ -520,7 +504,6 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
       if (rxCmd[i] == 0x6B)       // 如果校验字节为0x6B，则一帧数据接收结束
       {
         *rxCount = i + 1;
-        xSemaphoreGive(_rxMutex); // 释放接收锁
         return;
       }
       lastTime = millis(); // 更新上一时刻的时间
@@ -532,12 +515,10 @@ void ZDTX42V2::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
       if ((int)(currentTime - lastTime) > 100) // 100毫秒内串口没有数据进来，就判定一帧数据接收结束
       {
         *rxCount = i; // 数据长度
-        xSemaphoreGive(_rxMutex); // 释放接收锁
         return; // 退出循环
       }
     }
   }
-  xSemaphoreGive(_rxMutex); // 释放接收锁
 }
 
 uint16_t ZDTX42V2::getVoltage()
@@ -562,9 +543,35 @@ uint16_t ZDTX42V2::getVoltage()
   return voltage+700/*电机内部电压压降0.7V，在此补偿*/;
 }
 
+// 新增发送任务函数（类静态方法）
+void ZDTX42V2::txTask(void *pvParameters) {
+  ZDTX42V2 *motor = (ZDTX42V2 *)pvParameters;
+  motor_cmd_t cmd;
+  
+  while(1) {
+    if(xQueueReceive(motor->_txQueue, &cmd, portMAX_DELAY) == pdTRUE) {
+      motor->_serial->write(cmd.data, cmd.len);
+      motor->_serial->flush();
+    }
+  }
+}
+
+// 修改发送命令函数
 void ZDTX42V2::sendCommand(uint8_t *cmd, uint8_t len) {
-  xSemaphoreTake(_txMutex, portMAX_DELAY); // 获取发送锁
+  /*
+  motor_cmd_t txCmd;
+  
+  if(len > MAX_CMD_LEN) {
+    len = MAX_CMD_LEN;  // 限制命令长度
+  }
+  
+  // 复制命令数据
+  memcpy(txCmd.data, cmd, len);
+  txCmd.len = len;
+  
+  // 放入队列而不是直接发送
+  xQueueSend(_txQueue, &txCmd, 20/portTICK_PERIOD_MS);
+*/
   _serial->write(cmd, len);
-  _serial->flush(); // 确保数据完全发送
-  xSemaphoreGive(_txMutex); // 释放发送锁
+  _serial->flush();
 }
