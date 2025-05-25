@@ -186,7 +186,7 @@ void otaTask(void *pvParameters)
         }
 
         // 延时以降低CPU使用率
-        wait(10);
+        delay(10);
     }
 }
 
@@ -211,26 +211,26 @@ void updateOTAUI(void)
         {
         case EIC_OTA_RUNNING:
             // 下载中状态
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xDAFAEB), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0x6BEDB6), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xDAFAEB), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0x6BEDB6), LV_PART_INDICATOR);
             break;
 
         case EIC_OTA_SUCCESS:
             // 完成状态：极光绿 #00C853
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xE8F5E9), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0x00C853), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xE8F5E9), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0x00C853), LV_PART_INDICATOR);
             break;
 
         case EIC_OTA_FAILED:
             // 错误/中断状态：警示红 #D50000
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xFFEBEE), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xD50000), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xFFEBEE), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xD50000), LV_PART_INDICATOR);
             break;
 
         default:
             // 默认状态，与下载中状态相同
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xDAFAEB), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0x6BEDB6), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0xDAFAEB), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(ui_otaPercent, lv_color_hex(0x6BEDB6), LV_PART_INDICATOR);
             break;
         }
     }

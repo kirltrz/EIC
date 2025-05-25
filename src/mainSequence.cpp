@@ -37,11 +37,11 @@ void mainSequenceTask(void *pvParameters)
         // 主流程的代码
         moveTo(pos[0]);   // 前往二维码前方
         arm_ScanQRcode(); // 机械臂运动至扫描二维码状态
-        wait(1000);
+        delay(1000);
         startTime = millis();
         while (!visionScanQRcode(taskcode[0], taskcode[1]))
         {
-            wait(100);
+            delay(100);
             if (millis() - startTime > TASK_TIMEOUT)
             {
                 // 如果超过1秒，则认为二维码识别失败
@@ -50,41 +50,41 @@ void mainSequenceTask(void *pvParameters)
             }
         }
         moveTo(pos[1]); // 1 前往转盘
-        wait(1000);
+        delay(1000);
         arm_catchFromTurntable(taskcode[0]);
         moveTo(pos[2]); // 1 前往离开转盘状态
-        wait(1000);
+        delay(1000);
         moveTo(pos[3]); // 1 前往粗加工区
-        wait(2000);
+        delay(2000);
         arm_putToGround(taskcode[0], circleOffset);
         arm_catchFromGround(taskcode[0], circleOffset);
         moveTo(pos[4]); // 1 离开粗加工区
-        wait(1000);
+        delay(1000);
         moveTo(pos[5]); // 1 前往暂存区
-        wait(1000);
+        delay(1000);
         arm_putToGround(taskcode[0], circleOffset);
         moveTo(pos[6]); // 1 离开暂存区
-        wait(1000);
+        delay(1000);
         moveTo(pos[1]); // 2 前往转盘
-        wait(1000);
+        delay(1000);
         arm_catchFromTurntable(taskcode[1]);
         moveTo(pos[2]); // 2 前往离开转盘状态
-        wait(1000);
+        delay(1000);
         moveTo(pos[3]); // 2 前往粗加工区
-        wait(2000);
+        delay(2000);
         arm_putToGround(taskcode[1], circleOffset);
         arm_catchFromGround(taskcode[1], circleOffset);
         moveTo(pos[4]); // 2 离开粗加工区
-        wait(1000);
+        delay(1000);
         moveTo(pos[5]); // 2 前往暂存区
-        wait(1000);
+        delay(1000);
         arm_putToGround(taskcode[1], circleOffset);
         moveTo(pos[7]); // 2 离开暂存区
-        wait(2000);
+        delay(2000);
         moveTo(pos[8]); // 前往启停区
-        wait(1000);
+        delay(1000);
         moveTo(pos[9]); // 回到启停区
-        wait(1000);
+        delay(1000);
 
         xSemaphoreGive(xSemaphoreMainsequence);
     }

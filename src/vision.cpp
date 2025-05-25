@@ -37,7 +37,7 @@ bool receiveData(vision_packet_t *data)
     unsigned long startTime = millis();
     while (VISION_SERIAL.available() == 0)
     {
-        wait(10);
+        delay(10);
         // 添加超时检测，防止死循环
         if (millis() - startTime > VISION_TIMEOUT)
         {
@@ -90,7 +90,7 @@ bool visionToIDLE(void)
     int startTime = millis();
     while (!receiveData(&packet))
     {
-        wait(100);
+        delay(100);
         if (millis() - startTime > VISION_TIMEOUT)
         {
             return false;
@@ -116,7 +116,7 @@ bool visionScanQRcode(int taskcode1[3], int taskcode2[3])
     int startTime = millis();
     while (!receiveData(&packet))
     {
-        wait(100);
+        delay(100);
         if (millis() - startTime > VISION_TIMEOUT)
         {
             return false;
@@ -149,7 +149,7 @@ bool visionGetCircle(int *x, int *y)
     int startTime = millis();
     while (!receiveData(&packet))
     {
-        wait(100);
+        delay(100);
         if (millis() - startTime > VISION_TIMEOUT)
         {
             return false;
@@ -179,7 +179,7 @@ bool visionGetMaterial(int color, int *x, int *y)
     int startTime = millis();
     while (!receiveData(&packet))
     {
-        wait(100);
+        delay(100);
         if (millis() - startTime > VISION_TIMEOUT)
         {
             return false;

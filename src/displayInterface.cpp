@@ -16,7 +16,7 @@ void lvglTask(void *pvParameters)
     while (true)
     {
         lv_timer_handler();
-        wait(5);
+        delay(5);
     }
 }
 
@@ -78,32 +78,33 @@ static void lv_update_task(lv_timer_t *timer)
             // 根据电量设置颜色
             if (percentage >= 80)
             { // 高电量
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xF8FFFB), LV_PART_MAIN | LV_STATE_DEFAULT);
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0x54DC4E), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+                // 分别设置主背景和指示器的颜色
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xF8FFFB), LV_PART_MAIN);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0x54DC4E), LV_PART_INDICATOR);
             }
             else if (percentage >= 60)
             { // 中高电量
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xF9FBE7), LV_PART_MAIN | LV_STATE_DEFAULT);
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xCDDC39), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xF9FBE7), LV_PART_MAIN);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xCDDC39), LV_PART_INDICATOR);
             }
             else if (percentage >= 40)
             { // 中等电量
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFFDE7), LV_PART_MAIN | LV_STATE_DEFAULT);
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFD54F), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFFDE7), LV_PART_MAIN);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFD54F), LV_PART_INDICATOR);
             }
             else if (percentage >= 20)
             { // 低电量
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFF3E0), LV_PART_MAIN | LV_STATE_DEFAULT);
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFB74D), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFF3E0), LV_PART_MAIN);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFB74D), LV_PART_INDICATOR);
             }
             else
             { // 极低电量
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFEBEE), LV_PART_MAIN | LV_STATE_DEFAULT);
-                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xEF9A9A), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xFFEBEE), LV_PART_MAIN);
+                lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xEF9A9A), LV_PART_INDICATOR);
             }
-        }else{//如果电压为700则代表数据获取异常，显示灰色，百分比不变
-            lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xF5F5F5), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xB0BEC5), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+        } else { //如果电压为700则代表数据获取异常，显示灰色，百分比不变
+            lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xF5F5F5), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xB0BEC5), LV_PART_INDICATOR);
         }
     }
 

@@ -12,7 +12,7 @@ void initSensor(void)
     visionInit();
     Wire.begin(PIN_HWT101_SDA, PIN_HWT101_SCL); // 初始化IIC(HWT101)
     paw3395Init(PAW3395_DPI, PIN_PAW3395_NRESET, PIN_PAW3395_NCS, PIN_PAW3395_SCLK, PIN_PAW3395_MISO, PIN_PAW3395_MOSI);
-    wait(100);
+    delay(100);
     resetSensor();
 }
 
@@ -122,7 +122,7 @@ void calculateGlobalPosition(void *pvParameters)
             xSemaphoreGive(positionMutex); // 释放互斥锁
         }
 
-        wait(5);
+        delay(5);
     }
 }
 
