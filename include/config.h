@@ -30,7 +30,7 @@
 #define CHASSIS_MAX_OMEGA TBD // 底盘最大角速度rad/s
 // 电机控制参数
 #define DEFAULT_SPEED 100.0f
-#define DEFAULT_ACC 2000
+#define DEFAULT_ACC 0 //直接启动
 /* 底盘PID参数 */
 // PID控制参数 - 运动中使用
 extern float POS_KP;     // 位置环比例系数

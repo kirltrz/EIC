@@ -4,7 +4,7 @@
 #include <esp_timer.h>
 
 // 声明ZDT_MOTOR控制对象指针
-ZDTX42V2 *motor = nullptr;
+ZDT_MOTOR_EMM_V5 *motor = nullptr;
 
 // 目标位置
 static POS targetPos = {0, 0, 0};
@@ -58,7 +58,7 @@ void initMotor()
     DEBUG_LOG("开始初始化电机...");
 
     // 初始化电机对象
-    motor = new ZDTX42V2(&MOTOR_SERIAL);
+    motor = new ZDT_MOTOR_EMM_V5(&MOTOR_SERIAL);
 
     // delay(500); // 等待电机初始化完成
 
@@ -154,7 +154,6 @@ void moveTask(void *pvParameters)
         {
             // 获取当前位置
             getGlobalPosition(&currentPosition);
-            DEBUG_LOG("%dus在位置: x=%f, y=%f, yaw=%f\n", esp_timer_get_time(), currentPosition.x, currentPosition.y, currentPosition.rawYaw);
             if (isMoving)
             {
                 // 运动模式PID参数
@@ -236,7 +235,6 @@ void moveTask(void *pvParameters)
             // 直接使用速度控制模式控制电机
             for (int i = 0; i < 4; i++)
             {
-
                 speed = wheel_speeds[i] * 60.0f / (2.0f * PI); // RAD/s转换为RPM
 
                 // 限制最小速度
@@ -258,7 +256,7 @@ void moveTask(void *pvParameters)
                 dir = (speed >= 0) ? 0 : 1; // 不知道怎么转的，根据实际情况修改
 
                 // 使用速度控制模式
-                motor->velocityControl(motor_addrs[i], dir, DEFAULT_ACC, abs(speed), 0);
+                motor->velocityControl(motor_addrs[i], dir, abs(speed), DEFAULT_ACC, 0);
 
                 /* 接收会导致重启
                 // 在receiveData之前添加

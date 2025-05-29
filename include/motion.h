@@ -1,5 +1,5 @@
 #pragma once
-#include "ZDTX42V2.h"
+#include "ZDT_MOTOR_EMM_V5.h"
 #include "config.h"
 #include <Arduino.h>
 #include "taskManager.h"
@@ -9,9 +9,10 @@ struct POS{
     double y;
     float yaw;
 };
+
 // 外部声明电机驱动实例，使其全局可用
-extern ZDTX42V2 *motor;
-//extern systemState currentState;
+extern ZDT_MOTOR_EMM_V5 *motor;
+
 void initMotor(void);
 void moveTo(POS pos);
 void resetPIDparam(void);
