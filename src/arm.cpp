@@ -25,10 +25,38 @@ const armPos ttDetect = {0, 0, 0};    // 转盘检测位置
 const armPos rPlate = {0, 0, 0};      // 红色物料托盘位置
 const armPos bPlate = {0, 0, 0};      // 蓝色物料托盘位置
 const armPos gPlate = {0, 0, 0};      // 绿色物料托盘位置
+const armPos roverthecircle = {0,0,0}; //红色物料空中位置
+const armPos boverthecircle = {0,0,0}; //蓝色物料空中位置
+const armPos goverthecircle = {0,0,0}; //绿色物料空中位置
 const armPos gdDetect = {0, 0, 0};    // 地面检测位置
 const armPos rCircleBase = {0, 0, 0}; // 红色色环基础位置（未视觉纠偏的位置）
 const armPos bCircleBase = {0, 0, 0}; // 蓝色色环基础位置（未视觉纠偏的位置）
 const armPos gCircleBase = {0, 0, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
+
+armPos platePos[3] = {rPlate,bPlate,gPlate};
+
+armPos keyPos[6][5]={
+    {//红色 从托盘到色环关键点
+        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+    },
+    {//蓝色 从色环到托盘关键点
+        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+    },
+    {//绿色 从托盘到色环关键点
+        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+    },
+    {//红色 从色环到托盘关键点
+        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+    },
+    {//蓝色 从托盘到色环关键点
+        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+    },
+    {//绿色 从托盘到色环关键点
+        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+    }
+};
+
+const int overPlateHeight = 500; // 机器爪抓取物料之前高于物料的高度
 
 struct
 { // 当前车身位置下的色环位置
@@ -215,6 +243,7 @@ void arm_ScanQRcode()
 {
     /*扫描二维码，与控制xyz不同，机械臂前端需抬起使摄像头朝向二维码，无需处理视觉部分*/
     armSet_position(82.50,-63.70,57.40,-52.20,500,100,100);
+    arm_setClaw(1);
 }
 void arm_setClaw(bool open)
 {
@@ -227,6 +256,13 @@ void arm_setClaw(bool open)
         servo4.setAngle(ARM_GRIPPER_CLOSE_ANGLE, 100);
     }
 }
+void waitArm(void){
+    servo0.wait();
+    servo1.wait();
+    servo2.wait();
+    servo3.wait();
+    servo4.wait();
+}
 void arm_catchFromTurntable(int taskcode[3])
 {
     /*从转盘抓取，需要通过视觉识别抓取物料，因为转盘不断转动，故需要等待物料停止再抓取或者实时跟踪*/
@@ -234,13 +270,22 @@ void arm_catchFromTurntable(int taskcode[3])
     armControl_xyz(ttDetect.x,ttDetect.y,ttDetect.z,1000,100,100);
     visionGetMaterial(taskcode[0],&x,&y);
     
-
     const int turntableHeight = 80; // 转盘高度
 }
 
 void arm_putToGround(int taskcode[3], int circleOffset[3][2] /*传出当前色环偏移量*/)
 {
     /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
+    armControl_xyz(platePos[taskcode[0]].x ,platePos[taskcode[0]].y,platePos[taskcode[0]].z + overPlateHeight,1000,100,100);
+    waitArm();
+    armControl_xyz(platePos[taskcode[0]].x ,platePos[taskcode[0]].y ,platePos[taskcode[0]].z,250,100,100);
+    waitArm();
+    arm_setClaw(0);
+    waitArm();
+    armControl_xyz(platePos[taskcode[0]].x ,platePos[taskcode[0]].y ,platePos[taskcode[0]].z + overPlateHeight,1000,100,100);
+    waitArm();
+
+
 }
 
 void arm_catchFromGround(int taskcode[3], const int circleOffset[3][2] /*传入当前色环偏移量*/)
