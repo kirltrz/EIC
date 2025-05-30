@@ -60,7 +60,7 @@ void initMotor()
     // 初始化电机对象
     motor = new ZDT_MOTOR_EMM_V5(&MOTOR_SERIAL);
 
-    // delay(500); // 等待电机初始化完成
+    delay(500); // 等待电机初始化完成
 
     // 确保所有电机都停止
     motor->stopNow(MOTOR_BROADCAST, 0);

@@ -13,6 +13,7 @@ void setup()
 {
     #if DEBUG_ENABLE
     DEBUG_SERIAL.begin(115200);
+    initOTA();
     #endif
 
     initMotor();
@@ -20,11 +21,10 @@ void setup()
     initLED();
     initSensor();
     initGUI();
+
+    delay(500); // 等待初始化完成
+
     initTaskManager();
-    
-    #if DEBUG_ENABLE
-    initOTA();
-    #endif
 }
 
 void loop()

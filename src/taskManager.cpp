@@ -24,7 +24,7 @@ void initTaskManager(void)
         NULL         // 任务句柄
     );
     xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
-    xTaskCreate(moveTask, "Move Task", 4096, NULL, 1, NULL);
+    xTaskCreate(moveTask, "Move Task", 8192, NULL, 1, NULL);
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
     
     // OTA任务
