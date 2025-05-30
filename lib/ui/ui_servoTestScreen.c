@@ -24,7 +24,7 @@ void ui_servoTestScreen_screen_init(void)
     lv_obj_set_x(ui_Label56, -5);
     lv_obj_set_y(ui_Label56, -40);
     lv_obj_set_align(ui_Label56, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label56, "舵机0:");
+    lv_label_set_text(ui_Label56, "0:");
     lv_obj_set_style_text_font(ui_Label56, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Label7 = lv_label_create(ui_Panel6);
@@ -33,7 +33,7 @@ void ui_servoTestScreen_screen_init(void)
     lv_obj_set_x(ui_Label7, -5);
     lv_obj_set_y(ui_Label7, -20);
     lv_obj_set_align(ui_Label7, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label7, "舵机1:");
+    lv_label_set_text(ui_Label7, "1:");
     lv_obj_set_style_text_font(ui_Label7, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Label8 = lv_label_create(ui_Panel6);
@@ -42,7 +42,7 @@ void ui_servoTestScreen_screen_init(void)
     lv_obj_set_x(ui_Label8, -5);
     lv_obj_set_y(ui_Label8, 0);
     lv_obj_set_align(ui_Label8, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label8, "舵机2:");
+    lv_label_set_text(ui_Label8, "2:");
     lv_obj_set_style_text_font(ui_Label8, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Label53 = lv_label_create(ui_Panel6);
@@ -51,7 +51,7 @@ void ui_servoTestScreen_screen_init(void)
     lv_obj_set_x(ui_Label53, -5);
     lv_obj_set_y(ui_Label53, 20);
     lv_obj_set_align(ui_Label53, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label53, "舵机3:");
+    lv_label_set_text(ui_Label53, "3:");
     lv_obj_set_style_text_font(ui_Label53, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_Label54 = lv_label_create(ui_Panel6);
@@ -60,13 +60,13 @@ void ui_servoTestScreen_screen_init(void)
     lv_obj_set_x(ui_Label54, -5);
     lv_obj_set_y(ui_Label54, 40);
     lv_obj_set_align(ui_Label54, LV_ALIGN_LEFT_MID);
-    lv_label_set_text(ui_Label54, "舵机4:");
+    lv_label_set_text(ui_Label54, "4:");
     lv_obj_set_style_text_font(ui_Label54, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_servo0angle = lv_label_create(ui_Panel6);
     lv_obj_set_width(ui_servo0angle, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_servo0angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo0angle, 20);
+    lv_obj_set_x(ui_servo0angle, 12);
     lv_obj_set_y(ui_servo0angle, -40);
     lv_obj_set_align(ui_servo0angle, LV_ALIGN_CENTER);
     lv_label_set_text(ui_servo0angle, "0");
@@ -74,7 +74,7 @@ void ui_servoTestScreen_screen_init(void)
     ui_servo1angle = lv_label_create(ui_Panel6);
     lv_obj_set_width(ui_servo1angle, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_servo1angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo1angle, 20);
+    lv_obj_set_x(ui_servo1angle, 12);
     lv_obj_set_y(ui_servo1angle, -20);
     lv_obj_set_align(ui_servo1angle, LV_ALIGN_CENTER);
     lv_label_set_text(ui_servo1angle, "0");
@@ -82,7 +82,7 @@ void ui_servoTestScreen_screen_init(void)
     ui_servo2angle = lv_label_create(ui_Panel6);
     lv_obj_set_width(ui_servo2angle, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_servo2angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo2angle, 20);
+    lv_obj_set_x(ui_servo2angle, 12);
     lv_obj_set_y(ui_servo2angle, 0);
     lv_obj_set_align(ui_servo2angle, LV_ALIGN_CENTER);
     lv_label_set_text(ui_servo2angle, "0");
@@ -90,7 +90,7 @@ void ui_servoTestScreen_screen_init(void)
     ui_servo3angle = lv_label_create(ui_Panel6);
     lv_obj_set_width(ui_servo3angle, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_servo3angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo3angle, 20);
+    lv_obj_set_x(ui_servo3angle, 12);
     lv_obj_set_y(ui_servo3angle, 20);
     lv_obj_set_align(ui_servo3angle, LV_ALIGN_CENTER);
     lv_label_set_text(ui_servo3angle, "0");
@@ -98,7 +98,7 @@ void ui_servoTestScreen_screen_init(void)
     ui_servo4angle = lv_label_create(ui_Panel6);
     lv_obj_set_width(ui_servo4angle, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_servo4angle, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_servo4angle, 20);
+    lv_obj_set_x(ui_servo4angle, 12);
     lv_obj_set_y(ui_servo4angle, 40);
     lv_obj_set_align(ui_servo4angle, LV_ALIGN_CENTER);
     lv_label_set_text(ui_servo4angle, "0");
