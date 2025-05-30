@@ -1,5 +1,6 @@
 #include "arm.h"
 #include "config.h"
+#include "vision.h"
 #include "taskManager.h"
 FSUS_Protocol protocol(&SERVO_SERIAL, SERIAL_BAUDRATE);
 FSUS_Servo servo0(0, &protocol); // 云台舵机
@@ -213,11 +214,17 @@ void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, 
 void arm_ScanQRcode()
 {
     /*扫描二维码，与控制xyz不同，机械臂前端需抬起使摄像头朝向二维码，无需处理视觉部分*/
+    armSet_position(82.50,-63.70,57.40,-52.20,500,100,100);
 }
 
 void arm_catchFromTurntable(int taskcode[3])
 {
     /*从转盘抓取，需要通过视觉识别抓取物料，因为转盘不断转动，故需要等待物料停止再抓取或者实时跟踪*/
+    int x,y;
+    armControl_xyz(ttDetect.x,ttDetect.y,ttDetect.z,1000,100,100);
+    visionGetMaterial(taskcode[0],&x,&y);
+    
+
     const int turntableHeight = 80; // 转盘高度
 }
 
