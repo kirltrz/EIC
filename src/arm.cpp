@@ -142,7 +142,7 @@ bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
     w = sqrt(x * x + y * y);
 
     // 考虑爪子长度高度,修正坐标系
-    w = w - ARM_FIRST_JOINT_OFFSET_W + ARM_MATERIAL_OFFSET_W;
+    w = w + ARM_FIRST_JOINT_OFFSET_W + ARM_MATERIAL_OFFSET_W;
     z = z + ARM_THIRD_LENGTH + ARM_MATERIAL_HEIGHT;
     if (w < 0)
         w = 0;
@@ -291,20 +291,20 @@ void arm_putToGround(int taskcode[3])
     /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
     for (int i = 0; i < 3; i++)
     {
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 停在托盘上方
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 停在托盘上方
         waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z,250, 100, 100); // 下降到托盘
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z,500, 100, 100); // 下降到托盘
         waitArm();
         arm_setClaw(0); // 闭合夹爪
         waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 上升到托盘上方
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 上升到托盘上方
         waitArm();
         for (int j = 0; j < 5; j++)
         {
-            armControl_xyz(keyPos[taskcode[i]-1][j].x, keyPos[taskcode[i]-1][j].y, keyPos[taskcode[i]-1][j].z, 250, 100, 100); // 从托盘到色环的关键点
+            armControl_xyz(keyPos[taskcode[i]-1][j].x, keyPos[taskcode[i]-1][j].y, keyPos[taskcode[i]-1][j].z, 500, 100, 100); // 从托盘到色环的关键点
         };
         waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 到色环上方
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 500, 100, 100); // 到色环上方
         waitArm();
 
         /*获取色环偏移量并叠加偏移量*/
@@ -313,13 +313,13 @@ void arm_putToGround(int taskcode[3])
         circlePos[taskcode[i]-1].x += x;
         circlePos[taskcode[i]-1].y += y;
 
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 250, 100, 100); // 放到色环上
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 500, 100, 100); // 放到色环上
         waitArm();
         arm_setClaw(1);
         waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 上升到色环上方
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 500, 100, 100); // 上升到色环上方
         waitArm();
-        armControl_xyz(0, 93, 130, 250, 100, 100);
+        armControl_xyz(0, 93, 130, 500, 100, 100);
         waitArm();
     }
 }
@@ -330,28 +330,28 @@ void arm_catchFromGround(int taskcode[3])
     /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
     for (int i = 0; i < 3; i++)// 循环3次，分别抓取3种颜色物料
     {
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 上升到色环上方
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 500, 100, 100); // 上升到色环上方
         waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 250, 100, 100); // 下降到色环
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 500, 100, 100); // 下降到色环
         waitArm();
         arm_setClaw(0); // 闭合夹爪
         waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 上升到色环上方
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 500, 100, 100); // 上升到色环上方
         waitArm();
         for (int j = 0; j < 5; j++)// 循环5次，分别从色环到托盘的关键点
         {                                                                                                                             
-            armControl_xyz(keyPos[taskcode[i] + 3-1][j].x, keyPos[taskcode[i] + 3-1][j].y, keyPos[taskcode[i] + 3-1][j].z, 250, 100, 100); // 从色环到托盘的关键点
+            armControl_xyz(keyPos[taskcode[i] + 3-1][j].x, keyPos[taskcode[i] + 3-1][j].y, keyPos[taskcode[i] + 3-1][j].z, 500, 100, 100); // 从色环到托盘的关键点
         };
         waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 到托盘上方
-        waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 250, 100, 100); // 放到托盘上
+        //armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 到托盘上方
+        //waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 500, 100, 100); // 放到托盘上
         waitArm();
         arm_setClaw(1);
         waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 上升到托盘上方
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 上升到托盘上方
         waitArm();
-        armControl_xyz(0, 93, 130, 250, 100, 100);
+        armControl_xyz(0, 93, 130, 500, 100, 100);
         waitArm();
     }
 }
@@ -361,20 +361,20 @@ void arm_putToMaterial(int taskcode[3])
     /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
     for (int i = 0; i < 3; i++)
     {
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 停在托盘上方
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 停在托盘上方
         waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 250, 100, 100); // 下降到托盘
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 500, 100, 100); // 下降到托盘
         waitArm();
         arm_setClaw(0); // 闭合夹爪
         waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 上升到托盘上方
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 上升到托盘上方
         waitArm();
         for (int j = 0; j < 5; j++)
         {
-            armControl_xyz(keyPos[taskcode[i]+6-1][j].x, keyPos[taskcode[i]+6-1][j].y, keyPos[taskcode[i]+6-1][j].z, 250, 100, 100); // 从托盘到色环的关键点
+            armControl_xyz(keyPos[taskcode[i]+6-1][j].x, keyPos[taskcode[i]+6-1][j].y, keyPos[taskcode[i]+6-1][j].z, 500, 100, 100); // 从托盘到色环的关键点
         };
         waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT + overCircleHeight, 250, 100, 100); // 到色环上方
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT + overCircleHeight, 500, 100, 100); // 到色环上方
         waitArm();
 
         /*获取色环偏移量并叠加偏移量*/
@@ -383,12 +383,12 @@ void arm_putToMaterial(int taskcode[3])
         circlePos[taskcode[i]].x += x;
         circlePos[taskcode[i]].y += y;
 
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT, 250, 100, 100); // 放到色环的物料上
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT, 500, 100, 100); // 放到色环的物料上
         waitArm();
         arm_setClaw(1);
         waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT +  overCircleHeight, 250, 100, 100); // 上升到色环上方
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT +  overCircleHeight, 500, 100, 100); // 上升到色环上方
         waitArm();
-        armControl_xyz(0, 93, 130, 250, 100, 100);
+        armControl_xyz(0, 93, 130, 500, 100, 100);
     }
 }
