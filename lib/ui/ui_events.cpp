@@ -106,7 +106,8 @@ void enableMotor(lv_event_t *e)
 
 void armTestFunc(lv_event_t *e)
 {
-	
+	int taskcode[3]={1,2,3};
+	arm_catchFromGround(taskcode);
 }
 
 void servoSetOringin(lv_event_t *e)

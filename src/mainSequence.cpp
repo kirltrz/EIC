@@ -56,13 +56,13 @@ void mainSequenceTask(void *pvParameters)
         delay(1000);
         moveTo(pos[3]); // 1 前往粗加工区
         delay(2000);
-        arm_putToGround(taskcode[0], circleOffset);
-        arm_catchFromGround(taskcode[0], circleOffset);
+        arm_putToGround(taskcode[0]);
+        arm_catchFromGround(taskcode[0]);
         moveTo(pos[4]); // 1 离开粗加工区
         delay(1000);
         moveTo(pos[5]); // 1 前往暂存区
         delay(1000);
-        arm_putToGround(taskcode[0], circleOffset);
+        arm_putToGround(taskcode[0]);
         moveTo(pos[6]); // 1 离开暂存区
         delay(1000);
         moveTo(pos[1]); // 2 前往转盘
@@ -72,13 +72,13 @@ void mainSequenceTask(void *pvParameters)
         delay(1000);
         moveTo(pos[3]); // 2 前往粗加工区
         delay(2000);
-        arm_putToGround(taskcode[1], circleOffset);
-        arm_catchFromGround(taskcode[1], circleOffset);
+        arm_putToGround(taskcode[1]);
+        arm_catchFromGround(taskcode[1]);
         moveTo(pos[4]); // 2 离开粗加工区
         delay(1000);
         moveTo(pos[5]); // 2 前往暂存区
         delay(1000);
-        arm_putToGround(taskcode[1], circleOffset);
+        arm_putToGround(taskcode[1]);
         moveTo(pos[7]); // 2 离开暂存区
         delay(2000);
         moveTo(pos[8]); // 前往启停区

@@ -20,43 +20,56 @@ struct armPos
     int y;
     int z;
 };
-const armPos fold = {0, 0, 0};        // 折叠状态
+const armPos fold = {35,0, 99};        // 折叠状态
 const armPos ttDetect = {0, 0, 0};    // 转盘检测位置
-const armPos rPlate = {0, 0, 0};      // 红色物料托盘位置
-const armPos bPlate = {0, 0, 0};      // 蓝色物料托盘位置
-const armPos gPlate = {0, 0, 0};      // 绿色物料托盘位置
+const armPos rPlate = {65, -62, 90};      // 红色物料托盘位置
+const armPos bPlate = {-67, 63, 88};      // 蓝色物料托盘位置
+const armPos gPlate = {61, 62, 91};      // 绿色物料托盘位置
 const armPos roverthecircle = {0,0,0}; //红色物料空中位置
 const armPos boverthecircle = {0,0,0}; //蓝色物料空中位置
 const armPos goverthecircle = {0,0,0}; //绿色物料空中位置
 const armPos gdDetect = {0, 0, 0};    // 地面检测位置
-const armPos rCircleBase = {0, 0, 0}; // 红色色环基础位置（未视觉纠偏的位置）
-const armPos bCircleBase = {0, 0, 0}; // 蓝色色环基础位置（未视觉纠偏的位置）
-const armPos gCircleBase = {0, 0, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
+const armPos rCircleBase = {145, 220, 0}; // 红色色环基础位置（未视觉纠偏的位置）
+const armPos bCircleBase = {-155,200, 0}; // 蓝色色环基础位置（未视觉纠偏的位置）
+const armPos gCircleBase = {-6, 210, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
 
-armPos platePos[3] = {rPlate,bPlate,gPlate};
+armPos platePos[3] = {rPlate,gPlate,bPlate};
+armPos circlePos[3] = {rCircleBase,gCircleBase,bCircleBase};
 
-armPos keyPos[6][5]={
+armPos keyPos[9][5]={
     {//红色 从托盘到色环关键点
-        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+        {67,-64,120},{75,0,161},{82,60,200},{107,144,158},{117,170,88}
     },
-    {//蓝色 从色环到托盘关键点
-        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
-    },
+    
     {//绿色 从托盘到色环关键点
-        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
-    },
-    {//红色 从色环到托盘关键点
-        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+        {64,66,136},{50,100,125},{20,145,106},{0,166,80},{0,187,42}
     },
     {//蓝色 从托盘到色环关键点
-        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
+        {-71,66,120},{-100,100,120},{-125,150,95  },{-135,170,65},{-145,178,60}
     },
-    {//绿色 从托盘到色环关键点
-        {0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}
-    }
+    {//红色 从色环到托盘关键点
+        {117,170,88},{107,144,158},{82,60,200},{75,0,161},{67,-64,120}
+    },
+    {//绿色 从色环到托盘关键点
+        {0,187,42},{0,166,80},{20,145,106},{50,100,125},{64,66,136}
+    },
+    {//蓝色 从色环到托盘关键点
+        {-145,178,60},{-135,170,65},{-125,150,95},{-100,100,120},{-71,66,120}
+    },
+    {//红色 从托盘到色环上的物料的关键点
+        {67,-64,120},{75,0,161},{82,60,200},{107,144,158},{117,170,88}
+    },
+    {//绿色 从托盘到色环上的物料的关键点
+        {64,66,136},{50,100,125},{20,145,115},{0,166,100},{0,187,90}
+    },
+    {//蓝色 从托盘到色环上的物料的关键点
+        {-71,66,120},{-100,100,120},{-125,150,95 },{-135,170,85},{-145,178,80}
+    },
 };
 
-const int overPlateHeight = 500; // 机器爪抓取物料之前高于物料的高度
+
+const int overPlateHeight = 100; // 机器爪抓取物料之前高于物料的高度
+const int overCircleHeight = 50; // 机器爪放置物料后高于色环的高度
 
 struct
 { // 当前车身位置下的色环位置
@@ -104,7 +117,7 @@ void stopArm(bool stop)
         servo4.StopOnControlUnloading();
     }
 }
-/*逆解算 根据下y,z坐标解算出具体关节的舵机角度*/
+/*逆解算 根据下x,y,z坐标解算出具体关节的舵机角度*/
 bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
 {
     float theta0;
@@ -273,27 +286,109 @@ void arm_catchFromTurntable(int taskcode[3])
     const int turntableHeight = 80; // 转盘高度
 }
 
-void arm_putToGround(int taskcode[3], int circleOffset[3][2] /*传出当前色环偏移量*/)
+void arm_putToGround(int taskcode[3])
 {
     /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
-    armControl_xyz(platePos[taskcode[0]].x ,platePos[taskcode[0]].y,platePos[taskcode[0]].z + overPlateHeight,1000,100,100);
-    waitArm();
-    armControl_xyz(platePos[taskcode[0]].x ,platePos[taskcode[0]].y ,platePos[taskcode[0]].z,250,100,100);
-    waitArm();
-    arm_setClaw(0);
-    waitArm();
-    armControl_xyz(platePos[taskcode[0]].x ,platePos[taskcode[0]].y ,platePos[taskcode[0]].z + overPlateHeight,1000,100,100);
-    waitArm();
+    for (int i = 0; i < 3; i++)
+    {
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 停在托盘上方
+        waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z,250, 100, 100); // 下降到托盘
+        waitArm();
+        arm_setClaw(0); // 闭合夹爪
+        waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 上升到托盘上方
+        waitArm();
+        for (int j = 0; j < 5; j++)
+        {
+            armControl_xyz(keyPos[taskcode[i]-1][j].x, keyPos[taskcode[i]-1][j].y, keyPos[taskcode[i]-1][j].z, 250, 100, 100); // 从托盘到色环的关键点
+        };
+        waitArm();
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 到色环上方
+        waitArm();
 
+        /*获取色环偏移量并叠加偏移量*/
+        int x, y;
+        visionGetCircle(&x, &y);
+        circlePos[taskcode[i]-1].x += x;
+        circlePos[taskcode[i]-1].y += y;
 
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 250, 100, 100); // 放到色环上
+        waitArm();
+        arm_setClaw(1);
+        waitArm();
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 上升到色环上方
+        waitArm();
+        armControl_xyz(0, 93, 130, 250, 100, 100);
+        waitArm();
+    }
 }
 
-void arm_catchFromGround(int taskcode[3], const int circleOffset[3][2] /*传入当前色环偏移量*/)
+void arm_catchFromGround(int taskcode[3])
 {
+
     /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
+    for (int i = 0; i < 3; i++)// 循环3次，分别抓取3种颜色物料
+    {
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 上升到色环上方
+        waitArm();
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 250, 100, 100); // 下降到色环
+        waitArm();
+        arm_setClaw(0); // 闭合夹爪
+        waitArm();
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 250, 100, 100); // 上升到色环上方
+        waitArm();
+        for (int j = 0; j < 5; j++)// 循环5次，分别从色环到托盘的关键点
+        {                                                                                                                             
+            armControl_xyz(keyPos[taskcode[i] + 3-1][j].x, keyPos[taskcode[i] + 3-1][j].y, keyPos[taskcode[i] + 3-1][j].z, 250, 100, 100); // 从色环到托盘的关键点
+        };
+        waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 到托盘上方
+        waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 250, 100, 100); // 放到托盘上
+        waitArm();
+        arm_setClaw(1);
+        waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 上升到托盘上方
+        waitArm();
+        armControl_xyz(0, 93, 130, 250, 100, 100);
+        waitArm();
+    }
 }
 
 void arm_putToMaterial(int taskcode[3])
 {
     /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
+    for (int i = 0; i < 3; i++)
+    {
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 停在托盘上方
+        waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 250, 100, 100); // 下降到托盘
+        waitArm();
+        arm_setClaw(0); // 闭合夹爪
+        waitArm();
+        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 250, 100, 100); // 上升到托盘上方
+        waitArm();
+        for (int j = 0; j < 5; j++)
+        {
+            armControl_xyz(keyPos[taskcode[i]+6-1][j].x, keyPos[taskcode[i]+6-1][j].y, keyPos[taskcode[i]+6-1][j].z, 250, 100, 100); // 从托盘到色环的关键点
+        };
+        waitArm();
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT + overCircleHeight, 250, 100, 100); // 到色环上方
+        waitArm();
+
+        /*获取色环偏移量并叠加偏移量*/
+        int x, y;
+        visionGetCircle(&x, &y);
+        circlePos[taskcode[i]].x += x;
+        circlePos[taskcode[i]].y += y;
+
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT, 250, 100, 100); // 放到色环的物料上
+        waitArm();
+        arm_setClaw(1);
+        waitArm();
+        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT +  overCircleHeight, 250, 100, 100); // 上升到色环上方
+        waitArm();
+        armControl_xyz(0, 93, 130, 250, 100, 100);
+    }
 }
