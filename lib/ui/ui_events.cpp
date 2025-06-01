@@ -16,13 +16,19 @@
 
 void toNextPos(lv_event_t *e)
 {
+	/*
 	static int current_pos_index = 0;
 	moveTo(pos[current_pos_index]);
+	DEBUG_LOG("移动到位置x: %lf, y: %lf, yaw: %f", pos[current_pos_index].x, pos[current_pos_index].y, pos[current_pos_index].yaw);
 	current_pos_index++;
 	if (current_pos_index >= sizeof(pos) / sizeof(pos[0]))
 	{
 		current_pos_index = 0;
-	}
+	}*/
+	global_position_t currentPosition;
+	getGlobalPosition(&currentPosition);
+	POS pos = {currentPosition.x, currentPosition.y + 500.0, currentPosition.rawYaw + 90.0f};
+	moveTo(pos);
 }
 
 void lockCurrentPos(lv_event_t *e)
@@ -226,8 +232,7 @@ void applyPID(lv_event_t *e)
 void switchPIDtarget(lv_event_t *e)
 {
 	// 获取开关状态（是否切换到保持模式）
-	lv_obj_t *sw = (lv_obj_t *)lv_event_get_target(e);
-	bool is_holding_mode = lv_obj_has_state(sw, LV_STATE_CHECKED);
+	bool is_holding_mode = lv_obj_has_state(ui_Switch1, LV_STATE_CHECKED);
 
 	// 根据模式切换，更新UI显示的参数值
 	if (is_holding_mode)

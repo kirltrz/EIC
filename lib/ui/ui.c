@@ -63,6 +63,7 @@ lv_obj_t * ui_Label51;
 
 // SCREEN: ui_motionScreen
 void ui_motionScreen_screen_init(void);
+void ui_event_motionScreen(lv_event_t * e);
 lv_obj_t * ui_motionScreen;
 void ui_event_Button7(lv_event_t * e);
 lv_obj_t * ui_Button7;
@@ -288,6 +289,15 @@ void ui_event_Button26(lv_event_t * e)
 
     if(event_code == LV_EVENT_CLICKED) {
         startOTA(e);
+    }
+}
+
+void ui_event_motionScreen(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_SCREEN_LOADED) {
+        switchPIDtarget(e);
     }
 }
 

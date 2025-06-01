@@ -1,10 +1,10 @@
 #include "config.h"
 
 // PID控制参数 - 运动中使用
-float POS_KP = 0.0f;      // 位置环比例系数
+float POS_KP = 1.0f;      // 位置环比例系数
 float POS_KI = 0.0f;       // 位置环积分系数
 float POS_KD = 0.0f;      // 位置环微分系数
-float YAW_KP = 0.0f;      // 偏航角比例系数
+float YAW_KP = 0.5f;      // 偏航角比例系数
 float YAW_KI = 0.0f;       // 偏航角积分系数
 float YAW_KD = 0.0f;      // 偏航角微分系数
 

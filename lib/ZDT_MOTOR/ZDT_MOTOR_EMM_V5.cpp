@@ -385,7 +385,7 @@ void ZDT_MOTOR_EMM_V5::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
 uint16_t ZDT_MOTOR_EMM_V5::getVoltage()
 {
   uint16_t voltage = 0;
-  uint8_t rxCmd[16] = {0};
+  uint8_t rxCmd[128] = {0};
   uint8_t rxCount = 0;
   readSysParams(1, S_VBUS);
   //DEBUG_LOG("发送读取电压命令");
@@ -408,7 +408,7 @@ uint16_t ZDT_MOTOR_EMM_V5::getVoltage()
 void ZDT_MOTOR_EMM_V5::sendCommand(uint8_t *cmd, uint8_t len) {
   if (_serial != nullptr) {
     _serial->write(cmd, len);
-    _serial->flush();
-    DEBUG_LOG("发送命令\n");
+    delay(2);
+    //DEBUG_LOG("发送命令\n");
   }
 }

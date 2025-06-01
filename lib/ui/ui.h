@@ -82,6 +82,7 @@ extern lv_obj_t * ui_Label51;
 
 // SCREEN: ui_motionScreen
 void ui_motionScreen_screen_init(void);
+void ui_event_motionScreen(lv_event_t * e);
 extern lv_obj_t * ui_motionScreen;
 void ui_event_Button7(lv_event_t * e);
 extern lv_obj_t * ui_Button7;

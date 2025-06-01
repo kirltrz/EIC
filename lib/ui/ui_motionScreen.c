@@ -617,5 +617,6 @@ void ui_motionScreen_screen_init(void)
     lv_obj_add_event_cb(ui_Button25, ui_event_Button25, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button10, ui_event_Button10, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Switch1, ui_event_Switch1, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_motionScreen, ui_event_motionScreen, LV_EVENT_ALL, NULL);
 
 }
