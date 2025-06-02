@@ -189,14 +189,21 @@ void moveTask(void *pvParameters)
             yaw_integral += yaw_error * PID_INTERVAL / 1000.0f;
 
             // 限制积分项防止积分饱和，根据最大速度限制
-            pos_x_integral = constrain_float(pos_x_integral, -(_max_linear_speed*0.3/_posKi), (_max_linear_speed*0.3/_posKi));
-            pos_y_integral = constrain_float(pos_y_integral, -(_max_linear_speed*0.3/_posKi), (_max_linear_speed*0.3/_posKi));
-            yaw_integral = constrain_float(yaw_integral, -(_max_angular_speed*0.3/_yawKi), (_max_angular_speed*0.3/_yawKi));
+            pos_x_integral = constrain_float(pos_x_integral, -(_max_linear_speed * 0.3 / _posKi), (_max_linear_speed * 0.3 / _posKi));
+            pos_y_integral = constrain_float(pos_y_integral, -(_max_linear_speed * 0.3 / _posKi), (_max_linear_speed * 0.3 / _posKi));
+            yaw_integral = constrain_float(yaw_integral, -(_max_angular_speed * 0.3 / _yawKi), (_max_angular_speed * 0.3 / _yawKi));
 
             // 计算微分项
-            pos_x_derivative = (pos_x_error - pos_x_last_error) * 1000.0f / PID_INTERVAL;
-            pos_y_derivative = (pos_y_error - pos_y_last_error) * 1000.0f / PID_INTERVAL;
-            yaw_derivative = (yaw_error - yaw_last_error) * 1000.0f / PID_INTERVAL;
+            // pos_x_derivative = (pos_x_error - pos_x_last_error) * 1000.0f / PID_INTERVAL;
+            float alpha = 0.2f; // 滤波系数
+            float raw_x_derivative = (pos_x_error - pos_x_last_error) * 1000.0f / PID_INTERVAL;
+            pos_x_derivative = alpha * raw_x_derivative + (1 - alpha) * pos_x_derivative;
+            // pos_y_derivative = (pos_y_error - pos_y_last_error) * 1000.0f / PID_INTERVAL;
+            float raw_y_derivative = (pos_y_error - pos_y_last_error) * 1000.0f / PID_INTERVAL;
+            pos_y_derivative = alpha * raw_y_derivative + (1 - alpha) * pos_y_derivative;
+            // yaw_derivative = (yaw_error - yaw_last_error) * 1000.0f / PID_INTERVAL;
+            float raw_yaw_derivative = (yaw_error - yaw_last_error) * 1000.0f / PID_INTERVAL;
+            yaw_derivative=alpha * raw_yaw_derivative + (1 - alpha) * yaw_derivative;
 
             // 保存当前误差
             pos_x_last_error = pos_x_error;
@@ -227,10 +234,10 @@ void moveTask(void *pvParameters)
             globalToLocalVelocity(global_vx, global_vy, yaw_rad, local_vx, local_vy);
 
             // 计算轮子角速度 (rad/s)
-            wheel_speeds[0] = (-local_vy - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS;  // 后左轮 (BL) - 1号
-            wheel_speeds[1] = (-local_vx - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS;  // 前左轮 (FL) - 2号
-            wheel_speeds[2] = (local_vy - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS; // 前右轮 (FR) - 3号
-            wheel_speeds[3] = (local_vx - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS; // 后右轮 (BR) - 4号
+            wheel_speeds[0] = (-local_vy - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS; // 后左轮 (BL) - 1号
+            wheel_speeds[1] = (-local_vx - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS; // 前左轮 (FL) - 2号
+            wheel_speeds[2] = (local_vy - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS;  // 前右轮 (FR) - 3号
+            wheel_speeds[3] = (local_vx - omega * PI / 180.0f * ROBOT_RADIUS) / WHEEL_RADIUS;  // 后右轮 (BR) - 4号
 
             // 直接使用速度控制模式控制电机
             for (int i = 0; i < 4; i++)
@@ -319,26 +326,33 @@ bool arrived(void)
     const float POSITION_TOLERANCE = 30.0; // 位置容差，单位mm，放宽到30mm
     const float YAW_TOLERANCE = 5.0;       // 偏航角容差，单位为度，放宽到5度
     const uint32_t ARRIVED_TIME = 500;     // 到达判定时间，单位ms
-    
-    static uint32_t arrived_time = 0;      // 记录首次满足条件的时间
-    static bool is_arrived_condition = false;  // 记录是否曾经满足条件
-    
+
+    static uint32_t arrived_time = 0;         // 记录首次满足条件的时间
+    static bool is_arrived_condition = false; // 记录是否曾经满足条件
+
     bool current_condition = (abs(dx) < POSITION_TOLERANCE && abs(dy) < POSITION_TOLERANCE && abs(dyaw) < YAW_TOLERANCE);
-    
-    if (current_condition) {
+
+    if (current_condition)
+    {
         // 满足条件
-        if (!is_arrived_condition) {
+        if (!is_arrived_condition)
+        {
             // 首次满足条件，记录时间
             arrived_time = millis();
             is_arrived_condition = true;
-        } else {
+        }
+        else
+        {
             // 已经满足过条件，检查是否过了500ms
-            if (millis() - arrived_time >= ARRIVED_TIME) {
+            if (millis() - arrived_time >= ARRIVED_TIME)
+            {
                 return true;
             }
         }
         return false;
-    } else {
+    }
+    else
+    {
         // 不满足条件，重置状态
         is_arrived_condition = false;
         return false;
