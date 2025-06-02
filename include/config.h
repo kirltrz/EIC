@@ -71,7 +71,7 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 #define ARM_SECOND_LENGTH 185       // 机械臂第二关节至第三关节长度mm
 #define ARM_THIRD_LENGTH 112        // 机械臂第三关节至夹持点长度mm
 #define ARM_MATERIAL_HEIGHT 56     // 物料夹持点距地面高度mm
-#define ARM_MATERIAL_OFFSET_X 5  // 物料夹持点距机械臂中心x轴偏移量mm
+#define ARM_MATERIAL_OFFSET_X 2  // 物料夹持点距机械臂中心x轴偏移量mm
 #define ARM_MATERIAL_OFFSET_W -27.5  // 物料夹持点距机械臂中心w轴偏移量mm
 
 #define BASIS_ARM_ANGLE_MIN -180.0f    // 云台舵机最小角度

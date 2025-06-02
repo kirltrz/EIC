@@ -14,7 +14,7 @@ extern FSUS_Servo servo4;
 @brief 机械臂运动函数
 */
 void initArm(void);
-void stopArm(bool stop);
+void stopArm(uint16_t power = 500);
 void setOriginPoint(void);
 void arm_ScanQRcode();
 void arm_setClaw(bool open);

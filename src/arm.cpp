@@ -28,7 +28,7 @@ const armPos gPlate = {61, 62, 91};      // 绿色物料托盘位置
 const armPos roverthecircle = {0,0,0}; //红色物料空中位置
 const armPos boverthecircle = {0,0,0}; //蓝色物料空中位置
 const armPos goverthecircle = {0,0,0}; //绿色物料空中位置
-const armPos gdDetect = {0, 0, 0};    // 地面检测位置
+//const armPos gdDetect = {0, 0, 0};    // 地面检测位置
 const armPos rCircleBase = {145, 220, 0}; // 红色色环基础位置（未视觉纠偏的位置）
 const armPos bCircleBase = {-155,200, 0}; // 蓝色色环基础位置（未视觉纠偏的位置）
 const armPos gCircleBase = {-6, 210, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
@@ -40,7 +40,6 @@ armPos keyPos[9][5]={
     {//红色 从托盘到色环关键点
         {67,-64,120},{75,0,161},{82,60,200},{107,144,158},{117,170,88}
     },
-    
     {//绿色 从托盘到色环关键点
         {64,66,136},{50,100,125},{20,145,106},{0,166,80},{0,187,42}
     },
@@ -68,7 +67,7 @@ armPos keyPos[9][5]={
 };
 
 
-const int overPlateHeight = 100; // 机器爪抓取物料之前高于物料的高度
+const int overPlateHeight = 50; // 机器爪抓取物料之前高于物料的高度
 const int overCircleHeight = 50; // 机器爪放置物料后高于色环的高度
 
 struct
@@ -105,17 +104,13 @@ void setOriginPoint(void)
     servo3.SetOriginPoint();
     //servo4.SetOriginPoint();//夹爪舵机一般不需要归零
 }
-void stopArm(bool stop)
+void stopArm(uint16_t power)
 {
-    if (!stop)
-    {
-        DEBUG_LOG("机械臂停止");
-        servo0.StopOnControlUnloading();
-        servo1.StopOnControlUnloading();
-        servo2.StopOnControlUnloading();
-        servo3.StopOnControlUnloading();
-        servo4.StopOnControlUnloading();
-    }
+        servo0.setDamping(power);
+        servo1.setDamping(power);
+        servo2.setDamping(power);
+        servo3.setDamping(power);
+        servo4.setDamping(power);
 }
 /*逆解算 根据下x,y,z坐标解算出具体关节的舵机角度*/
 bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
@@ -135,14 +130,14 @@ bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
     theta0 = atan2(x, y) * RAD_TO_DEG;
     
     // 考虑物料偏移
-    x = x + ARM_MATERIAL_OFFSET_X * cos(theta0 * DEG_TO_RAD);
-    y = y - ARM_MATERIAL_OFFSET_X * sin(theta0 * DEG_TO_RAD);
+    x = x - (ARM_MATERIAL_OFFSET_X * cos(theta0 * DEG_TO_RAD));
+    y = y + (ARM_MATERIAL_OFFSET_X * sin(theta0 * DEG_TO_RAD));
     
     /*计算w轴长度*/
     w = sqrt(x * x + y * y);
 
     // 考虑爪子长度高度,修正坐标系
-    w = w + ARM_FIRST_JOINT_OFFSET_W + ARM_MATERIAL_OFFSET_W;
+    w = w - ARM_FIRST_JOINT_OFFSET_W - ARM_MATERIAL_OFFSET_W;
     z = z + ARM_THIRD_LENGTH + ARM_MATERIAL_HEIGHT;
     if (w < 0)
         w = 0;
@@ -188,7 +183,7 @@ bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
     return true;
 }
 /**
- * 根据大小臂角度计算末端执行器的位置坐标 用于示教 具体有待实现
+ * 根据大小臂角度计算末端执行器的位置坐标 用于示教
  *@brief 机械臂运动学正解算
  *@param first_arm_degree: 大臂角度,竖直方向为0,向前为正角度
  *@param second_arm_degree: 小臂角度,水平方向为0,向上为正角度
@@ -200,13 +195,17 @@ bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree)
 void armCalculate_forward(float theta0, float first_arm_degree, float second_arm_degree, float *out_arm_location_xyz)
 {
     float x, x1, x2;
-    float y, w, w1, w2; // w为机械臂坐标系下的y轴
+    float y, y1, y2;
+    float w, w1, w2; // w为机械臂坐标系下的y轴
     float z, z1, z2;
 
     w1 = ARM_FIRST_LENGTH * sin(first_arm_degree * DEG_TO_RAD); // 大臂y轴增量
     w2 = ARM_SECOND_LENGTH * cos((first_arm_degree + second_arm_degree) * DEG_TO_RAD);
     w = w1 + w2 + ARM_MATERIAL_OFFSET_W + ARM_FIRST_JOINT_OFFSET_W;
-    y = w * cos(theta0 * DEG_TO_RAD); // 将w轴增量转换到机械臂中心坐标系下的y轴增量
+
+    y1 = w * cos(theta0 * DEG_TO_RAD); // 将w轴增量转换到机械臂中心坐标系下的y轴增量
+    y2 = ARM_MATERIAL_OFFSET_X * sin(theta0 * DEG_TO_RAD); // 将机械臂坐标系下的物料x轴偏移转换到机械臂中心坐标系下
+    y = y1 - y2;
 
     x1 = w * sin(theta0 * DEG_TO_RAD);                     // 使用机械臂坐标系下的y轴增量计算小车坐标系下的x轴增量
     x2 = ARM_MATERIAL_OFFSET_X * cos(theta0 * DEG_TO_RAD); // 将机械臂坐标系下的物料x轴偏移转换到小车坐标系下
@@ -307,12 +306,12 @@ void arm_putToGround(int taskcode[3])
         armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 500, 100, 100); // 到色环上方
         waitArm();
 
-        /*获取色环偏移量并叠加偏移量*/
+        /*获取色环偏移量并叠加偏移量
         int x, y;
         visionGetCircle(&x, &y);
         circlePos[taskcode[i]-1].x += x;
         circlePos[taskcode[i]-1].y += y;
-
+*/
         armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 500, 100, 100); // 放到色环上
         waitArm();
         arm_setClaw(1);

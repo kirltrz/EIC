@@ -92,6 +92,7 @@ void enableMotor(lv_event_t *e)
 	{
 		// 开关打开，使能电机
 		motor->enControl(MOTOR_BROADCAST, is_checked);
+		stopArm(2000);
 		// LED(1);
 		DEBUG_LOG("电机已使能");
 	}
@@ -99,6 +100,7 @@ void enableMotor(lv_event_t *e)
 	{
 		// 开关关闭，失能电机
 		motor->enControl(MOTOR_BROADCAST, is_checked);
+		stopArm(0);
 		// LED(0);
 		DEBUG_LOG("电机已失能");
 	}
@@ -107,7 +109,7 @@ void enableMotor(lv_event_t *e)
 void armTestFunc(lv_event_t *e)
 {
 	int taskcode[3]={1,2,3};
-	arm_catchFromGround(taskcode);
+	arm_putToGround(taskcode);
 }
 
 void servoSetOringin(lv_event_t *e)
