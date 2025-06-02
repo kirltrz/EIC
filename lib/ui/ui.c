@@ -207,6 +207,23 @@ void ui_event_uiSetClawSwitch(lv_event_t * e);
 lv_obj_t * ui_uiSetClawSwitch;
 // CUSTOM VARIABLES
 
+// SCREEN: ui_Screen2
+void ui_Screen2_screen_init(void);
+lv_obj_t * ui_Screen2;
+void ui_event_Button34(lv_event_t * e);
+lv_obj_t * ui_Button34;
+lv_obj_t * ui_Label66;
+void ui_event_Button35(lv_event_t * e);
+lv_obj_t * ui_Button35;
+lv_obj_t * ui_Label67;
+void ui_event_Button36(lv_event_t * e);
+lv_obj_t * ui_Button36;
+lv_obj_t * ui_Label68;
+void ui_event_Button37(lv_event_t * e);
+lv_obj_t * ui_Button37;
+lv_obj_t * ui_Label69;
+// CUSTOM VARIABLES
+
 // EVENTS
 lv_obj_t * ui____initial_actions0;
 
@@ -234,7 +251,7 @@ void ui_event_Button3(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
-        armTestFunc(e);
+        _ui_screen_change(&ui_Screen2, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_Screen2_screen_init);
     }
 }
 
@@ -580,6 +597,42 @@ void ui_event_uiSetClawSwitch(lv_event_t * e)
     }
 }
 
+void ui_event_Button34(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        armTestFunc(e);
+    }
+}
+
+void ui_event_Button35(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        armTestFunc3(e);
+    }
+}
+
+void ui_event_Button36(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        armTestFunc2(e);
+    }
+}
+
+void ui_event_Button37(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        _ui_screen_change(&ui_Screen1, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_Screen1_screen_init);
+    }
+}
+
 ///////////////////// SCREENS ////////////////////
 
 void ui_init(void)
@@ -592,6 +645,7 @@ void ui_init(void)
     ui_otaScreen_screen_init();
     ui_motionScreen_screen_init();
     ui_servoTestScreen_screen_init();
+    ui_Screen2_screen_init();
     ui____initial_actions0 = lv_obj_create(NULL);
     lv_disp_load_scr(ui_Screen1);
 }
