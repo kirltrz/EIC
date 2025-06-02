@@ -290,6 +290,7 @@ void arm_putToGround(int taskcode[3])
     /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
     for (int i = 0; i < 3; i++)
     {
+        arm_setClaw(1);
         armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 停在托盘上方
         waitArm();
         armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z,500, 100, 100); // 下降到托盘
@@ -329,6 +330,7 @@ void arm_catchFromGround(int taskcode[3])
     /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
     for (int i = 0; i < 3; i++)// 循环3次，分别抓取3种颜色物料
     {
+        arm_setClaw(1);
         armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 500, 100, 100); // 上升到色环上方
         waitArm();
         armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 500, 100, 100); // 下降到色环
@@ -360,6 +362,7 @@ void arm_putToMaterial(int taskcode[3])
     /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
     for (int i = 0; i < 3; i++)
     {
+        arm_setClaw(1);
         armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 500, 100, 100); // 停在托盘上方
         waitArm();
         armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 500, 100, 100); // 下降到托盘
