@@ -229,8 +229,11 @@ void armSet_position(float theta0, float first_arm_degree, float second_arm_degr
 {
     // 设置舵机角度 这里启用舵机加减速 但加速减速参数待调
     servo0.setAngle(theta0, interval, acc, dec);                   // 云台舵机
+    delay(2);
     servo1.setAngle(first_arm_degree - 1.0f, interval, acc, dec);  // 一级关节舵机
+    delay(2);
     servo2.setAngle(second_arm_degree - 0.5f, interval, acc, dec); // 二级关节舵机
+    delay(2);
     servo3.setAngle(third_arm_degree, interval, acc, dec);         // 三级关节舵机
 }
 /**
