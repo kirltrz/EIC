@@ -223,11 +223,8 @@ void FSUS_Protocol::sendSetAngle(FSUS_SERVO_ID_T servoId, FSUS_SERVO_ANGLE_T ang
     sendPack();
 }
 
-#include "config.h"
 // 发送旋转的请求包(指定周期)
 void FSUS_Protocol::sendSetAngleByInterval(FSUS_SERVO_ID_T servoId, FSUS_SERVO_ANGLE_T angle,FSUS_INTERVAL_T interval, FSUS_INTERVAL_T t_acc, FSUS_INTERVAL_T t_dec, FSUS_POWER_T power){
-    DEBUG_LOG("\nID:%d,ANGLE:%f",servoId,angle);
-    
     requestPack.cmdId = FSUS_CMD_SET_ANGLE_BY_INTERVAL; // 指令ID
     requestPack.content_size = 11; // 内容长度
     requestPack.content[0]=servoId; //舵机ID
