@@ -2,6 +2,7 @@ SET(SOURCES ui_Screen1.c
     ui_otaScreen.c
     ui_motionScreen.c
     ui_servoTestScreen.c
+    ui_Screen2.c
     ui_theme_manager.cpp
     ui_themes.cpp
     ui.c

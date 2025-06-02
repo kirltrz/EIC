@@ -226,6 +226,23 @@ void ui_event_uiSetClawSwitch(lv_event_t * e);
 extern lv_obj_t * ui_uiSetClawSwitch;
 // CUSTOM VARIABLES
 
+// SCREEN: ui_Screen2
+void ui_Screen2_screen_init(void);
+extern lv_obj_t * ui_Screen2;
+void ui_event_Button34(lv_event_t * e);
+extern lv_obj_t * ui_Button34;
+extern lv_obj_t * ui_Label66;
+void ui_event_Button35(lv_event_t * e);
+extern lv_obj_t * ui_Button35;
+extern lv_obj_t * ui_Label67;
+void ui_event_Button36(lv_event_t * e);
+extern lv_obj_t * ui_Button36;
+extern lv_obj_t * ui_Label68;
+void ui_event_Button37(lv_event_t * e);
+extern lv_obj_t * ui_Button37;
+extern lv_obj_t * ui_Label69;
+// CUSTOM VARIABLES
+
 // EVENTS
 
 extern lv_obj_t * ui____initial_actions0;

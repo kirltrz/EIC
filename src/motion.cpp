@@ -284,7 +284,7 @@ void moveTask(void *pvParameters)
             }
 
             // 判断是否到达目标点
-            if (isMoving && arrived())
+            /*if (isMoving && arrived())
             {
                 // 切换到位置保持模式，而不是停止电机
                 isMoving = false;
@@ -296,7 +296,7 @@ void moveTask(void *pvParameters)
                 yaw_integral = 0;
 
                 DEBUG_SERIAL.println("到达目标位置，切换到位置保持模式");
-            }
+            }*/
         }
 
         // 使用vTaskDelayUntil严格控制执行周期为10ms
@@ -318,13 +318,29 @@ bool arrived(void)
     // 3. 如果距离小于一定值，则返回true，否则返回false
     const float POSITION_TOLERANCE = 30.0; // 位置容差，单位mm，放宽到30mm
     const float YAW_TOLERANCE = 5.0;       // 偏航角容差，单位为度，放宽到5度
-
-    if (abs(dx) < POSITION_TOLERANCE && abs(dy) < POSITION_TOLERANCE && abs(dyaw) < YAW_TOLERANCE)
-    {
-        return true;
-    }
-    else
-    {
+    const uint32_t ARRIVED_TIME = 500;     // 到达判定时间，单位ms
+    
+    static uint32_t arrived_time = 0;      // 记录首次满足条件的时间
+    static bool is_arrived_condition = false;  // 记录是否曾经满足条件
+    
+    bool current_condition = (abs(dx) < POSITION_TOLERANCE && abs(dy) < POSITION_TOLERANCE && abs(dyaw) < YAW_TOLERANCE);
+    
+    if (current_condition) {
+        // 满足条件
+        if (!is_arrived_condition) {
+            // 首次满足条件，记录时间
+            arrived_time = millis();
+            is_arrived_condition = true;
+        } else {
+            // 已经满足过条件，检查是否过了500ms
+            if (millis() - arrived_time >= ARRIVED_TIME) {
+                return true;
+            }
+        }
+        return false;
+    } else {
+        // 不满足条件，重置状态
+        is_arrived_condition = false;
         return false;
     }
 }

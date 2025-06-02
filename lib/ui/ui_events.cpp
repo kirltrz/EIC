@@ -16,19 +16,19 @@
 
 void toNextPos(lv_event_t *e)
 {
-	/*
+	
 	static int current_pos_index = 0;
 	moveTo(pos[current_pos_index]);
-	DEBUG_LOG("移动到位置x: %lf, y: %lf, yaw: %f", pos[current_pos_index].x, pos[current_pos_index].y, pos[current_pos_index].yaw);
+	//DEBUG_LOG("移动到位置x: %lf, y: %lf, yaw: %f", pos[current_pos_index].x, pos[current_pos_index].y, pos[current_pos_index].yaw);
 	current_pos_index++;
 	if (current_pos_index >= sizeof(pos) / sizeof(pos[0]))
 	{
 		current_pos_index = 0;
-	}*/
+	}/*
 	global_position_t currentPosition;
 	getGlobalPosition(&currentPosition);
 	POS pos = {currentPosition.x, currentPosition.y + 500.0, currentPosition.rawYaw + 90.0f};
-	moveTo(pos);
+	moveTo(pos);*/
 }
 
 void lockCurrentPos(lv_event_t *e)
@@ -104,12 +104,6 @@ void enableMotor(lv_event_t *e)
 		// LED(0);
 		DEBUG_LOG("电机已失能");
 	}
-}
-
-void armTestFunc(lv_event_t *e)
-{
-	int taskcode[3]={1,2,3};
-	arm_putToGround(taskcode);
 }
 
 void servoSetOringin(lv_event_t *e)
@@ -292,3 +286,23 @@ void uiSetClaw(lv_event_t * e)
     bool state = lv_obj_has_state(ui_uiSetClawSwitch, LV_STATE_CHECKED);
     servo4.setAngle(state ? ARM_GRIPPER_CLOSE_ANGLE : ARM_GRIPPER_OPEN_ANGLE,100);
 }
+
+void armTestFunc(lv_event_t *e)
+{
+	int taskcode[3]={1,2,3};
+	arm_putToMaterial(taskcode);
+}
+
+void armTestFunc2(lv_event_t * e)
+{
+	int taskcode[3]={1,2,3};
+	arm_catchFromGround(taskcode);
+}
+
+void armTestFunc3(lv_event_t * e)
+{
+	int taskcode[3]={1,2,3};
+	arm_putToGround(taskcode);
+}
+
+

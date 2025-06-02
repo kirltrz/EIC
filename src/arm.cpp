@@ -376,11 +376,11 @@ void arm_putToMaterial(int taskcode[3])
         armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT + overCircleHeight, 500, 100, 100); // 到色环上方
         waitArm();
 
-        /*获取色环偏移量并叠加偏移量*/
+        /*获取色环偏移量并叠加偏移量
         int x, y;
         visionGetCircle(&x, &y);
         circlePos[taskcode[i]].x += x;
-        circlePos[taskcode[i]].y += y;
+        circlePos[taskcode[i]].y += y;*/
 
         armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT, 500, 100, 100); // 放到色环的物料上
         waitArm();
@@ -388,6 +388,6 @@ void arm_putToMaterial(int taskcode[3])
         waitArm();
         armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT +  overCircleHeight, 500, 100, 100); // 上升到色环上方
         waitArm();
-        armControl_xyz(0, 93, 130, 500, 100, 100);
+        armControl_xyz(0, 93, 140, 500, 100, 100);
     }
 }
