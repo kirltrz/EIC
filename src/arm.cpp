@@ -2,6 +2,9 @@
 #include "config.h"
 #include "vision.h"
 #include "taskManager.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <stdlib.h>
 FSUS_Protocol protocol(&SERVO_SERIAL, SERIAL_BAUDRATE);
 FSUS_Servo servo0(0, &protocol); // 云台舵机
 FSUS_Servo servo1(1, &protocol); // 一级关节舵机
@@ -38,7 +41,7 @@ armPos circlePos[3] = {rCircleBase,gCircleBase,bCircleBase};
 
 armPos keyPos[9][5]={
     {//红色 从托盘到色环关键点
-        {67,-64,120},{75,0,161},{82,60,200},{107,144,158},{117,170,88}
+        {67,-64,120},{75,0,161},{82,60,200},{107,144,158},{117,170,110}
     },
     {//绿色 从托盘到色环关键点
         {64,66,136},{50,100,125},{20,145,106},{0,166,80},{0,187,42}
@@ -47,7 +50,7 @@ armPos keyPos[9][5]={
         {-71,66,120},{-100,100,120},{-125,150,95  },{-135,170,65},{-145,178,60}
     },
     {//红色 从色环到托盘关键点
-        {117,170,88},{107,144,158},{82,60,200},{75,0,161},{67,-64,120}
+        {117,170,110},{107,144,158},{82,60,200},{75,0,161},{67,-64,120}
     },
     {//绿色 从色环到托盘关键点
         {0,187,42},{0,166,80},{20,145,106},{50,100,125},{64,66,136}
@@ -56,7 +59,7 @@ armPos keyPos[9][5]={
         {-145,178,60},{-135,170,65},{-125,150,95},{-100,100,120},{-71,66,120}
     },
     {//红色 从托盘到色环上的物料的关键点
-        {67,-64,120},{75,0,161},{82,60,200},{107,144,158},{117,170,88}
+        {67,-64,120},{75,0,161},{82,60,200},{107,144,158},{117,170,110}
     },
     {//绿色 从托盘到色环上的物料的关键点
         {64,66,136},{50,100,125},{20,145,115},{0,166,100},{0,187,90}
@@ -229,11 +232,11 @@ void armSet_position(float theta0, float first_arm_degree, float second_arm_degr
 {
     // 设置舵机角度 这里启用舵机加减速 但加速减速参数待调
     servo0.setAngle(theta0, interval, acc, dec);                   // 云台舵机
-    delay(2);
+    delay(3);
     servo1.setAngle(first_arm_degree - 1.0f, interval, acc, dec);  // 一级关节舵机
-    delay(2);
+    delay(3);
     servo2.setAngle(second_arm_degree - 0.5f, interval, acc, dec); // 二级关节舵机
-    delay(2);
+    delay(3);
     servo3.setAngle(third_arm_degree, interval, acc, dec);         // 三级关节舵机
 }
 /**
@@ -249,7 +252,7 @@ void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, 
 
     if(armCalculate_inverse(x, y, z, xyz_to_angle)) // 逆解算
     {
-    DEBUG_LOG("机械臂xyz坐标: x=%f, y=%f, z=%f", x, y, z);
+    //DEBUG_LOG("机械臂xyz坐标: x=%f, y=%f, z=%f", x, y, z);
     armSet_position(xyz_to_angle[0], xyz_to_angle[1], xyz_to_angle[2], xyz_to_angle[3], interval, acc, dec);
     }
 }
@@ -278,121 +281,276 @@ void waitArm(void){
     servo3.wait();
     servo4.wait();
 }
+
+// 任务参数结构体
+typedef struct {
+    int taskcode[3];
+} ArmTaskParams;
+
 void arm_catchFromTurntable(int taskcode[3])
 {
-    /*从转盘抓取，需要通过视觉识别抓取物料，因为转盘不断转动，故需要等待物料停止再抓取或者实时跟踪*/
-    int x,y;
-    armControl_xyz(ttDetect.x,ttDetect.y,ttDetect.z,1000,100,100);
-    visionGetMaterial(taskcode[0],&x,&y);
-    const int turntableHeight = 80; // 转盘高度
+    // 分配任务参数内存
+    ArmTaskParams* params = (ArmTaskParams*)malloc(sizeof(ArmTaskParams));
+    if (params == NULL) {
+        DEBUG_LOG("内存分配失败");
+        return;
+    }
+    
+    // 复制参数
+    for (int i = 0; i < 3; i++) {
+        params->taskcode[i] = taskcode[i];
+    }
+    
+    // 使用lambda表达式创建任务
+    auto taskFunction = [](void* parameter) -> void {
+        ArmTaskParams* params = (ArmTaskParams*)parameter;
+        int* taskcode = params->taskcode;
+        
+        /*从转盘抓取，需要通过视觉识别抓取物料，因为转盘不断转动，故需要等待物料停止再抓取或者实时跟踪*/
+        int x,y;
+        armControl_xyz(ttDetect.x,ttDetect.y,ttDetect.z,1000,100,100);
+        visionGetMaterial(taskcode[0],&x,&y);
+        const int turntableHeight = 80; // 转盘高度
+        
+        // 释放参数内存并删除任务
+        free(params);
+        vTaskDelete(NULL);
+    };
+    
+    // 创建FreeRTOS任务
+    BaseType_t result = xTaskCreate(
+        taskFunction,              // lambda表达式作为任务函数
+        "ArmCatchFromTurntable",   // 任务名称
+        4096,                      // 堆栈大小
+        params,                    // 任务参数
+        1,                         // 任务优先级
+        NULL                       // 任务句柄
+    );
+    
+    if (result != pdPASS) {
+        DEBUG_LOG("创建arm_catchFromTurntable任务失败");
+        free(params);
+    }
 }
 
 void arm_putToGround(int taskcode[3])
 {
-    /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
-    for (int i = 0; i < 3; i++)
-    {
-        arm_setClaw(1);
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 停在托盘上方
-        waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z,400, 200, 200); // 下降到托盘
-        waitArm();
-        arm_setClaw(0); // 闭合夹爪
-        waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 上升到托盘上方
-        waitArm();
-        for (int j = 0; j < 5; j++)
+    // 分配任务参数内存
+    ArmTaskParams* params = (ArmTaskParams*)malloc(sizeof(ArmTaskParams));
+    if (params == NULL) {
+        DEBUG_LOG("内存分配失败");
+        return;
+    }
+    
+    // 复制参数
+    for (int i = 0; i < 3; i++) {
+        params->taskcode[i] = taskcode[i];
+    }
+    
+    // 使用lambda表达式创建任务
+    auto taskFunction = [](void* parameter) -> void {
+        ArmTaskParams* params = (ArmTaskParams*)parameter;
+        int* taskcode = params->taskcode;
+        
+        /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
+        for (int i = 0; i < 3; i++)
         {
-            armControl_xyz(keyPos[taskcode[i]-1][j].x, keyPos[taskcode[i]-1][j].y, keyPos[taskcode[i]-1][j].z, 400, 200, 200); // 从托盘到色环的关键点
-        };
-        waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 到色环上方
-        waitArm();
+            arm_setClaw(1);
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 停在托盘上方
+            waitArm();
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z,400, 200, 200); // 下降到托盘
+            waitArm();
+            arm_setClaw(0); // 闭合夹爪
+            waitArm();
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 上升到托盘上方
+            waitArm();
+            for (int j = 0; j < 5; j++)
+            {
+                armControl_xyz(keyPos[taskcode[i]-1][j].x, keyPos[taskcode[i]-1][j].y, keyPos[taskcode[i]-1][j].z, 400, 200, 200); // 从托盘到色环的关键点
+            };
+            waitArm();
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 到色环上方
+            waitArm();
 
-        /*获取色环偏移量并叠加偏移量
-        int x, y;
-        visionGetCircle(&x, &y);
-        circlePos[taskcode[i]-1].x += x;
-        circlePos[taskcode[i]-1].y += y;
-*/
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 400, 200, 200); // 放到色环上
-        waitArm();
-        arm_setClaw(1);
-        waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
-        waitArm();
-        armControl_xyz(0, 93, 130, 400, 200, 200);
-        waitArm();
+           delay(500);
+            /*获取色环偏移量并叠加偏移量
+            int x, y;
+            visionGetCircle(&x, &y);
+            circlePos[taskcode[i]-1].x += x;
+            circlePos[taskcode[i]-1].y += y;
+    */
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 400, 200, 200); // 放到色环上
+            waitArm();
+            arm_setClaw(1);
+            waitArm();
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
+            waitArm();
+            armControl_xyz(0, 93, 130, 400, 200, 200);
+            waitArm();
+        }
+        
+        // 释放参数内存并删除任务
+        free(params);
+        vTaskDelete(NULL);
+    };
+    
+    // 创建FreeRTOS任务
+    BaseType_t result = xTaskCreate(
+        taskFunction,              // lambda表达式作为任务函数
+        "ArmPutToGround",          // 任务名称
+        4096,                      // 堆栈大小
+        params,                    // 任务参数
+        1,                         // 任务优先级
+        NULL                       // 任务句柄
+    );
+    
+    if (result != pdPASS) {
+        DEBUG_LOG("创建arm_putToGround任务失败");
+        free(params);
     }
 }
 
 void arm_catchFromGround(int taskcode[3])
 {
-
-    /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
-    for (int i = 0; i < 3; i++)// 循环3次，分别抓取3种颜色物料
-    {
-        arm_setClaw(1);
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
-        waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 400, 200, 200); // 下降到色环
-        waitArm();
-        arm_setClaw(0); // 闭合夹爪
-        waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
-        waitArm();
-        for (int j = 0; j < 5; j++)// 循环5次，分别从色环到托盘的关键点
-        {                                                                                                                             
-            armControl_xyz(keyPos[taskcode[i] + 3-1][j].x, keyPos[taskcode[i] + 3-1][j].y, keyPos[taskcode[i] + 3-1][j].z, 400, 200, 200); // 从色环到托盘的关键点
-        };
-        waitArm();
-        //armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 到托盘上方
-        //waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 400, 200, 200); // 放到托盘上
-        waitArm();
-        arm_setClaw(1);
-        waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 上升到托盘上方
-        waitArm();
-        armControl_xyz(0, 93, 130, 400, 200, 200);
-        waitArm();
+    // 分配任务参数内存
+    ArmTaskParams* params = (ArmTaskParams*)malloc(sizeof(ArmTaskParams));
+    if (params == NULL) {
+        DEBUG_LOG("内存分配失败");
+        return;
+    }
+    
+    // 复制参数
+    for (int i = 0; i < 3; i++) {
+        params->taskcode[i] = taskcode[i];
+    }
+    
+    // 使用lambda表达式创建任务
+    auto taskFunction = [](void* parameter) -> void {
+        ArmTaskParams* params = (ArmTaskParams*)parameter;
+        int* taskcode = params->taskcode;
+        
+        /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
+        for (int i = 0; i < 3; i++)// 循环3次，分别抓取3种颜色物料
+        {
+            arm_setClaw(1);
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
+            waitArm();
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 400, 200, 200); // 下降到色环
+            waitArm();
+            arm_setClaw(0); // 闭合夹爪
+            waitArm();
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
+            waitArm();
+            for (int j = 0; j < 5; j++)// 循环5次，分别从色环到托盘的关键点
+            {                                                                                                                             
+                armControl_xyz(keyPos[taskcode[i] + 3-1][j].x, keyPos[taskcode[i] + 3-1][j].y, keyPos[taskcode[i] + 3-1][j].z, 400, 200, 200); // 从色环到托盘的关键点
+            };
+            waitArm();
+            //armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 到托盘上方
+            //waitArm();
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 400, 200, 200); // 放到托盘上
+            waitArm();
+            arm_setClaw(1);
+            waitArm();
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 上升到托盘上方
+            waitArm();
+            armControl_xyz(0, 93, 130, 400, 200, 200);
+            waitArm();
+        }
+        
+        // 释放参数内存并删除任务
+        free(params);
+        vTaskDelete(NULL);
+    };
+    
+    // 创建FreeRTOS任务
+    BaseType_t result = xTaskCreate(
+        taskFunction,              // lambda表达式作为任务函数
+        "ArmCatchFromGround",      // 任务名称
+        4096,                      // 堆栈大小
+        params,                    // 任务参数
+        1,                         // 任务优先级
+        NULL                       // 任务句柄
+    );
+    
+    if (result != pdPASS) {
+        DEBUG_LOG("创建arm_catchFromGround任务失败");
+        free(params);
     }
 }
 
 void arm_putToMaterial(int taskcode[3])
 {
-    /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
-    for (int i = 0; i < 3; i++)
-    {
-        arm_setClaw(1);
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 停在托盘上方
-        waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 400, 200, 200); // 下降到托盘
-        waitArm();
-        arm_setClaw(0); // 闭合夹爪
-        waitArm();
-        armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 上升到托盘上方
-        waitArm();
-        for (int j = 0; j < 5; j++)
+    // 分配任务参数内存
+    ArmTaskParams* params = (ArmTaskParams*)malloc(sizeof(ArmTaskParams));
+    if (params == NULL) {
+        DEBUG_LOG("内存分配失败");
+        return;
+    }
+    
+    // 复制参数
+    for (int i = 0; i < 3; i++) {
+        params->taskcode[i] = taskcode[i];
+    }
+    
+    // 使用lambda表达式创建任务
+    auto taskFunction = [](void* parameter) -> void {
+        ArmTaskParams* params = (ArmTaskParams*)parameter;
+        int* taskcode = params->taskcode;
+        
+        /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
+        for (int i = 0; i < 3; i++)
         {
-            armControl_xyz(keyPos[taskcode[i]+6-1][j].x, keyPos[taskcode[i]+6-1][j].y, keyPos[taskcode[i]+6-1][j].z, 400, 200, 200); // 从托盘到色环的关键点
-        };
-        waitArm();
-        //armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT + overCircleHeight, 400, 200, 200); // 到色环上方
-        //waitArm();
+            arm_setClaw(1);
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 停在托盘上方
+            waitArm();
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 400, 200, 200); // 下降到托盘
+            waitArm();
+            arm_setClaw(0); // 闭合夹爪
+            waitArm();
+            armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 上升到托盘上方
+            waitArm();
+            for (int j = 0; j < 5; j++)
+            {
+                armControl_xyz(keyPos[taskcode[i]+6-1][j].x, keyPos[taskcode[i]+6-1][j].y, keyPos[taskcode[i]+6-1][j].z, 400, 200, 200); // 从托盘到色环的关键点
+            };
+            waitArm();
+            //armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT + overCircleHeight, 400, 200, 200); // 到色环上方
+            //waitArm();
 
-        /*获取色环偏移量并叠加偏移量
-        int x, y;
-        visionGetCircle(&x, &y);
-        circlePos[taskcode[i]].x += x;
-        circlePos[taskcode[i]].y += y;*/
+            delay(500);
+            /*获取色环偏移量并叠加偏移量
+            int x, y;
+            visionGetCircle(&x, &y);
+            circlePos[taskcode[i]].x += x;
+            circlePos[taskcode[i]].y += y;*/
 
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT, 400, 200, 200); // 放到色环的物料上
-        waitArm();
-        arm_setClaw(1);
-        waitArm();
-        armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT +  overCircleHeight, 400, 200, 200); // 上升到色环上方
-        waitArm();
-        armControl_xyz(0, 93, 140, 400, 200, 200);
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT, 400, 200, 200); // 放到色环的物料上
+            waitArm();
+            arm_setClaw(1);
+            waitArm();
+            armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT +  overCircleHeight, 400, 200, 200); // 上升到色环上方
+            waitArm();
+            armControl_xyz(0, 93, 140, 400, 200, 200);
+        }
+        
+        // 释放参数内存并删除任务
+        free(params);
+        vTaskDelete(NULL);
+    };
+    
+    // 创建FreeRTOS任务
+    BaseType_t result = xTaskCreate(
+        taskFunction,              // lambda表达式作为任务函数
+        "ArmPutToMaterial",        // 任务名称
+        4096,                      // 堆栈大小
+        params,                    // 任务参数
+        1,                         // 任务优先级
+        NULL                       // 任务句柄
+    );
+    
+    if (result != pdPASS) {
+        DEBUG_LOG("创建arm_putToMaterial任务失败");
+        free(params);
     }
 }
