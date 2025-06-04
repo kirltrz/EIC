@@ -33,7 +33,7 @@ void HWT101CLASS::readRegisters(unsigned char deviceAddr, unsigned char addressT
 float HWT101CLASS::getZ(float *ptr)
 {
 	readRegisters(devAddr, YAW, 2, (char *)&rawYaw);
-	float angle = round(((float)rawYaw / 32768 * 180) * 1000) / 1000;
+	float angle = round(((float)rawYaw / 32768 * 180) * 10) / 10;//保留一位小数，因为HWT101的精度为0.1度，更小的角度会引入噪声
 	if (ptr != nullptr)
 		*ptr = angle;
 	return angle;

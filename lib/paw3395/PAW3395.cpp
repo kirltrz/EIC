@@ -94,7 +94,7 @@ bool paw3395_check(void)
  *
  * 注意：无论在运行或静止模式下，都可以从Burst_Motion_Read寄存器读取数据
  */
-void Motion_Burst(volatile int16_t *dx, volatile int16_t *dy)
+void Motion_Burst(int16_t *dx, int16_t *dy)
 {
 	uint8_t buffer[12] = {0};
 

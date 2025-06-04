@@ -57,72 +57,118 @@ bool checkVision(void)
 void calculateGlobalPosition(void *pvParameters)
 {
     /*计算全局位置*/
-    float prevYaw = 0.0f;       // 上一次的yaw角度
-    float yawDiff = 0.0f;       // 角度变化量
-    float continuousYaw = 0.0f; // 连续的角度（不限于±180°）
-    bool isFirstReading = true; // 是否是第一次读取
+    float prevYaw = HWT101.getZ();  // 上一次的yaw角度
+    int rotationCount = 0;          // 旋转圈数，正值表示顺时针旋转的圈数，负值表示逆时针
 
-    volatile int16_t dx = 0;
-    volatile int16_t dy = 0;
-    volatile float globalX = 0.0f;
-    volatile float globalY = 0.0f;
-
+    int16_t dx = 0;
+    int16_t dy = 0;
     const float scaleFactor = 0.0009769f; // 比例因子，将传感器读数转换为实际位移
+    
+    // 未能更新的位移增量
+    float pendingDx = 0.0f;
+    float pendingDy = 0.0f;
 
+    // 传感器数据有效性检查阈值
+    const int16_t MAX_VALID_MOTION = 1000;  // 位移传感器单次读数最大有效值
+    const float MAX_YAW_CHANGE = 20.0f;     // 单次最大有效角度变化(度)
+    
+    // 防抖动处理参数
+    const float MOTION_DEADZONE = 2.0f;     // 位移传感器死区阈值
+    const float LOW_PASS_ALPHA = 0.7f;      // 低通滤波系数(0-1)，越大滤波越强
+    
+    // 滤波后的数据
+    float filteredDx = 0.0f;
+    float filteredDy = 0.0f;
+
+    TickType_t xLastWakeTime = xTaskGetTickCount();
     while (true)
     {
+        // 获取传感器数据
         Motion_Burst(&dx, &dy);
         float rawYaw = HWT101.getZ(); // 获取原始角度值（-180到180度）
-
-        // 第一次读取时初始化
-        if (isFirstReading)
-        {
-            prevYaw = rawYaw;
-            continuousYaw = rawYaw;
-            isFirstReading = false;
+        
+        // 传感器数据有效性检查
+        bool validMotion = true;
+        bool validYaw = true;
+        
+        // 检查位移传感器数据是否在合理范围内
+        if (abs(dx) > MAX_VALID_MOTION || abs(dy) > MAX_VALID_MOTION) {
+            validMotion = false;
+            // 异常数据，重置为0
+            dx = 0;
+            dy = 0;
         }
-        else
-        {
-            // 处理角度跳变，计算最短角度差
-            yawDiff = rawYaw - prevYaw;
-
-            // 处理±180°附近的跳变
-            if (yawDiff > 180.0f)
-            {
-                yawDiff -= 360.0f; // 例如: 从-179°到+179°，差值应为-2°而不是358°
-            }
-            else if (yawDiff < -180.0f)
-            {
-                yawDiff += 360.0f; // 例如: 从+179°到-179°，差值应为+2°而不是-358°
-            }
-
-            // 累加变化量得到连续角度
-            continuousYaw += yawDiff;
-            prevYaw = rawYaw;
+        
+        // 检查角度传感器数据是否在合理范围内(排除±180°跳变的情况)
+        float yawDiff = rawYaw - prevYaw;
+        if (abs(yawDiff) > MAX_YAW_CHANGE && 
+            abs(abs(yawDiff) - 360.0f) > MAX_YAW_CHANGE) {
+            validYaw = false;
+            // 异常数据，使用上次的角度值
+            rawYaw = prevYaw;
         }
 
-        // 将角度转换为弧度（使用原始角度即可，因为sin/cos函数对于±180°是连续的）
+        // 检测是否发生了跨越±180°的跳变
+        if (prevYaw > 150.0f && rawYaw < -150.0f) // 从正半圈跳到负半圈（顺时针转过了180°）
+            rotationCount++;                      // 顺时针转过了一圈
+        else if (prevYaw < -150.0f && rawYaw > 150.0f) // 从负半圈跳到正半圈（逆时针转过了180°）
+            rotationCount--;                           // 逆时针转过了一圈
+
+        // 将角度转换为弧度
         float yawRad = rawYaw * DEG_TO_RAD;
+        float sinYaw, cosYaw;
+        sincosf(yawRad, &sinYaw, &cosYaw); // 使用sincosf同时计算sin和cos，提高效率
 
         // 计算实际位移（考虑传感器方向与车身方向的关系）
-        double dxActual = -(float)dy * scaleFactor; // dx可能需要取反，取决于传感器安装方向
-        double dyActual = (float)dx * scaleFactor;  // dy可能需要取反，取决于传感器安装方向
+        float dxActual = -dy * scaleFactor;
+        float dyActual = dx * scaleFactor;
+        
+        // 防抖动处理 - 应用死区
+        if (abs(dxActual) < MOTION_DEADZONE) {
+            dxActual = 0.0f;
+        }
+        if (abs(dyActual) < MOTION_DEADZONE) {
+            dyActual = 0.0f;
+        }
+        
+        // 低通滤波处理
+        filteredDx = LOW_PASS_ALPHA * filteredDx + (1.0f - LOW_PASS_ALPHA) * dxActual;
+        filteredDy = LOW_PASS_ALPHA * filteredDy + (1.0f - LOW_PASS_ALPHA) * dyActual;
 
         // 使用旋转矩阵将局部坐标系的变化转换到全局坐标系
-        double dxGlobal = dxActual * cos((double)yawRad) - dyActual * sin((double)yawRad);
-        double dyGlobal = dxActual * sin((double)yawRad) + dyActual * cos((double)yawRad);
+        float dxGlobal = filteredDx * cosYaw - filteredDy * sinYaw;
+        float dyGlobal = filteredDx * sinYaw + filteredDy * cosYaw;
 
-        // 更新全局坐标（乘以比例因子，将像素变化转换为实际距离变化）
-        if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
-        {
-            currentPosition.x += dxGlobal;
-            currentPosition.y += dyGlobal;
-            currentPosition.rawYaw = rawYaw;
-            currentPosition.continuousYaw = continuousYaw;
-            xSemaphoreGive(positionMutex); // 释放互斥锁
+        // 计算连续角度 = 原始角度 + 旋转圈数 * 360°
+        float continuousYaw = rawYaw + rotationCount * 360.0f;
+
+        // 只有在数据有效的情况下才累加位移
+        if (validMotion && validYaw) {
+            // 累加未能更新的位移
+            pendingDx += dxGlobal;
+            pendingDy += dyGlobal;
         }
 
-        delay(5);
+        // 更新全局坐标
+        if (xSemaphoreTake(positionMutex, 10) == pdTRUE)
+        {
+            // 更新位置，包括之前未能更新的增量
+            currentPosition.x += pendingDx;
+            currentPosition.y += pendingDy;
+            currentPosition.rawYaw = rawYaw;
+            currentPosition.continuousYaw = continuousYaw;
+            
+            // 清零累积的位移增量
+            pendingDx = 0.0f;
+            pendingDy = 0.0f;
+            
+            xSemaphoreGive(positionMutex);
+        }
+
+        // 更新前一次的角度值
+        prevYaw = rawYaw;
+
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(5));
     }
 }
 
