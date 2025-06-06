@@ -163,7 +163,7 @@ void moveTask(void *pvParameters)
                 _yawKp = YAW_KP;
                 _yawKi = YAW_KI;
                 _yawKd = YAW_KD;
-                _max_linear_speed = MAX_LINEAR_SPEED;
+                _max_linear_speed = (currentPosition.v+100>MAX_LINEAR_SPEED)?MAX_LINEAR_SPEED:currentPosition.v+100;
                 _max_angular_speed = MAX_ANGULAR_SPEED;
             }
             else if (isHolding)
