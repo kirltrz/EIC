@@ -258,7 +258,7 @@ void calculateGlobalPosition(void *pvParameters)
     
     // 防抖动处理参数
     const float MOTION_DEADZONE = 5.0f;     // 位移传感器死区阈值
-    const float LOW_PASS_ALPHA = 0.7f;      // 低通滤波系数(0-1)，越大滤波越强
+    const float LOW_PASS_ALPHA = 0.8f;      // 低通滤波系数(0-1)，越大滤波越强
     
     // 滤波后的数据
     float filteredDx = 0.0f;
@@ -355,13 +355,23 @@ void calculateGlobalPosition(void *pvParameters)
             currentPosition.x += pendingDx;
             currentPosition.y += pendingDy;
 
+            currentPosition.v = sqrtf(pendingDx * pendingDx + pendingDy * pendingDy);
+
             currentPosition.rawYaw = rawYaw;
             currentPosition.continuousYaw = continuousYaw;
-            
+
+            /*
+            float debugData[5] = {currentPosition.x, currentPosition.y, pendingDx, pendingDy, rawYaw};
+            Serial.write((char*)debugData, sizeof(debugData));
+            char tail[4] = {0x00, 0x00, 0x80, 0x7f};
+            Serial.write(tail, sizeof(tail));
+*/
             // 清零累积的位移增量
             pendingDx = 0.0f;
             pendingDy = 0.0f;
             
+
+
             xSemaphoreGive(positionMutex);
         }
 
