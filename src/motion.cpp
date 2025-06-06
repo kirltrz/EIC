@@ -291,7 +291,7 @@ void moveTask(void *pvParameters)
             }
 
             // 判断是否到达目标点
-            /*if (isMoving && arrived())
+            if (isMoving && arrived())
             {
                 // 切换到位置保持模式，而不是停止电机
                 isMoving = false;
@@ -303,7 +303,7 @@ void moveTask(void *pvParameters)
                 yaw_integral = 0;
 
                 DEBUG_SERIAL.println("到达目标位置，切换到位置保持模式");
-            }*/
+            }
         }
 
         // 使用vTaskDelayUntil严格控制执行周期为10ms
