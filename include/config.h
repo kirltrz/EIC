@@ -164,3 +164,5 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 #define ERROR_QRCODE_RECOGNITION_FAILED 1   // 二维码识别失败
 #define ERROR_MATERIAL_RECOGNITION_FAILED 2 // 物料识别失败
 #define ERROR_CIRCLE_RECOGNITION_FAILED 3   // 色环识别失败
+
+#define VISION_GET_MATERIAL_TIMEOUT 5000 //物料识别超时时间
