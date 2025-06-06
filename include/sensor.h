@@ -7,6 +7,7 @@
 struct global_position_t{
     float x;
     float y;
+    float v;
     float rawYaw;//原始偏航角(度)
     float continuousYaw;//连续偏航角(度)
 };
