@@ -190,7 +190,7 @@ void initSensor(void)
     delay(100);
     
     // 初始化卡尔曼滤波器 (5ms采样周期，适当的过程噪声和测量噪声值)
-    initKalmanFilter(&positionKalman, 0.005f, 0.01f, 0.1f);
+    initKalmanFilter(&positionKalman, 0.005f, 8.0f, 0.05f);
     
     resetSensor();
 }
@@ -253,11 +253,11 @@ void calculateGlobalPosition(void *pvParameters)
     float pendingDy = 0.0f;
 
     // 传感器数据有效性检查阈值
-    const int16_t MAX_VALID_MOTION = 1000;  // 位移传感器单次读数最大有效值
+    const int16_t MAX_VALID_MOTION = INT16_MAX;  // 位移传感器单次读数最大有效值
     const float MAX_YAW_CHANGE = 20.0f;     // 单次最大有效角度变化(度)
     
     // 防抖动处理参数
-    const float MOTION_DEADZONE = 2.0f;     // 位移传感器死区阈值
+    const float MOTION_DEADZONE = 5.0f;     // 位移传感器死区阈值
     const float LOW_PASS_ALPHA = 0.7f;      // 低通滤波系数(0-1)，越大滤波越强
     
     // 滤波后的数据
@@ -307,14 +307,15 @@ void calculateGlobalPosition(void *pvParameters)
         float dxActual = -dy * scaleFactor;
         float dyActual = dx * scaleFactor;
         
+        /*
         // 防抖动处理 - 应用死区
-        if (abs(dxActual) < MOTION_DEADZONE) {
-            dxActual = 0.0f;
+        if (abs(dx) < MOTION_DEADZONE) {
+            dx = 0;
         }
-        if (abs(dyActual) < MOTION_DEADZONE) {
-            dyActual = 0.0f;
+        if (abs(dy) < MOTION_DEADZONE) {
+            dy = 0;
         }
-        
+        */
         // 低通滤波处理
         filteredDx = LOW_PASS_ALPHA * filteredDx + (1.0f - LOW_PASS_ALPHA) * dxActual;
         filteredDy = LOW_PASS_ALPHA * filteredDy + (1.0f - LOW_PASS_ALPHA) * dyActual;
@@ -334,7 +335,7 @@ void calculateGlobalPosition(void *pvParameters)
         }
 
         // 卡尔曼滤波器预测步骤
-        kalmanPredict(&positionKalman);
+        //kalmanPredict(&positionKalman);
         
         // 更新全局坐标
         if (xSemaphoreTake(positionMutex, 10) == pdTRUE)
@@ -344,12 +345,16 @@ void calculateGlobalPosition(void *pvParameters)
             float rawPositionY = currentPosition.y + pendingDy;
             
             // 卡尔曼滤波器更新步骤
-            float measurement[2] = {rawPositionX, rawPositionY};
-            kalmanUpdate(&positionKalman, measurement);
+            //float measurement[2] = {rawPositionX, rawPositionY};
+            //kalmanUpdate(&positionKalman, measurement);
             
             // 使用卡尔曼滤波后的位置作为最终结果
-            currentPosition.x = positionKalman.state[0];
+            /*currentPosition.x = positionKalman.state[0];
             currentPosition.y = positionKalman.state[1];
+*/
+            currentPosition.x += pendingDx;
+            currentPosition.y += pendingDy;
+
             currentPosition.rawYaw = rawYaw;
             currentPosition.continuousYaw = continuousYaw;
             

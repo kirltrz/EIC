@@ -22,6 +22,10 @@ static const char *otaHostname = NULL;
 static uint32_t restartTime = 0;         // 添加重启时间变量
 static uint32_t lastWifiCheckTime = 0;   // 上次WiFi检查时间
 static uint32_t wifiCheckInterval = 100; // WiFi检查间隔（100ms）
+static bool useStaticIP = false;         // 是否使用静态IP
+static IPAddress staticIP;               // 静态IP地址
+static IPAddress staticGateway;          // 网关
+static IPAddress staticSubnet;           // 子网掩码
 
 // OTA事件处理回调
 void setupOTACallbacks()
@@ -97,13 +101,14 @@ void initOTAService()
     otaInitialized = true;
     strcpy(otaStatusText, "就绪");
 }
-// 初始化OTA
-void initOTA(const char *ssid, const char *password, const char *hostname)
+// 初始化OTA（使用DHCP）
+void initOTADHCP(const char *ssid, const char *password, const char *hostname)
 {
     // 保存WiFi凭据
     wifiSSID = ssid;
     wifiPassword = password;
     otaHostname = hostname;
+    useStaticIP = false;  // 使用DHCP
 
     // 配置WiFi模式
     WiFi.mode(WIFI_STA);
@@ -117,6 +122,37 @@ void initOTA(const char *ssid, const char *password, const char *hostname)
     xSemaphoreGive(xSemaphoreOTA);
 
     // Serial.println("OTA初始化完成");
+}
+
+// 初始化OTA（使用固定IP）
+void initOTA(const char *ssid, const char *password, const char *hostname, IPAddress ip, IPAddress gateway, IPAddress subnet)
+{
+    // 保存WiFi凭据
+    wifiSSID = ssid;
+    wifiPassword = password;
+    otaHostname = hostname;
+    useStaticIP = true;  // 使用静态IP
+    
+    // 保存静态IP配置
+    staticIP = ip;
+    staticGateway = gateway;
+    staticSubnet = subnet;
+
+    // 配置WiFi模式
+    WiFi.mode(WIFI_STA);
+    
+    // 连接WiFi前设置静态IP
+    WiFi.config(staticIP, staticGateway, staticSubnet);
+
+    // 开始连接WiFi
+    WiFi.begin(wifiSSID, wifiPassword);
+    wifiConnecting = true;
+    strcpy(wifiStatusText, "正在连接...");
+
+    // 释放信号量允许OTA任务开始工作
+    xSemaphoreGive(xSemaphoreOTA);
+
+    // Serial.println("OTA初始化完成(静态IP)");
 }
 
 // OTA任务
@@ -175,6 +211,12 @@ void otaTask(void *pvParameters)
                     // 开始重连
                     WiFi.disconnect();
                     delay(100);
+                    
+                    // 如果使用静态IP，需要重新配置
+                    if (useStaticIP) {
+                        WiFi.config(staticIP, staticGateway, staticSubnet);
+                    }
+                    
                     WiFi.begin(wifiSSID, wifiPassword);
                     wifiConnecting = true;
                     strcpy(wifiStatusText, "正在重连...");
