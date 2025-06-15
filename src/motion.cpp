@@ -163,7 +163,7 @@ void moveTask(void *pvParameters)
                 _yawKp = YAW_KP;
                 _yawKi = YAW_KI;
                 _yawKd = YAW_KD;
-                _max_linear_speed = (currentPosition.v+100>MAX_LINEAR_SPEED)?MAX_LINEAR_SPEED:currentPosition.v+100;
+                _max_linear_speed = MAX_LINEAR_SPEED;
                 _max_angular_speed = MAX_ANGULAR_SPEED;
             }
             else if (isHolding)
@@ -291,7 +291,7 @@ void moveTask(void *pvParameters)
             }
 
             // 判断是否到达目标点
-            if (isMoving && arrived())
+            /*if (isMoving && arrived())
             {
                 // 切换到位置保持模式，而不是停止电机
                 isMoving = false;
@@ -303,7 +303,7 @@ void moveTask(void *pvParameters)
                 yaw_integral = 0;
 
                 DEBUG_SERIAL.println("到达目标位置，切换到位置保持模式");
-            }
+            }*/
         }
 
         // 使用vTaskDelayUntil严格控制执行周期为10ms
