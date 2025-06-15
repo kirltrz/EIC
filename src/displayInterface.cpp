@@ -28,6 +28,7 @@ static void lv_update_task(lv_timer_t *timer)
     uint32_t current_time = millis();
     char buf[10][16]; // 静态缓冲区
 
+#if DEBUG_ENABLE
     // 更新OTA UI
     updateOTAUI();
 
@@ -107,7 +108,7 @@ static void lv_update_task(lv_timer_t *timer)
             lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xB0BEC5), LV_PART_INDICATOR);
         }
     }
-
+#endif
 }
 
 void flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map)

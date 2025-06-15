@@ -7,7 +7,7 @@
 #define TASK_TIMEOUT 3000
 POS pos[] = {
     {-178.0  , 586.0  , 0.0f  }, // 0扫二维码
-    {-10.0   , 1411.0 , 0.0f  }, // 1转盘抓取
+    {-10.0   , 1481.0 , 0.0f  }, // 1转盘抓取
     {-164.0  , 986.0  , 90.0f }, // 2离开转盘
     {-1900.0 , 986.0  , 90.0f }, // 3粗加工区
     {-1824.0 , 1827.0 , 0.0f  }, // 4离开粗加工区
@@ -37,7 +37,8 @@ void mainSequenceTask(void *pvParameters)
         // 主流程的代码
         moveTo(pos[0]);   // 前往二维码前方
         arm_ScanQRcode(); // 机械臂运动至扫描二维码状态
-        delay(1000);
+        waitNear();
+
         startTime = millis();
         while (!visionScanQRcode(taskcode[0], taskcode[1]))
         {
@@ -50,41 +51,41 @@ void mainSequenceTask(void *pvParameters)
             }
         }
         moveTo(pos[1]); // 1 前往转盘
-        delay(1000);
+        waitArrived();
         arm_catchFromTurntable(taskcode[0]);
         moveTo(pos[2]); // 1 前往离开转盘状态
-        delay(1000);
+        waitNear();
         moveTo(pos[3]); // 1 前往粗加工区
-        delay(2000);
+        waitArrived();
         arm_putToGround(taskcode[0]);
         arm_catchFromGround(taskcode[0]);
         moveTo(pos[4]); // 1 离开粗加工区
-        delay(1000);
+        waitNear();
         moveTo(pos[5]); // 1 前往暂存区
-        delay(1000);
+        waitArrived();
         arm_putToGround(taskcode[0]);
         moveTo(pos[6]); // 1 离开暂存区
-        delay(1000);
+        waitNear();
         moveTo(pos[1]); // 2 前往转盘
-        delay(1000);
+        waitArrived();
         arm_catchFromTurntable(taskcode[1]);
         moveTo(pos[2]); // 2 前往离开转盘状态
-        delay(1000);
+        waitNear();
         moveTo(pos[3]); // 2 前往粗加工区
-        delay(2000);
+        waitArrived();
         arm_putToGround(taskcode[1]);
         arm_catchFromGround(taskcode[1]);
         moveTo(pos[4]); // 2 离开粗加工区
-        delay(1000);
+        waitNear();
         moveTo(pos[5]); // 2 前往暂存区
-        delay(1000);
+        waitArrived();
         arm_putToGround(taskcode[1]);
         moveTo(pos[7]); // 2 离开暂存区
-        delay(2000);
+        waitNear();
         moveTo(pos[8]); // 前往启停区
-        delay(1000);
+        waitNear();
         moveTo(pos[9]); // 回到启停区
-        delay(1000);
+        waitArrived();
 
         xSemaphoreGive(xSemaphoreMainsequence);
     }

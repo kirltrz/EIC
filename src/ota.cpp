@@ -8,6 +8,7 @@
 #include "WiFiUdp.h"
 #include "ArduinoOTA.h"
 #include "taskManager.h"
+#include "config.h"
 // OTA状态变量
 static EIC_OTAState_t otaState = EIC_OTA_IDLE;
 static bool otaInitialized = false;
@@ -43,7 +44,10 @@ void setupOTACallbacks()
         otaProgress = 0;
         strcpy(otaStatusText, "正在更新...");
         // 切换到OTA屏幕
-        lv_scr_load(ui_otaScreen); });
+        #if DEBUG_ENABLED
+        lv_scr_load(ui_otaScreen); 
+        #endif
+        });
 
     ArduinoOTA.onEnd([]()
                      {
@@ -237,7 +241,7 @@ EIC_OTAState_t getOTAState()
 {
     return otaState;
 }
-
+#if DEBUG_ENABLE
 // 更新OTA UI的函数，由LVGL定时器调用
 void updateOTAUI(void)
 {
@@ -277,3 +281,4 @@ void updateOTAUI(void)
         }
     }
 }
+#endif
