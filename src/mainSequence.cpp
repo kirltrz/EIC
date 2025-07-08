@@ -23,16 +23,14 @@ int startTime = 0;
 void startMainSequence(void)
 {
     /*启动主流程*/
-    if (xSemaphoreTake(xSemaphoreMainsequence, portMAX_DELAY) == pdTRUE)
-    {
-        // 释放信号量，表示主流程可以开始
-        xSemaphoreGive(xSemaphoreMainsequence);
-    }
+    // 直接释放信号量，通知mainSequenceTask可以开始运行
+    xSemaphoreGive(xSemaphoreMainsequence);
 }
 
 void mainSequenceTask(void *pvParameters)
 {
-    if (xSemaphoreTake(xSemaphoreMainsequence, portMAX_DELAY) == pdTRUE) // 等待信号量，表示主流程可以开始
+    // 等待信号量，表示主流程可以开始
+    if (xSemaphoreTake(xSemaphoreMainsequence, portMAX_DELAY) == pdTRUE)
     {
         // 主流程的代码
         moveTo(pos[0]);   // 前往二维码前方
@@ -87,7 +85,9 @@ void mainSequenceTask(void *pvParameters)
         moveTo(pos[9]); // 回到启停区
         waitArrived();
 
+        // 释放信号量，表示主流程已完成
         xSemaphoreGive(xSemaphoreMainsequence);
     }
+    
     vTaskDelete(NULL); // 删除当前任务
 }

@@ -28,5 +28,5 @@ void initTaskManager(void)
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
     
     // OTA任务
-    xTaskCreate(otaTask, "OTA Task", 4096, NULL, 1, NULL);
+    //xTaskCreate(otaTask, "OTA Task", 4096, NULL, 1, NULL);
 }
