@@ -108,6 +108,9 @@ static void lv_update_task(lv_timer_t *timer)
             lv_obj_set_style_bg_color(ui_batteryPercentBar, lv_color_hex(0xB0BEC5), LV_PART_INDICATOR);
         }
     }
+#else
+    // 发布模式：简化的 UI 更新
+    // 可以在这里添加简单的任务进度更新等
 #endif
 }
 

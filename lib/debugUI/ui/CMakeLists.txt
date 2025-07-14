@@ -1,0 +1,14 @@
+SET(SOURCES ui_Screen1.c
+    ui_otaScreen.c
+    ui_motionScreen.c
+    ui_servoTestScreen.c
+    ui_Screen2.c
+    ui.c
+    ui_comp_hook.c
+    ui_helpers.c
+    ui_events.cpp
+    fonts/ui_font_bigchinese.c
+    fonts/ui_font_chinese.c
+    fonts/ui_font_taskcode.c)
+
+add_library(ui ${SOURCES})
