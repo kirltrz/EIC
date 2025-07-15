@@ -20,8 +20,9 @@ FSUS_Servo servo4(4, &protocol); // 夹爪舵机
 bool gripperHolding = false;         // 夹持状态标志，false表示未夹持，true表示已夹持
 float currentGripperAngle = 0.0f;    // 当前夹爪角度，单位度
 TaskHandle_t gripperMonitorTaskHandle = NULL; // 夹爪监测任务句柄
+SemaphoreHandle_t gripperMutex = NULL; // 夹爪状态互斥锁
 
-const int scale = 0.1;
+const float scale = 0.1f;
 
 struct armPos
 {
@@ -275,8 +276,20 @@ void arm_setClaw(bool open)
     if(open)
     {
         servo4.setAngle(ARM_GRIPPER_OPEN_ANGLE, 100);
-        // 张开夹爪时，立即重置夹持状态
-        gripperHolding = false;
+        
+        // 张开夹爪时，使用互斥锁保护状态修改
+        if (gripperMutex != NULL && xSemaphoreTake(gripperMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+        {
+            gripperHolding = false;
+            xSemaphoreGive(gripperMutex);
+            DEBUG_LOG("夹爪张开，重置夹持状态");
+        }
+        else
+        {
+            DEBUG_LOG("获取夹爪状态互斥锁超时");
+            gripperHolding = false; // 降级处理
+        }
+        
         #if DEBUG_ENABLE
         requestGripperColorUpdate();  // 请求UI更新
         #endif
@@ -331,33 +344,105 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
         float y_offset ;
         float x_offset ;
         float servo0_angle;
-        armControl_xyz(ttDetect.x, ttDetect.y, ttDetect.z, 1000, 100, 100); // 停在转盘中心，xyz的单位为mm
         waitArm();
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++)//循环3次，分别抓取3种颜色物料
         {
-            armControl_xyz(ttDetect.x, ttDetect.y, ttDetect.z, 1000, 100, 100); // 停在转盘中心，xyz的单位为mm
-            arm_setClaw(1);
-            waitArm();
-            startTime = millis();
-            while (1)
-            { // 超时判断转盘是否停止
-                if (millis() - startTime > VISION_GET_MATERIAL_TIMEOUT)
-                { // 当时间超过超时  时间时，认为转盘停止
-                    errorHandle(ERROR_MATERIAL_RECOGNITION_FAILED);
-                }
-                visionGetMaterial(taskcode[i], &x, &y); // 视觉识别，以摄像头为原点，x,y为物料在摄像头中的坐标，单位因摄像头帧率而定
-                armControl_xyz(ttDetect.x + x * scale, ttDetect.y + y * scale, ttDetect.z - traceHeightOffset, 1000, 100, 100);
+            bool gripSuccess = false;  // 夹取成功标志
+            int retryCount = 0;        // 重试计数器
+            const int maxRetries = 3;  // 最大重试次数
+            
+            while (!gripSuccess && retryCount < maxRetries)
+            {
+                retryCount++;
+                DEBUG_LOG("正在抓取第%d种颜色物料，第%d次尝试", taskcode[i], retryCount);
+                
+                armControl_xyz(ttDetect.x, ttDetect.y, ttDetect.z, 1000, 100, 100); // 停在转盘中心，xyz的单位为mm
+                arm_setClaw(1); // 张开夹爪以便检测物料
                 waitArm();
-            }
-            servo0_angle = servo0.queryAngle();
-            sincosf(servo0_angle * DEG_TO_RAD, &x_offset, &y_offset);
-            x_offset = x_offset * (-ARM_MATERIAL_OFFSET_W);
-            y_offset = y_offset * (-ARM_MATERIAL_OFFSET_W);
+                startTime = millis();
+                // 以上一次的xy为基础叠加摄像头数据进行跟踪，若进入死区持续一定时间或超时则退出循环执行抓取
+                int follow_x = ttDetect.x;
+                int follow_y = ttDetect.y;
+                const int deadzone = 20; // 死区阈值，单位与x/y一致
+                const int deadzone_time = 1000; // 死区持续时间ms
+                int deadzone_start = 0;
+                bool in_deadzone = false;
+                while (1)
+                {
+                    if (millis() - startTime > VISION_GET_MATERIAL_TIMEOUT)
+                    {
+                        errorHandle(ERROR_MATERIAL_RECOGNITION_FAILED);
+                        break;
+                    }
+                    visionGetMaterial(taskcode[i], &x, &y); // 视觉识别，x,y为物料在摄像头中的坐标
+                    follow_x += x * scale;
+                    follow_y += y * scale;
+                    armControl_xyz(follow_x, follow_y, ttDetect.z - traceHeightOffset, 1000, 100, 100);
+                    waitArm();
 
-            armControl_xyz(ttDetect.x + x * scale + x_offset, ttDetect.y + y * scale + y_offset, turntableHeight, 1000, 100, 100);
-            waitArm();
-            arm_setClaw(0);
-            waitArm();
+                    // 判断是否进入死区
+                    if (abs(x) < deadzone && abs(y) < deadzone)
+                    {
+                        if (!in_deadzone)
+                        {
+                            in_deadzone = true;
+                            deadzone_start = millis();
+                        }
+                        else if (millis() - deadzone_start > deadzone_time)
+                        {
+                            // 死区持续足够时间，退出循环
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        in_deadzone = false;
+                    }
+                }
+                /*摄像头和夹爪中心点不同，通过三角函数计算偏移量以使夹爪中心点对准物料中心点*/
+                servo0_angle = servo0.queryAngle();
+                sincosf(servo0_angle * DEG_TO_RAD, &x_offset, &y_offset);
+                x_offset = x_offset * (-ARM_MATERIAL_OFFSET_W);
+                y_offset = y_offset * (-ARM_MATERIAL_OFFSET_W);
+                /*移动到物料上方并抓取*/
+                armControl_xyz(ttDetect.x + x * scale + x_offset, ttDetect.y + y * scale + y_offset, turntableHeight, 1000, 100, 100);
+                waitArm();
+                arm_setClaw(0); // 闭合夹爪
+                waitArm();
+                
+                // 等待夹爪状态稳定并验证夹取是否成功
+                vTaskDelay(pdMS_TO_TICKS(100)); // 等待500ms让监测任务检测状态
+                
+                if (isGripperHolding())
+                {
+                    gripSuccess = true;
+                    DEBUG_LOG("第%d种颜色物料夹取成功，第%d次尝试", taskcode[i], retryCount);
+                }
+                else
+                {
+                    DEBUG_LOG("第%d种颜色物料夹取失败，第%d次尝试", taskcode[i], retryCount);
+                    
+                    if (retryCount < maxRetries)
+                    {
+                        // 如果还有重试机会，先张开夹爪，稍作等待后重试
+                        arm_setClaw(1); // 张开夹爪
+                        waitArm();
+                        vTaskDelay(pdMS_TO_TICKS(200)); // 等待200ms
+                        DEBUG_LOG("准备重试夹取第%d种颜色物料", taskcode[i]);
+                        continue; // 重新开始while循环
+                    }
+                    else
+                    {
+                        DEBUG_LOG("第%d种颜色物料夹取失败，已达到最大重试次数", taskcode[i]);
+                        errorHandle(ERROR_MATERIAL_RECOGNITION_FAILED);
+                        break; // 跳出while循环，继续下一个物料
+                    }
+                }
+            }
+            
+            // 如果夹取成功，继续后续的移动和放置操作
+            if (gripSuccess)
+            {
             arm_x = ttDetect.x + x * scale + x_offset;
             arm_y = ttDetect.y + y * scale + y_offset;
             if (arm_x < 280)
@@ -396,7 +481,8 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
                 servo0.setAngle(90.0f, 500, 250, 250);
                 waitArm();
             }
-        }
+            } // 关闭 if (gripSuccess) 块
+        } // 关闭 for 循环
 
         // 释放参数内存并删除任务
         free(params);
@@ -676,7 +762,20 @@ void gripperMonitorTask(void *pvParameters)
             currentlyHolding = (angle > GRIPPER_HOLD_ANGLE_THRESHOLD);
         }
         
-        if (currentlyHolding && !gripperHolding)
+        // 使用互斥锁保护状态读取和修改
+        bool holdingStatus = false;
+        if (gripperMutex != NULL && xSemaphoreTake(gripperMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+        {
+            holdingStatus = gripperHolding;
+            xSemaphoreGive(gripperMutex);
+        }
+        else
+        {
+            // 获取锁失败，使用当前值（可能不是最新的）
+            holdingStatus = gripperHolding;
+        }
+        
+        if (currentlyHolding && !holdingStatus)
         {
             // 当前检测到夹持，但之前状态是未夹持
             stableHoldingCount++;
@@ -684,15 +783,20 @@ void gripperMonitorTask(void *pvParameters)
             
             if (stableHoldingCount >= GRIPPER_STABLE_COUNT)
             {
-                gripperHolding = true;
-                DEBUG_LOG("检测到夹持物料 - 角度: %.1f°", currentGripperAngle);
-                stableHoldingCount = 0;
-                #if DEBUG_ENABLE
-                requestGripperColorUpdate();  // 请求UI更新
-                #endif
+                // 使用互斥锁保护状态修改
+                if (gripperMutex != NULL && xSemaphoreTake(gripperMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+                {
+                    gripperHolding = true;
+                    xSemaphoreGive(gripperMutex);
+                    DEBUG_LOG("检测到夹持物料 - 角度: %.1f°", currentGripperAngle);
+                    stableHoldingCount = 0;
+                    #if DEBUG_ENABLE
+                    requestGripperColorUpdate();  // 请求UI更新
+                    #endif
+                }
             }
         }
-        else if (!currentlyHolding && gripperHolding)
+        else if (!currentlyHolding && holdingStatus)
         {
             // 当前检测到释放，但之前状态是夹持
             stableReleaseCount++;
@@ -700,12 +804,17 @@ void gripperMonitorTask(void *pvParameters)
             
             if (stableReleaseCount >= GRIPPER_STABLE_COUNT)
             {
-                gripperHolding = false;
-                DEBUG_LOG("检测到释放物料 - 角度: %.1f°", currentGripperAngle);
-                stableReleaseCount = 0;
-                #if DEBUG_ENABLE
-                requestGripperColorUpdate();  // 请求UI更新
-                #endif
+                // 使用互斥锁保护状态修改
+                if (gripperMutex != NULL && xSemaphoreTake(gripperMutex, pdMS_TO_TICKS(100)) == pdTRUE)
+                {
+                    gripperHolding = false;
+                    xSemaphoreGive(gripperMutex);
+                    DEBUG_LOG("检测到释放物料 - 角度: %.1f°", currentGripperAngle);
+                    stableReleaseCount = 0;
+                    #if DEBUG_ENABLE
+                    requestGripperColorUpdate();  // 请求UI更新
+                    #endif
+                }
             }
         }
         else
@@ -725,6 +834,14 @@ void gripperMonitorTask(void *pvParameters)
  */
 void initGripperMonitor(void)
 {
+    // 创建互斥锁
+    gripperMutex = xSemaphoreCreateMutex();
+    if (gripperMutex == NULL)
+    {
+        DEBUG_LOG("创建夹爪状态互斥锁失败");
+        return;
+    }
+    
     // 初始化状态
     gripperHolding = false;
     currentGripperAngle = 0.0f;
@@ -742,8 +859,14 @@ void initGripperMonitor(void)
     if (result != pdPASS) {
         DEBUG_LOG("创建夹爪位置监测任务失败");
         gripperMonitorTaskHandle = NULL;
+        // 如果任务创建失败，删除互斥锁
+        if (gripperMutex != NULL)
+        {
+            vSemaphoreDelete(gripperMutex);
+            gripperMutex = NULL;
+        }
     } else {
-        DEBUG_LOG("夹爪位置监测任务初始化成功");
+        DEBUG_LOG("夹爪位置监测任务和互斥锁初始化成功");
         #if DEBUG_ENABLE
         // 初始化UI组件颜色
         vTaskDelay(pdMS_TO_TICKS(500));  // 等待UI初始化完成
@@ -758,7 +881,22 @@ void initGripperMonitor(void)
  */
 bool isGripperHolding(void)
 {
-    return gripperHolding;
+    bool status = false;
+    
+    // 使用互斥锁保护状态读取
+    if (gripperMutex != NULL && xSemaphoreTake(gripperMutex, pdMS_TO_TICKS(50)) == pdTRUE)
+    {
+        status = gripperHolding;
+        xSemaphoreGive(gripperMutex);
+    }
+    else
+    {
+        // 获取锁失败，使用当前值（可能不是最新的）
+        status = gripperHolding;
+        DEBUG_LOG("获取夹爪状态时互斥锁超时");
+    }
+    
+    return status;
 }
 
 /**
@@ -771,5 +909,13 @@ void stopGripperMonitor(void)
         vTaskDelete(gripperMonitorTaskHandle);
         gripperMonitorTaskHandle = NULL;
         DEBUG_LOG("夹爪位置监测任务已停止");
+    }
+    
+    // 销毁互斥锁
+    if (gripperMutex != NULL)
+    {
+        vSemaphoreDelete(gripperMutex);
+        gripperMutex = NULL;
+        DEBUG_LOG("夹爪状态互斥锁已销毁");
     }
 }

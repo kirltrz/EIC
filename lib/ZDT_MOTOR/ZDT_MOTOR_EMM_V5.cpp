@@ -382,12 +382,12 @@ void ZDT_MOTOR_EMM_V5::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
   }
 }
 
-uint16_t ZDT_MOTOR_EMM_V5::getVoltage()
+uint16_t ZDT_MOTOR_EMM_V5::getVoltage(uint8_t addr)
 {
   uint16_t voltage = 0;
   uint8_t rxCmd[128] = {0};
   uint8_t rxCount = 0;
-  readSysParams(1, S_VBUS);
+  readSysParams(addr, S_VBUS);
   //DEBUG_LOG("发送读取电压命令");
   //wait(100);//貌似不需要额外等待也可以正确接收
   receiveData(rxCmd, &rxCount);
@@ -401,6 +401,7 @@ uint16_t ZDT_MOTOR_EMM_V5::getVoltage()
     //DEBUG_LOG("成功解析电压命令");
     voltage = (rxCmd[2] << 8) | rxCmd[3];
   }
+  //DEBUG_LOG("电机%d，电压: %d", addr, voltage);
   return voltage+700/*电机内部电压压降0.7V，在此补偿*/;
 }
 

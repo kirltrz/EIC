@@ -60,7 +60,7 @@ public:
   
   // 接收数据函数
   void receiveData(uint8_t *rxCmd, uint8_t *rxCount);            // 返回数据接收函数
-  uint16_t getVoltage();
+  uint16_t getVoltage(uint8_t addr);
 
 private:
   HardwareSerial* _serial;

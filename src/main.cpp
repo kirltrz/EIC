@@ -8,6 +8,7 @@
 #include "vision.h"
 #include "arm.h"
 #include "ota.h"
+#include "devMonitor.h"
 
 void setup()
 {
@@ -28,6 +29,8 @@ void setup()
     
     #if DEBUG_ENABLE
     initOTA();
+    #else
+    initDevMonitor();
     #endif
 }
 

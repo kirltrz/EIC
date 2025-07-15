@@ -4,6 +4,8 @@
 #include "motion.h"
 #include "arm.h"
 #include "ota.h"
+#include "devMonitor.h"
+#include "ui.h"
 
 // 夹爪状态UI更新标志
 #if DEBUG_ENABLE
@@ -102,7 +104,7 @@ static void lv_update_task(lv_timer_t *timer)
         last_1s_update = current_time;
 
         //在此调用获取数据的函数会阻塞任务导致CPU占用极高，降低更新频率
-        voltage = motor->getVoltage();
+        voltage = motor->getVoltage(1);
         //sprintf(buf[3], "%d", voltage);
         //lv_label_set_text(ui_voltage, buf[3]);//不显示具体电压值，只显示电量条和百分比
 
@@ -156,7 +158,80 @@ static void lv_update_task(lv_timer_t *timer)
     }
 #else
     // 发布模式：简化的 UI 更新
-    // 可以在这里添加简单的任务进度更新等
+    // 每500ms更新一次设备状态
+    static uint32_t last_device_status_update = 0;
+    static bool all_device_ok = false;
+    if (!all_device_ok && (current_time - last_device_status_update >= 500))
+    {
+        last_device_status_update = current_time;
+        
+        // 获取设备状态
+        static deviceStatus_t deviceStatus = {false, false, false, false, false};
+        getDeviceStatus(&deviceStatus);
+        
+        // 更新checkbox状态
+        if (ui_HWT101 != NULL) {
+            if (deviceStatus.hwt101_status) {
+                lv_obj_add_state(ui_HWT101, LV_STATE_CHECKED);
+            } else {
+                lv_obj_remove_state(ui_HWT101, LV_STATE_CHECKED);
+            }
+        }
+        
+        if (ui_PAW3395 != NULL) {
+            if (deviceStatus.paw3395_status) {
+                lv_obj_add_state(ui_PAW3395, LV_STATE_CHECKED);
+            } else {
+                lv_obj_remove_state(ui_PAW3395, LV_STATE_CHECKED);
+            }
+        }
+        
+        if (ui_RPI != NULL) {
+            if (deviceStatus.vision_status) {
+                lv_obj_add_state(ui_RPI, LV_STATE_CHECKED);
+            } else {
+                lv_obj_remove_state(ui_RPI, LV_STATE_CHECKED);
+            }
+        }
+        
+        if (ui_Motor != NULL) {
+            if (deviceStatus.motor_status) {
+                lv_obj_add_state(ui_Motor, LV_STATE_CHECKED);
+            } else {
+                lv_obj_remove_state(ui_Motor, LV_STATE_CHECKED);
+            }
+        }
+        
+        if (ui_Servo != NULL) {
+            if (deviceStatus.servo_status) {
+                lv_obj_add_state(ui_Servo, LV_STATE_CHECKED);
+            } else {
+                lv_obj_remove_state(ui_Servo, LV_STATE_CHECKED);
+            }
+        }
+
+        // 检查5个设备是否全部正常，若全部正常则后续不再更新
+        if (deviceStatus.hwt101_status &&
+            deviceStatus.paw3395_status &&
+            deviceStatus.vision_status &&
+            deviceStatus.motor_status &&
+            deviceStatus.servo_status) {
+            all_device_ok = true;
+        }
+    }
+    
+    // 每3秒更新一次任务进度条
+    static uint32_t last_progress_update = 0;
+    if (current_time - last_progress_update >= 3000)
+    {
+        last_progress_update = current_time;
+        
+        // 更新任务进度条
+        if (ui_taskProgressBar != NULL) {
+            uint8_t progress = getTaskProgressPercent();
+            lv_bar_set_value(ui_taskProgressBar, progress, LV_ANIM_ON);
+        }
+    }
 #endif
 }
 

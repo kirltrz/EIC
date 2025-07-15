@@ -227,27 +227,6 @@ void resetSensor(void)
 #endif
     }
 }
-bool checkPaw3395(void)
-{
-    /*检查paw3395是否正常工作*/
-    return paw3395_check();
-}
-
-bool checkHWT101(void)
-{
-    /*检查hwt101是否正常工作*/
-    Wire.beginTransmission(80); // HWT101地址0x50对应十进制为80
-    delay(5);
-    return Wire.endTransmission() == 0;
-}
-
-bool checkVision(void)
-{
-    /*检查与视觉模块串口通信是否正常*/
-    sendCommand(CMD_IDLE);
-    vision_packet_t data;
-    return receiveData(&data);
-}
 
 void calculateGlobalPosition(void *pvParameters)
 {

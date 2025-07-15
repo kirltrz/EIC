@@ -13,6 +13,7 @@
 class HWT101CLASS
 {
 public:
+	unsigned char devAddr;
 	int16_t rawYaw;
 
 	HWT101CLASS();
@@ -22,7 +23,6 @@ public:
 	bool setOutputRate(float hz);
 
 private:
-	unsigned char devAddr;
 	char unlock[2] = {0x88, 0xB5};
 	char tozero[2] = {0x00, 0x00};
 	char lock[2] = {0x00, 0x00};

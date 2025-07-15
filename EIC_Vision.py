@@ -232,38 +232,27 @@ def camera_capture():
     global latest_frame, frame_lock
     cap = None
     
-    # 尝试不同的摄像头设备
-    camera_devices = [0, 1, 2]  # 可能的摄像头设备号
+    print("正在初始化摄像头设备0...")
+    cap = cv2.VideoCapture(0)
     
-    for device_id in camera_devices:
-        print(f"尝试打开摄像头设备 {device_id}...")
-        cap = cv2.VideoCapture(device_id)
-        
-        if cap.isOpened():
-            # 设置摄像头参数
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-            cap.set(cv2.CAP_PROP_FPS, 30)
-            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区大小
-            
-            # 测试读取一帧
-            ret, test_frame = cap.read()
-            if ret:
-                print(f"成功打开摄像头设备 {device_id}")
-                break
-            else:
-                print(f"设备 {device_id} 打开成功但无法读取帧")
-                cap.release()
-                cap = None
-        else:
-            print(f"无法打开摄像头设备 {device_id}")
-            if cap:
-                cap.release()
-                cap = None
-    
-    if cap is None:
-        print("所有摄像头设备都无法打开，程序退出")
+    if not cap.isOpened():
+        print("无法打开摄像头设备0，程序退出")
         return
+    
+    # 设置摄像头参数
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FPS, 30)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减少缓冲区大小
+    
+    # 测试读取一帧
+    ret, test_frame = cap.read()
+    if not ret:
+        print("摄像头打开成功但无法读取帧")
+        cap.release()
+        return
+    
+    print("摄像头初始化成功")
     
     # 预热摄像头，丢弃前几帧
     print("摄像头预热中...")
@@ -292,28 +281,22 @@ def camera_capture():
                 time.sleep(2)
                 
                 # 重新初始化摄像头
-                for device_id in camera_devices:
-                    cap = cv2.VideoCapture(device_id)
-                    if cap.isOpened():
-                        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-                        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-                        cap.set(cv2.CAP_PROP_FPS, 30)
-                        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-                        
-                        ret, test_frame = cap.read()
-                        if ret:
-                            print(f"摄像头重新初始化成功，设备 {device_id}")
-                            consecutive_failures = 0
-                            break
-                        else:
-                            cap.release()
-                            cap = None
+                cap = cv2.VideoCapture(0)
+                if cap.isOpened():
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                    cap.set(cv2.CAP_PROP_FPS, 30)
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    
+                    ret, test_frame = cap.read()
+                    if ret:
+                        print("摄像头重新初始化成功")
+                        consecutive_failures = 0
                     else:
-                        if cap:
-                            cap.release()
-                            cap = None
-                
-                if cap is None:
+                        print("摄像头重新初始化失败，程序退出")
+                        cap.release()
+                        return
+                else:
                     print("重新初始化摄像头失败，程序退出")
                     return
         

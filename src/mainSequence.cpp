@@ -58,9 +58,11 @@ void mainSequenceTask(void *pvParameters)
     if (xSemaphoreTake(xSemaphoreMainsequence, portMAX_DELAY) == pdTRUE)
     {
         // 主流程的代码
+        P(TASK_RESET_SENSOR);
         resetSensor();    // 重置定位系统到 0, 0, 0
         DEBUG_LOG("定位系统已重置到 0, 0, 0");
         
+        P(TASK_SCAN_QRCODE);
         moveTo(pos[0]);   // 前往二维码前方
         arm_ScanQRcode(); // 机械臂运动至扫描二维码状态
         waitNear();
@@ -89,43 +91,57 @@ void mainSequenceTask(void *pvParameters)
         // 获取到任务码后更新UI显示
         updateTaskcodeDisplay();
         
+        P(TASK_FIRST_TURNTABLE);
         moveTo(pos[1]); // 1 前往转盘
         waitArrived();
         arm_catchFromTurntable(taskcode[0]);
         moveTo(pos[2]); // 1 前往离开转盘状态
         waitNear();
+        
+        P(TASK_FIRST_ROUGH);
         moveTo(pos[3]); // 1 前往粗加工区
         waitArrived();
         arm_putToGround(taskcode[0]);
         arm_catchFromGround(taskcode[0]);
         moveTo(pos[4]); // 1 离开粗加工区
         waitNear();
+        
+        P(TASK_FIRST_STORAGE);
         moveTo(pos[5]); // 1 前往暂存区
         waitArrived();
         arm_putToGround(taskcode[0]);
         moveTo(pos[6]); // 1 离开暂存区
         waitNear();
+        
+        P(TASK_SECOND_TURNTABLE);
         moveTo(pos[1]); // 2 前往转盘
         waitArrived();
         arm_catchFromTurntable(taskcode[1]);
         moveTo(pos[2]); // 2 前往离开转盘状态
         waitNear();
+        
+        P(TASK_SECOND_ROUGH);
         moveTo(pos[3]); // 2 前往粗加工区
         waitArrived();
         arm_putToGround(taskcode[1]);
         arm_catchFromGround(taskcode[1]);
         moveTo(pos[4]); // 2 离开粗加工区
         waitNear();
+        
+        P(TASK_SECOND_STORAGE);
         moveTo(pos[5]); // 2 前往暂存区
         waitArrived();
         arm_putToGround(taskcode[1]);
         moveTo(pos[7]); // 2 离开暂存区
         waitNear();
+        
+        P(TASK_RETURN_HOME);
         moveTo(pos[8]); // 前往启停区
         waitNear();
         moveTo(pos[9]); // 回到启停区
         waitArrived();
 
+        P(TASK_COMPLETED);
         // 释放信号量，表示主流程已完成
         xSemaphoreGive(xSemaphoreMainsequence);
     }

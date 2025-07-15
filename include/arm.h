@@ -3,6 +3,8 @@
 #include "config.h"
 #include "taskManager.h"
 #include <Arduino.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 extern FSUS_Servo servo0;
 extern FSUS_Servo servo1;
@@ -11,8 +13,9 @@ extern FSUS_Servo servo3;
 extern FSUS_Servo servo4;
 
 // 夹爪位置监测相关变量
-extern bool gripperHolding;        // 夹持状态标志
-extern float currentGripperAngle;  // 当前夹爪角度，单位度
+extern bool gripperHolding;           // 夹持状态标志
+extern float currentGripperAngle;     // 当前夹爪角度，单位度
+extern SemaphoreHandle_t gripperMutex; // 夹爪状态互斥锁
 
 /*
 @brief 机械臂运动函数

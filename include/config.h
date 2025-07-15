@@ -13,7 +13,7 @@
 #if DEBUG_ENABLE
 #define DEBUG_LOG(...) Serial.printf(__VA_ARGS__)
 #else
-#define DEBUG_LOG(...)
+#define DEBUG_LOG(...) //Serial.printf(__VA_ARGS__)
 #endif
 /******************************************************************************
  * 比赛规则配置
