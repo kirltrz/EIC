@@ -6,12 +6,20 @@
 #include "freertos/task.h"
 #include <stdlib.h>
 #include "errorHandler.h"
+#if DEBUG_ENABLE
+#include "displayInterface.h"  // 用于请求UI更新
+#endif
 FSUS_Protocol protocol(&SERVO_SERIAL, SERIAL_BAUDRATE);
 FSUS_Servo servo0(0, &protocol); // 云台舵机
 FSUS_Servo servo1(1, &protocol); // 一级关节舵机
 FSUS_Servo servo2(2, &protocol); // 二级关节舵机
 FSUS_Servo servo3(3, &protocol); // 三级关节舵机
 FSUS_Servo servo4(4, &protocol); // 夹爪舵机
+
+// 夹爪位置监测相关全局变量
+bool gripperHolding = false;         // 夹持状态标志，false表示未夹持，true表示已夹持
+float currentGripperAngle = 0.0f;    // 当前夹爪角度，单位度
+TaskHandle_t gripperMonitorTaskHandle = NULL; // 夹爪监测任务句柄
 
 const int scale = 0.1;
 
@@ -267,10 +275,16 @@ void arm_setClaw(bool open)
     if(open)
     {
         servo4.setAngle(ARM_GRIPPER_OPEN_ANGLE, 100);
+        // 张开夹爪时，立即重置夹持状态
+        gripperHolding = false;
+        #if DEBUG_ENABLE
+        requestGripperColorUpdate();  // 请求UI更新
+        #endif
     }
     else
     {
         servo4.setAngle(ARM_GRIPPER_CLOSE_ANGLE, 100);
+        // 注意：闭合夹爪时不立即设置夹持状态，让监测任务自动检测
     }
 }
 void waitArm(void){
@@ -624,5 +638,138 @@ void arm_putToMaterial(int taskcode[3])//将第二次的物料重合到第一次
     if (result != pdPASS) {
         DEBUG_LOG("创建arm_putToMaterial任务失败");
         free(params);
+    }
+}
+
+/******************************************************************************
+ * 夹爪位置监测相关函数实现
+ ******************************************************************************/
+
+/**
+ * @brief 夹爪监测任务 - 持续监测夹爪的角度位置来判断夹持状态
+ * @param pvParameters 任务参数
+ */
+void gripperMonitorTask(void *pvParameters)
+{
+    int stableHoldingCount = 0;     // 连续检测到夹持状态的次数
+    int stableReleaseCount = 0;     // 连续检测到释放状态的次数
+    
+    DEBUG_LOG("夹爪位置监测任务已启动");
+    
+    while (1)
+    {
+        // 查询夹爪舵机的当前角度
+        servo4.queryAngle();
+        float angle = servo4.curAngle;
+        
+        // 更新全局变量
+        currentGripperAngle = angle;
+        
+        // 判断夹持状态基于角度位置
+        // 角度大于-6.5度时认为夹持到物料（因为遇到阻力无法完全闭合）
+        // 角度在40度附近时认为是张开状态
+        bool isOpenPosition = (angle > (GRIPPER_OPEN_ANGLE_THRESHOLD - 5.0f)); // 35度以上为张开状态
+        bool currentlyHolding = false;
+        
+        if (!isOpenPosition) {
+            // 在闭合状态下，角度大于阈值表示夹持到物料
+            currentlyHolding = (angle > GRIPPER_HOLD_ANGLE_THRESHOLD);
+        }
+        
+        if (currentlyHolding && !gripperHolding)
+        {
+            // 当前检测到夹持，但之前状态是未夹持
+            stableHoldingCount++;
+            stableReleaseCount = 0;
+            
+            if (stableHoldingCount >= GRIPPER_STABLE_COUNT)
+            {
+                gripperHolding = true;
+                DEBUG_LOG("检测到夹持物料 - 角度: %.1f°", currentGripperAngle);
+                stableHoldingCount = 0;
+                #if DEBUG_ENABLE
+                requestGripperColorUpdate();  // 请求UI更新
+                #endif
+            }
+        }
+        else if (!currentlyHolding && gripperHolding)
+        {
+            // 当前检测到释放，但之前状态是夹持
+            stableReleaseCount++;
+            stableHoldingCount = 0;
+            
+            if (stableReleaseCount >= GRIPPER_STABLE_COUNT)
+            {
+                gripperHolding = false;
+                DEBUG_LOG("检测到释放物料 - 角度: %.1f°", currentGripperAngle);
+                stableReleaseCount = 0;
+                #if DEBUG_ENABLE
+                requestGripperColorUpdate();  // 请求UI更新
+                #endif
+            }
+        }
+        else
+        {
+            // 状态稳定，重置计数器
+            stableHoldingCount = 0;
+            stableReleaseCount = 0;
+        }
+        
+        // 等待指定的监测间隔
+        vTaskDelay(pdMS_TO_TICKS(GRIPPER_MONITOR_INTERVAL));
+    }
+}
+
+/**
+ * @brief 初始化夹爪监测任务
+ */
+void initGripperMonitor(void)
+{
+    // 初始化状态
+    gripperHolding = false;
+    currentGripperAngle = 0.0f;
+    
+    // 创建夹爪监测任务
+    BaseType_t result = xTaskCreate(
+        gripperMonitorTask,          // 任务函数
+        "GripperMonitor",           // 任务名称
+        4096,                       // 堆栈大小 (增加到4096字节以避免堆栈溢出)
+        NULL,                       // 任务参数
+        1,                          // 任务优先级（普通优先级即可）
+        &gripperMonitorTaskHandle   // 任务句柄
+    );
+    
+    if (result != pdPASS) {
+        DEBUG_LOG("创建夹爪位置监测任务失败");
+        gripperMonitorTaskHandle = NULL;
+    } else {
+        DEBUG_LOG("夹爪位置监测任务初始化成功");
+        #if DEBUG_ENABLE
+        // 初始化UI组件颜色
+        vTaskDelay(pdMS_TO_TICKS(500));  // 等待UI初始化完成
+        requestGripperColorUpdate();
+        #endif
+    }
+}
+
+/**
+ * @brief 获取当前夹持状态
+ * @return true表示正在夹持物料，false表示未夹持
+ */
+bool isGripperHolding(void)
+{
+    return gripperHolding;
+}
+
+/**
+ * @brief 停止夹爪监测任务
+ */
+void stopGripperMonitor(void)
+{
+    if (gripperMonitorTaskHandle != NULL)
+    {
+        vTaskDelete(gripperMonitorTaskHandle);
+        gripperMonitorTaskHandle = NULL;
+        DEBUG_LOG("夹爪位置监测任务已停止");
     }
 }

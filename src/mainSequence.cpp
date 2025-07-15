@@ -3,6 +3,12 @@
 #include "arm.h"
 #include "vision.h"
 #include "errorHandler.h"
+#include "config.h"
+#include "sensor.h"
+
+#if !DEBUG_ENABLE
+#include "ui.h"
+#endif
 
 #define TASK_TIMEOUT 3000
 POS pos[] = {
@@ -27,27 +33,62 @@ void startMainSequence(void)
     xSemaphoreGive(xSemaphoreMainsequence);
 }
 
+void updateTaskcodeDisplay(void)
+{
+    // 格式化任务码为"123+456"的形式
+    char taskcodeStr[10];
+    snprintf(taskcodeStr, sizeof(taskcodeStr), "%d%d%d+%d%d%d", 
+             taskcode[0][0], taskcode[0][1], taskcode[0][2],
+             taskcode[1][0], taskcode[1][1], taskcode[1][2]);
+    
+#if DEBUG_ENABLE
+    // Debug模式：输出到串口
+    DEBUG_LOG("任务码: %s\n", taskcodeStr);
+#else
+    // Release模式：更新UI显示
+    if (ui_taskcodeText != NULL) {
+        lv_label_set_text(ui_taskcodeText, taskcodeStr);
+    }
+#endif
+}
+
 void mainSequenceTask(void *pvParameters)
 {
     // 等待信号量，表示主流程可以开始
     if (xSemaphoreTake(xSemaphoreMainsequence, portMAX_DELAY) == pdTRUE)
     {
         // 主流程的代码
+        resetSensor();    // 重置定位系统到 0, 0, 0
+        DEBUG_LOG("定位系统已重置到 0, 0, 0");
+        
         moveTo(pos[0]);   // 前往二维码前方
         arm_ScanQRcode(); // 机械臂运动至扫描二维码状态
         waitNear();
 
+        // QR码扫描逻辑
+        bool qrCodeScanned = false;
         startTime = millis();
-        while (!visionScanQRcode(taskcode[0], taskcode[1]))
+        
+        // 首先尝试正常扫描
+        while (!qrCodeScanned && (millis() - startTime < TASK_TIMEOUT))
         {
-            delay(100);
-            if (millis() - startTime > TASK_TIMEOUT)
-            {
-                // 如果超过1秒，则认为二维码识别失败
-                errorHandle(ERROR_QRCODE_RECOGNITION_FAILED);
+            if (visionScanQRcode(taskcode[0], taskcode[1])) {
+                qrCodeScanned = true;
+                DEBUG_LOG("正常扫描成功获取QR码");
                 break;
             }
+            delay(100);
         }
+        
+        // 如果正常扫描失败，调用错误处理函数
+        if (!qrCodeScanned) {
+            DEBUG_LOG("正常扫描超时，调用错误处理");
+            errorHandle(ERROR_QRCODE_RECOGNITION_FAILED);
+        }
+        
+        // 获取到任务码后更新UI显示
+        updateTaskcodeDisplay();
+        
         moveTo(pos[1]); // 1 前往转盘
         waitArrived();
         arm_catchFromTurntable(taskcode[0]);

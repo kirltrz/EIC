@@ -10,6 +10,10 @@ extern FSUS_Servo servo2;
 extern FSUS_Servo servo3;
 extern FSUS_Servo servo4;
 
+// 夹爪位置监测相关变量
+extern bool gripperHolding;        // 夹持状态标志
+extern float currentGripperAngle;  // 当前夹爪角度，单位度
+
 /*
 @brief 机械臂运动函数
 */
@@ -27,3 +31,9 @@ void armSet_position(float theta0, float first_arm_degree, float second_arm_degr
 bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree);
 void armCalculate_forward(float theta0, float first_arm_degree, float second_arm_degree, float *out_arm_location_xyz);
 void waitArm(void);
+
+// 夹爪位置监测相关函数
+void initGripperMonitor(void);       // 初始化夹爪位置监测任务
+bool isGripperHolding(void);         // 获取夹持状态（基于角度位置）
+void gripperMonitorTask(void *pvParameters); // 夹爪位置监测任务
+void stopGripperMonitor(void);       // 停止夹爪位置监测任务

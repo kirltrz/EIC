@@ -13,6 +13,7 @@
 #include "ZDT_MOTOR_EMM_V5.h"
 #include "LED.h"
 #include "mainSequence.h"
+#include "displayInterface.h"
 
 void toNextPos(lv_event_t *e)
 {
@@ -285,6 +286,14 @@ void uiSetClaw(lv_event_t * e)
 {
     bool state = lv_obj_has_state(ui_uiSetClawSwitch, LV_STATE_CHECKED);
     servo4.setAngle(state ? ARM_GRIPPER_CLOSE_ANGLE : ARM_GRIPPER_OPEN_ANGLE,100);
+    
+    // 如果是张开夹爪，立即重置夹持状态
+    if (!state) {
+        gripperHolding = false;
+    }
+    
+    // 请求UI颜色更新
+    requestGripperColorUpdate();
 }
 
 void armTestFunc(lv_event_t *e)
@@ -303,4 +312,37 @@ void armTestFunc3(lv_event_t * e)
 {
 	int taskcode[3]={1,2,3};
 	arm_putToGround(taskcode);
+}
+
+// 测试夹爪位置监测功能
+void testGripperMonitor(lv_event_t * e)
+{
+    static bool testRunning = false;
+    
+    if (!testRunning) {
+        testRunning = true;
+        DEBUG_LOG("开始夹爪位置监测测试");
+        
+        // 测试序列：张开 -> 闭合 -> 等待检测 -> 张开
+        arm_setClaw(true);   // 张开夹爪
+        delay(1000);
+        
+        DEBUG_LOG("当前夹持状态: %s", isGripperHolding() ? "已夹持" : "未夹持");
+        DEBUG_LOG("当前角度: %.1f°", currentGripperAngle);
+        
+        arm_setClaw(false);  // 闭合夹爪
+        delay(2000);         // 等待2秒让监测系统检测
+        
+        DEBUG_LOG("闭合后夹持状态: %s", isGripperHolding() ? "已夹持" : "未夹持");
+        DEBUG_LOG("闭合后角度: %.1f°", currentGripperAngle);
+        
+        arm_setClaw(true);   // 再次张开
+        delay(1000);
+        
+        DEBUG_LOG("最终夹持状态: %s", isGripperHolding() ? "已夹持" : "未夹持");
+        DEBUG_LOG("最终角度: %.1f°", currentGripperAngle);
+        DEBUG_LOG("夹爪位置监测测试完成");
+        
+        testRunning = false;
+    }
 }

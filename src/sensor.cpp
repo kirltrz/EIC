@@ -2,9 +2,13 @@
 #include "taskManager.h"
 #include "config.h"
 
+// 卡尔曼滤波器启用开关
+#define KALMAN_FILTER_ENABLED 0  // 0: 禁用, 1: 启用
+
 SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
 global_position_t currentPosition; // 用于积分运算
 
+#if KALMAN_FILTER_ENABLED
 // 卡尔曼滤波器结构体 - 用于位置滤波
 typedef struct {
     // 状态向量 [x, y, vx, vy]
@@ -23,8 +27,10 @@ typedef struct {
 
 // 全局卡尔曼滤波器实例
 KalmanFilter_t positionKalman;
+#endif
 
 // 初始化卡尔曼滤波器
+#if KALMAN_FILTER_ENABLED
 void initKalmanFilter(KalmanFilter_t *kf, float dt, float processNoise, float measurementNoise)
 {
     // 初始化状态向量
@@ -179,6 +185,7 @@ void kalmanUpdate(KalmanFilter_t *kf, float measurement[2])
         }
     }
 }
+#endif
 
 void initSensor(void)
 {
@@ -189,8 +196,10 @@ void initSensor(void)
     paw3395Init(PAW3395_DPI, PIN_PAW3395_NRESET, PIN_PAW3395_NCS, PIN_PAW3395_SCLK, PIN_PAW3395_MISO, PIN_PAW3395_MOSI);
     delay(100);
     
+#if KALMAN_FILTER_ENABLED
     // 初始化卡尔曼滤波器 (5ms采样周期，适当的过程噪声和测量噪声值)
     initKalmanFilter(&positionKalman, 0.005f, 8.0f, 0.05f);
+#endif
     
     resetSensor();
 }
@@ -210,10 +219,12 @@ void resetSensor(void)
         // 释放互斥锁
         xSemaphoreGive(positionMutex);
         
+#if KALMAN_FILTER_ENABLED
         // 重置卡尔曼滤波器状态
         for (int i = 0; i < 4; i++) {
             positionKalman.state[i] = 0.0f;
         }
+#endif
     }
 }
 bool checkPaw3395(void)
@@ -304,8 +315,18 @@ void calculateGlobalPosition(void *pvParameters)
         sincosf(yawRad, &sinYaw, &cosYaw); // 使用sincosf同时计算sin和cos，提高效率
 
         // 计算实际位移（考虑传感器方向与车身方向的关系）
-        float dxActual = -dy * scaleFactor;
-        float dyActual = dx * scaleFactor;
+        float rawDx = dx * scaleFactor;
+        float rawDy = dy * scaleFactor;
+        
+        // 应用传感器方向配置
+        float dxActual, dyActual;
+        if (PAW3395_SWAP_XY) {
+            dxActual = rawDy * PAW3395_DIRECTION_X_SCALE;
+            dyActual = rawDx * PAW3395_DIRECTION_Y_SCALE;
+        } else {
+            dxActual = rawDx * PAW3395_DIRECTION_X_SCALE;
+            dyActual = rawDy * PAW3395_DIRECTION_Y_SCALE;
+        }
         
         /*
         // 防抖动处理 - 应用死区
@@ -320,9 +341,38 @@ void calculateGlobalPosition(void *pvParameters)
         filteredDx = LOW_PASS_ALPHA * filteredDx + (1.0f - LOW_PASS_ALPHA) * dxActual;
         filteredDy = LOW_PASS_ALPHA * filteredDy + (1.0f - LOW_PASS_ALPHA) * dyActual;
 
+        // 传感器位置偏移补偿
+        float dxCompensated = filteredDx;
+        float dyCompensated = filteredDy;
+        
+        // 如果传感器不在小车中心，需要考虑旋转时的偏移影响
+        if (PAW3395_OFFSET_X != 0.0f || PAW3395_OFFSET_Y != 0.0f) {
+            // 计算角度变化
+            float yawChange = rawYaw - prevYaw;
+            
+            // 处理角度跳变（±180°）
+            if (yawChange > 180.0f) {
+                yawChange -= 360.0f;
+            } else if (yawChange < -180.0f) {
+                yawChange += 360.0f;
+            }
+            
+            // 将角度变化转换为弧度
+            float yawChangeRad = yawChange * DEG_TO_RAD;
+            
+            // 计算因为旋转而导致的传感器位置变化
+            // 传感器绕小车中心旋转时的位移
+            float offsetRotationX = -PAW3395_OFFSET_Y * yawChangeRad;  // 垂直于偏移向量的分量
+            float offsetRotationY = PAW3395_OFFSET_X * yawChangeRad;   // 垂直于偏移向量的分量
+            
+            // 将偏移补偿添加到传感器测量值
+            dxCompensated += offsetRotationX;
+            dyCompensated += offsetRotationY;
+        }
+
         // 使用旋转矩阵将局部坐标系的变化转换到全局坐标系
-        float dxGlobal = filteredDx * cosYaw - filteredDy * sinYaw;
-        float dyGlobal = filteredDx * sinYaw + filteredDy * cosYaw;
+        float dxGlobal = dxCompensated * cosYaw - dyCompensated * sinYaw;
+        float dyGlobal = dxCompensated * sinYaw + dyCompensated * cosYaw;
 
         // 计算连续角度 = 原始角度 + 旋转圈数 * 360°
         float continuousYaw = rawYaw + rotationCount * 360.0f;
@@ -334,8 +384,10 @@ void calculateGlobalPosition(void *pvParameters)
             pendingDy += dyGlobal;
         }
 
+#if KALMAN_FILTER_ENABLED
         // 卡尔曼滤波器预测步骤
-        //kalmanPredict(&positionKalman);
+        kalmanPredict(&positionKalman);
+#endif
         
         // 更新全局坐标
         if (xSemaphoreTake(positionMutex, 10) == pdTRUE)
@@ -344,16 +396,19 @@ void calculateGlobalPosition(void *pvParameters)
             float rawPositionX = currentPosition.x + pendingDx;
             float rawPositionY = currentPosition.y + pendingDy;
             
+#if KALMAN_FILTER_ENABLED
             // 卡尔曼滤波器更新步骤
-            //float measurement[2] = {rawPositionX, rawPositionY};
-            //kalmanUpdate(&positionKalman, measurement);
+            float measurement[2] = {rawPositionX, rawPositionY};
+            kalmanUpdate(&positionKalman, measurement);
             
             // 使用卡尔曼滤波后的位置作为最终结果
-            /*currentPosition.x = positionKalman.state[0];
+            currentPosition.x = positionKalman.state[0];
             currentPosition.y = positionKalman.state[1];
-*/
+#else
+            // 使用原始积分位置
             currentPosition.x += pendingDx;
             currentPosition.y += pendingDy;
+#endif
 
             currentPosition.rawYaw = rawYaw;
             currentPosition.continuousYaw = continuousYaw;

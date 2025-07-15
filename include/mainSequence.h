@@ -3,5 +3,8 @@
 #include"motion.h"
 
 extern struct POS pos[10];
+extern int taskcode[2][3];
+
 void startMainSequence(void);
 void mainSequenceTask(void *);
+void updateTaskcodeDisplay(void);

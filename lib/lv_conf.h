@@ -745,7 +745,16 @@
 #define LV_USE_SNAPSHOT 0
 
 /*1: Enable system monitor component*/
-#define LV_USE_SYSMON   1 //0
+#ifndef DEBUG_ENABLE
+    #define DEBUG_ENABLE 0
+#endif
+
+#if DEBUG_ENABLE
+    #define LV_USE_SYSMON   1 //0
+#else
+    #define LV_USE_SYSMON   0  // Release模式下禁用系统监视器
+#endif
+
 #if LV_USE_SYSMON
     /*Get the idle percentage. E.g. uint32_t my_get_idle(void);*/
     #define LV_SYSMON_GET_IDLE lv_timer_get_idle

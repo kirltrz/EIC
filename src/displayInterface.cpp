@@ -5,6 +5,42 @@
 #include "arm.h"
 #include "ota.h"
 
+// 夹爪状态UI更新标志
+#if DEBUG_ENABLE
+bool gripperColorUpdateFlag = false;
+#endif
+
+// 请求更新夹爪颜色状态
+void requestGripperColorUpdate(void)
+{
+#if DEBUG_ENABLE
+    gripperColorUpdateFlag = true;
+#endif
+    // 在release环境中，此函数为空实现
+}
+
+#if DEBUG_ENABLE
+// 更新夹爪开关的颜色状态（仅在LVGL线程中调用）
+static void updateClawSwitchColor(void)
+{
+    if (ui_uiSetClawSwitch != NULL) {
+        bool switchChecked = lv_obj_has_state(ui_uiSetClawSwitch, LV_STATE_CHECKED);
+        
+        if (switchChecked) {
+            // 开关处于闭合状态
+            if (isGripperHolding()) {
+                // 夹持状态：设置knob为绿色（成功夹持）
+                lv_obj_set_style_bg_color(ui_uiSetClawSwitch, lv_color_hex(0x00FF00), LV_PART_KNOB | LV_STATE_CHECKED);
+            } else {
+                // 未夹持状态：设置knob为红色（闭合但未夹持）
+                lv_obj_set_style_bg_color(ui_uiSetClawSwitch, lv_color_hex(0xFF0000), LV_PART_KNOB | LV_STATE_CHECKED);
+            }
+        }
+        // 张开状态：knob保持默认颜色，不需要设置
+    }
+}
+#endif
+
 LGFX display;
 
 uint16_t calibrateData[8] = {3912, 161, 3928, 3772, 219, 188, 222, 3768}; // 触摸屏校准数据
@@ -27,6 +63,16 @@ static void lv_update_task(lv_timer_t *timer)
     static uint32_t last_1s_update = 0;
     uint32_t current_time = millis();
     char buf[10][16]; // 静态缓冲区
+
+#if DEBUG_ENABLE
+    // 检查夹爪颜色更新标志
+    if (gripperColorUpdateFlag) {
+        updateClawSwitchColor();
+        gripperColorUpdateFlag = false;
+    }
+#endif
+
+
 
 #if DEBUG_ENABLE
     // 更新OTA UI

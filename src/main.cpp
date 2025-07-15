@@ -17,6 +17,7 @@ void setup()
 
     initMotor();
     initArm();
+    initGripperMonitor(); // 初始化夹爪位置监测任务
     initLED();
     initSensor();
     initGUI();
