@@ -10,7 +10,7 @@
 #include "ui.h"
 #endif
 
-#define TASK_TIMEOUT 3000
+#define TASK_TIMEOUT 5000
 POS pos[] = {
     {-178.0  , 586.0  , 0.0f  }, // 0扫二维码
     {-10.0   , 1481.0 , 0.0f  }, // 1转盘抓取
@@ -61,30 +61,17 @@ void mainSequenceTask(void *pvParameters)
         P(TASK_RESET_SENSOR);
         resetSensor();    // 重置定位系统到 0, 0, 0
         DEBUG_LOG("定位系统已重置到 0, 0, 0");
-        
+
+        motor->enControl(MOTOR_BROADCAST, true);//使能电机，准备运动
+        delay(500);
+
         P(TASK_SCAN_QRCODE);
         moveTo(pos[0]);   // 前往二维码前方
         arm_ScanQRcode(); // 机械臂运动至扫描二维码状态
         waitNear();
 
         // QR码扫描逻辑
-        bool qrCodeScanned = false;
-        startTime = millis();
-        
-        // 首先尝试正常扫描
-        while (!qrCodeScanned && (millis() - startTime < TASK_TIMEOUT))
-        {
-            if (visionScanQRcode(taskcode[0], taskcode[1])) {
-                qrCodeScanned = true;
-                DEBUG_LOG("正常扫描成功获取QR码");
-                break;
-            }
-            delay(100);
-        }
-        
-        // 如果正常扫描失败，调用错误处理函数
-        if (!qrCodeScanned) {
-            DEBUG_LOG("正常扫描超时，调用错误处理");
+        if (!visionScanQRcode(taskcode[0], taskcode[1])) {
             errorHandle(ERROR_QRCODE_RECOGNITION_FAILED);
         }
         

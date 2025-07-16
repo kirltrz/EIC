@@ -2,6 +2,9 @@
 #pragma once
 #include "stdint.h"
 #include "config.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
 
 /*
 @brief 视觉接收数据包结构体
@@ -18,26 +21,42 @@ struct vision_packet_t
     int8_t color;
 };
 
+// 全局变量声明
+extern SemaphoreHandle_t visionDataMutex;        // 视觉数据互斥锁
+extern vision_packet_t visionDataCache;          // 视觉数据缓存
+
 /*
 @brief 初始化串口通信
 */
 void visionInit(void);
+
+/*
+@brief 视觉监听任务，持续监听串口数据
+*/
+void visionListenerTask(void *pvParameters);
+
 /*
 @brief 发送命令
 @param mode 命令模式 0：待命模式 1：二维码识别 2：色环识别 3：物料识别
 */
 void sendCommand(int mode);
+
 /*
-@brief 接收数据
-@param data 数据结构体
-@return 是否接收成功
+@brief 持续监听并接收数据，验证格式后写入缓存
 */
-bool receiveData(vision_packet_t *data);
+void receiveDataContinuous(void);
+
+/*
+@brief 读取缓存中的视觉数据（线程安全）
+@param data 输出数据结构体
+@return 是否成功读取
+*/
+bool readVisionCache(vision_packet_t *data);
+
 /*
 @brief 视觉返回待机状态
-@return 是否已返回待机状态
 */
-bool visionToIDLE(void);
+void visionToIDLE(void);
 
 /*
 @brief 视觉扫描二维码

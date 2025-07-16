@@ -11,6 +11,8 @@ static POS targetPos = {0, 0, 0};
 // 运动状态
 static bool isMoving = false;  // 正在移动到目标位置
 static bool isHolding = false; // 正在保持目标位置
+
+
 // PID积分项
 static float pos_x_integral = 0;
 static float pos_y_integral = 0;
@@ -65,6 +67,7 @@ void initMotor()
     // 确保所有电机都停止
     motor->stopNow(MOTOR_BROADCAST, 0);
 
+    motor->enControl(MOTOR_BROADCAST, false);//失能电机方便摆位置
     DEBUG_LOG("电机初始化和通信测试完成");
 }
 
@@ -98,6 +101,8 @@ void moveTo(POS pos)
 
     // 重置PID参数
     resetPIDparam();
+
+    DEBUG_LOG("开始移动到目标位置: (%.1f, %.1f, %.1f)\n", pos.x, pos.y, pos.yaw);
 }
 
 void resetPIDparam()

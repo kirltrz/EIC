@@ -201,30 +201,71 @@ void initSensor(void)
     initKalmanFilter(&positionKalman, 0.005f, 8.0f, 0.05f);
 #endif
     
-    resetSensor();
+    // 移除resetSensor()调用，避免在启动时等待视觉模块响应导致延迟
+    // resetSensor()会在主流程开始时调用
 }
 
 void resetSensor(void)
 {
-    visionToIDLE();
-    HWT101.toZero();
-    if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
-    {
-        // 在获取到互斥锁后，清零全局位置数据
-        currentPosition.x = 0;
-        currentPosition.y = 0;
-        currentPosition.rawYaw = 0;
-        currentPosition.continuousYaw = 0;
+    const int RESET_CHECK_COUNT = 10;    // 检查次数
+    const int RESET_CHECK_DELAY = 10;    // 每次检查间隔(ms)
+    const float RESET_THRESHOLD = 0.1f;  // 判断为0的阈值
+    const int RESET_FAIL_COUNT = 7;      // 超过多少次为0则认为reset成功
 
-        // 释放互斥锁
-        xSemaphoreGive(positionMutex);
-        
+    bool needReset = true;
+    int tryCount = 0;
+
+    while (needReset && tryCount < 3) // 最多尝试3次
+    {
+        visionToIDLE();
+        HWT101.toZero();
+
+        if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
+        {
+            // 在获取到互斥锁后，清零全局位置数据
+            currentPosition.x = 0;
+            currentPosition.y = 0;
+            currentPosition.rawYaw = 0;
+            currentPosition.continuousYaw = 0;
+
+            // 释放互斥锁
+            xSemaphoreGive(positionMutex);
+
 #if KALMAN_FILTER_ENABLED
-        // 重置卡尔曼滤波器状态
-        for (int i = 0; i < 4; i++) {
-            positionKalman.state[i] = 0.0f;
-        }
+            // 重置卡尔曼滤波器状态
+            for (int i = 0; i < 4; i++) {
+                positionKalman.state[i] = 0.0f;
+            }
 #endif
+        }
+
+        // 延迟一段时间，等待传感器稳定
+        delay(50);
+
+        // 检查reset是否成功，直接检查currentPosition结构体中的x、y、rawYaw
+        int zeroCount = 0;
+        for (int i = 0; i < RESET_CHECK_COUNT; i++) {
+            if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
+            {
+                float x = currentPosition.x;
+                float y = currentPosition.y;
+                float rawYaw = currentPosition.rawYaw;
+                xSemaphoreGive(positionMutex);
+
+                if (fabs(x) < RESET_THRESHOLD && fabs(y) < RESET_THRESHOLD && fabs(rawYaw) < RESET_THRESHOLD) {
+                    zeroCount++;
+                }
+            }
+            delay(RESET_CHECK_DELAY);
+        }
+
+        if (zeroCount >= RESET_FAIL_COUNT) {
+            // reset成功
+            needReset = false;
+        } else {
+            // reset失败，重试
+            tryCount++;
+        }
     }
 }
 

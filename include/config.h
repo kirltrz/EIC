@@ -30,7 +30,7 @@
 #define CHASSIS_MAX_OMEGA TBD // 底盘最大角速度rad/s
 // 电机控制参数
 #define DEFAULT_SPEED 100.0f
-#define DEFAULT_ACC 0 //直接启动
+#define DEFAULT_ACC 150 //缓启动加速度，范围0-255，0为直接启动
 /* 底盘PID参数 */
 // PID控制参数 - 运动中使用
 extern float POS_KP;     // 位置环比例系数
@@ -158,7 +158,7 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
  ******************************************************************************/
 /* 串口通信 */
 #define SERIAL_BAUDRATE 115200 // 通用串口波特率
-#define VISION_TIMEOUT 1000    // 视觉通信超时时间(ms)
+#define VISION_TIMEOUT 3000    // 视觉超时时间(ms)
 
 /******************************************************************************
  * 视觉模块命令

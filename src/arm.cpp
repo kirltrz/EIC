@@ -105,6 +105,7 @@ void initArm(void)
     servo2.setAngleRange(SECOND_ARM_ANGLE_MIN, SECOND_ARM_ANGLE_MAX);      // 二级关节舵机
     servo3.setAngleRange(THIRD_ARM_ANGLE_MIN, THIRD_ARM_ANGLE_MAX);        // 三级关节舵机
     servo4.setAngleRange(ARM_GRIPPER_CLOSE_ANGLE, ARM_GRIPPER_OPEN_ANGLE); // 夹爪舵机
+    stopArm(2000);
     DEBUG_LOG("初始化机械臂完成");
 }
 void setOriginPoint(void)
@@ -268,7 +269,7 @@ void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, 
 void arm_ScanQRcode()
 {
     /*扫描二维码，与控制xyz不同，机械臂前端需抬起使摄像头朝向二维码，无需处理视觉部分*/
-    armSet_position(82.50,-63.70,57.40,-52.20,500,100,100);
+    armSet_position(90.0,-50.0,50.0,-64.0,500,100,100);
     arm_setClaw(1);
 }
 void arm_setClaw(bool open)

@@ -5,6 +5,10 @@
 
 typedef uint8_t byte;
 
+// 全局变量定义
+SemaphoreHandle_t visionDataMutex = NULL;        // 视觉数据互斥锁
+vision_packet_t visionDataCache={-1,-1,-1,-1};                 // 视觉数据缓存
+
 void visionInit(void)
 {
     /*初始化串口通信*/
@@ -12,6 +16,103 @@ void visionInit(void)
     #if (DEBUG_SERIAL != VISION_SERIAL) || (DEBUG_ENABLE == 0)
         VISION_SERIAL.begin(SERIAL_BAUDRATE);
     #endif
+    
+    // 创建互斥锁
+    if (visionDataMutex == NULL)
+    {
+        visionDataMutex = xSemaphoreCreateMutex();
+    }
+}
+
+/*
+@brief 视觉监听任务，持续监听串口数据
+*/
+void visionListenerTask(void *pvParameters)
+{
+    // 任务启动时先清空串口缓冲区中可能存在的旧数据
+    while (VISION_SERIAL.available() > 0)
+    {
+        VISION_SERIAL.read();
+    }
+    
+    // 短暂延迟确保清空完成
+    vTaskDelay(pdMS_TO_TICKS(50));
+    
+    while (true)
+    {
+        receiveDataContinuous();
+        vTaskDelay(pdMS_TO_TICKS(1)); // 短暂延迟，让出CPU时间
+    }
+}
+
+/*
+@brief 持续监听并接收数据，验证格式后写入缓存
+*/
+void receiveDataContinuous(void)
+{
+    // 检查是否有数据可读
+    if (VISION_SERIAL.available() == 0)
+    {
+        return;
+    }
+    
+    byte buffer[9];
+    
+    // 查找帧头0x7B
+    if (VISION_SERIAL.read() != 0x7B)
+    {
+        return;
+    }
+    
+    buffer[0] = 0x7B;
+    
+    // 读取剩余8个字节，如果数据不足则返回
+    if (VISION_SERIAL.readBytes(buffer + 1, 8) != 8)
+    {
+        return;
+    }
+    
+    // 验证帧尾
+    if (buffer[8] != 0x7D)
+    {
+        return;
+    }
+    
+    // 验证校验位
+    byte checksum = 0;
+    for (int i = 0; i < 7; i++)
+    {
+        checksum ^= buffer[i];
+    }
+    if (buffer[7] != checksum)
+    {
+        return;
+    }
+    
+    // 数据格式正确，解析并写入缓存
+    vision_packet_t new_data;
+    new_data.mode = buffer[1];
+    new_data.data1 = (((int16_t)buffer[2]) << 8) | ((int16_t)buffer[3]);
+    new_data.data2 = (((int16_t)buffer[4]) << 8) | ((int16_t)buffer[5]);
+    new_data.color = buffer[6] == 4 ? buffer[6] - 1 : buffer[6]; // 如果是蓝色0x04则减一
+    
+    // 获取互斥锁并写入缓存
+    if (xSemaphoreTake(visionDataMutex, pdMS_TO_TICKS(1)) == pdTRUE)
+    {
+        visionDataCache = new_data;
+        xSemaphoreGive(visionDataMutex);
+    }
+}
+
+bool readVisionCache(vision_packet_t *data)
+{
+    if (xSemaphoreTake(visionDataMutex, pdMS_TO_TICKS(10)) == pdTRUE)
+    {
+        *data = visionDataCache;
+        xSemaphoreGive(visionDataMutex);
+        return true;
+    }
+    return false;
 }
 
 void sendCommand(int mode)
@@ -27,169 +128,90 @@ void sendCommand(int mode)
     VISION_SERIAL.write(frame, 9);
 }
 
-bool receiveData(vision_packet_t *data)
+void visionToIDLE(void)
 {
-    /*接收数据*/
-    // 定义一个长度为9的字节数组，用于存储从串口读取的数据
-    byte buffer[9] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
-    // 等待串口有数据可读，如果没有数据则延迟10ms
-    unsigned long startTime = millis();
-    while (VISION_SERIAL.available() == 0)
-    {
-        delay(10);
-        // 添加超时检测，防止死循环
-        if (millis() - startTime > VISION_TIMEOUT)
-        {
-            return false; // 超时返回失败
-        }
-    }
-
-    // 读取第一个字节，检查是否为帧头0x7B
-    int count = 0;
-    do
-    {
-        count++;
-        if (count > 10)
-        {
-            return false;
-        }
-        VISION_SERIAL.read(buffer, 1);
-    } while (buffer[0] != 0x7B);
-
-    // 读取接下来的8个字节，存储到buffer中
-    VISION_SERIAL.readBytes((byte *)buffer + 1, 8);
-
-    // 检查最后一个字节是否为帧尾0x7D
-    if (buffer[8] != 0x7D)
-    {
-        return false; // 如果不是帧尾，直接返回
-    }
-    // 检查校验位是否正确，校验位为buffer[7]，应为buffer[0]到buffer[6]的异或结果
-    if (buffer[7] != (buffer[0] ^ buffer[1] ^ buffer[2] ^ buffer[3] ^ buffer[4] ^ buffer[5] ^ buffer[6]))
-    {
-        return false; // 如果校验失败，直接返回
-    }
-    // 将读取到的数据解析并存储到data结构体中
-    data->mode = buffer[1];
-    data->data1 = (((int16_t)buffer[2]) << 8) | ((int16_t)buffer[3]);
-    data->data2 = (((int16_t)buffer[4]) << 8) | ((int16_t)buffer[5]);
-    data->color = buffer[6] == 4 ? buffer[6] - 1 : buffer[6]; // 如果是蓝色0x04则减一，方便后续使用
-    return true;
-}
-
-/*
-@brief 视觉返回待机状态
-@return 是否已返回待机状态
-*/
-bool visionToIDLE(void)
-{
-    /*视觉返回待机状态*/
     sendCommand(CMD_IDLE);
-    vision_packet_t packet;
-    int startTime = millis();
-    while (!receiveData(&packet))
-    {
-        delay(100);
-        if (millis() - startTime > VISION_TIMEOUT)
-        {
-            return false;
-        }
-    }
-    if (packet.mode == CMD_IDLE)
-    {
-        return true;
-    }
-    return false;
 }
-/*
-@brief 视觉扫描二维码
-@param taskcode1 任务码1
-@param taskcode2 任务码2
-@return 是否扫描成功
-*/
+
 bool visionScanQRcode(int taskcode1[3], int taskcode2[3])
 {
-    /*视觉扫描二维码*/
-    sendCommand(CMD_QRCODE);
     vision_packet_t packet;
-    int startTime = millis();
-    while (!receiveData(&packet))
-    {
-        delay(100);
-        if (millis() - startTime > VISION_TIMEOUT)
-        {
-            return false;
-        }
-    }
-    if (packet.mode == CMD_QRCODE && packet.data1 != 0 && packet.data2 != 0)
-    {
-        // 将data1分解为三个数字存入taskcode1
-        taskcode1[0] = packet.data1 / 100;       // 百位
-        taskcode1[1] = (packet.data1 / 10) % 10; // 十位
-        taskcode1[2] = packet.data1 % 10;        // 个位
+    unsigned long startTime = millis();
+    
+    sendCommand(CMD_QRCODE);
 
-        // 将data2分解为三个数字存入taskcode2
-        taskcode2[0] = packet.data2 / 100;                                                                // 百位
-        taskcode2[1] = (packet.data2 / 10) % 10;                                                          // 十位
-        taskcode2[2] = packet.data2 % 10;                                                                 // 个位
-        if (taskcode1[0] && taskcode1[1] && taskcode1[2] && taskcode2[0] && taskcode2[1] && taskcode2[2]) // 如果两个任务码的三个数字都非0，则返回true
+    while (millis() - startTime < VISION_TIMEOUT)
+    {
+        if (readVisionCache(&packet))
         {
-            return true;
+            /*判断是否为扫码模式*/
+            if (packet.mode == CMD_QRCODE)
+            {
+                if (packet.data1 != 0 && packet.data2 != 0)
+                {
+                    /*将任务码分解*/
+                    taskcode1[0] = packet.data1 / 100;
+                    taskcode1[1] = (packet.data1 / 10) % 10;
+                    taskcode1[2] = packet.data1 % 10;
+                    taskcode2[0] = packet.data2 / 100;
+                    taskcode2[1] = (packet.data2 / 10) % 10;
+                    taskcode2[2] = packet.data2 % 10;
+                    /*判断任务码是否有效*/
+                    if (taskcode1[0] && taskcode1[1] && taskcode1[2] &&
+                        taskcode2[0] && taskcode2[1] && taskcode2[2])
+                    {
+                        return true;
+                    }
+                }
+            }
+            else
+            {/*如果不是扫码模式，重新发送扫码指令*/
+                sendCommand(CMD_QRCODE);
+            }
         }
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
-    return false;
+    return false;/*超时*/
 }
 
 bool visionGetCircle(int *x, int *y)
 {
-    /*视觉扫描色环*/
-    sendCommand(CMD_CIRCLE);
     vision_packet_t packet;
-    int startTime = millis();
-    while (!receiveData(&packet))
+    unsigned long startTime = millis();
+    
+    sendCommand(CMD_CIRCLE);
+    
+    while (millis() - startTime < VISION_TIMEOUT)
     {
-        delay(100);
-        if (millis() - startTime > VISION_TIMEOUT)
+        if (readVisionCache(&packet) && packet.mode == CMD_CIRCLE)
         {
-            return false;
+            *x = packet.data1;
+            *y = packet.data2;
+            return true;
         }
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
-    if (packet.mode == CMD_CIRCLE)
-    {
-        *x = packet.data1;
-        *y = packet.data2;
-        return true;
-    }
+    
     return false;
 }
 
-/*
-@brief 视觉扫描物料
-@param x 存储获取到的物料x坐标的指针
-@param y 存储获取到的物料y坐标的指针
-@param color 要识别的物料颜色
-@return 是否扫描成功
-*/
 bool visionGetMaterial(int color, int *x, int *y)
 {
-    /*视觉扫描物料*/
-    sendCommand(CMD_MATERIAL);
     vision_packet_t packet;
-    int startTime = millis();
-    while (!receiveData(&packet))
+    unsigned long startTime = millis();
+    
+    sendCommand(CMD_MATERIAL);
+    
+    while (millis() - startTime < VISION_TIMEOUT)
     {
-        delay(100);
-        if (millis() - startTime > VISION_TIMEOUT)
+        if (readVisionCache(&packet) && packet.mode == CMD_MATERIAL && packet.color == color)
         {
-            return false;
+            *x = packet.data1;
+            *y = packet.data2;
+            return true;
         }
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
-    if (packet.mode == CMD_MATERIAL || packet.color == color)
-    {
-        *x = packet.data1;
-        *y = packet.data2;
-        return true;
-    }
+    
     return false;
 }

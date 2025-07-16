@@ -5,6 +5,7 @@
 #include "arm.h"
 #include "sensor.h"
 #include "ota.h"
+#include "vision.h"
 
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
 SemaphoreHandle_t xSemaphoreOTA = NULL;
@@ -26,6 +27,9 @@ void initTaskManager(void)
     xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
     xTaskCreate(moveTask, "Move Task", 8192, NULL, 1, NULL);
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
+    
+    // Vision监听任务
+    xTaskCreate(visionListenerTask, "Vision Listener Task", 2048, NULL, 2, NULL);
     
     // OTA任务
     //xTaskCreate(otaTask, "OTA Task", 4096, NULL, 1, NULL);
