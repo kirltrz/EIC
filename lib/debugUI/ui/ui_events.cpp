@@ -17,7 +17,7 @@
 
 void toNextPos(lv_event_t *e)
 {
-	
+	motor->enControl(MOTOR_BROADCAST, true);
 	static int current_pos_index = 0;
 	moveTo(pos[current_pos_index]);
 	//DEBUG_LOG("移动到位置x: %lf, y: %lf, yaw: %f", pos[current_pos_index].x, pos[current_pos_index].y, pos[current_pos_index].yaw);
@@ -345,4 +345,9 @@ void testGripperMonitor(lv_event_t * e)
         
         testRunning = false;
     }
+}
+
+void ui_resetSensor(lv_event_t * e)
+{
+	resetSensor();
 }

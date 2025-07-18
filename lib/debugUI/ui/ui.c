@@ -11,6 +11,7 @@
 // SCREEN: ui_Screen1
 void ui_Screen1_screen_init(void);
 lv_obj_t * ui_Screen1;
+void ui_event_Panel1(lv_event_t * e);
 lv_obj_t * ui_Panel1;
 lv_obj_t * ui_Label1;
 lv_obj_t * ui_Label4;
@@ -239,6 +240,15 @@ lv_obj_t * ui____initial_actions0;
 ///////////////////// ANIMATIONS ////////////////////
 
 ///////////////////// FUNCTIONS ////////////////////
+void ui_event_Panel1(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_LONG_PRESSED) {
+        ui_resetSensor(e);
+    }
+}
+
 void ui_event_enableMotorSwitch(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);

@@ -30,7 +30,7 @@
 #define CHASSIS_MAX_OMEGA TBD // 底盘最大角速度rad/s
 // 电机控制参数
 #define DEFAULT_SPEED 100.0f
-#define DEFAULT_ACC 150 //缓启动加速度，范围0-255，0为直接启动
+#define DEFAULT_ACC 200 //缓启动加速度，范围0-255，0为直接启动
 /* 底盘PID参数 */
 // PID控制参数 - 运动中使用
 extern float POS_KP;     // 位置环比例系数
@@ -115,8 +115,9 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 
 /* PAW3395 光学传感器配置 */
 // 传感器位置偏移配置（相对于小车中心的偏移，单位：mm）
-#define PAW3395_OFFSET_X 0.0f    // 前进方向（X轴）偏移量，正值表示向前偏移
-#define PAW3395_OFFSET_Y 0.0f    // 左右方向（Y轴）偏移量，正值表示向左偏移
+/*补偿个鸡毛不补偿了，又是微分又是积分还有三角函数，反正两圈下来角度都一样*/
+#define PAW3395_OFFSET_X 0.0f
+#define PAW3395_OFFSET_Y 0.0f
 
 // 传感器方向配置（相对于小车坐标系的方向变换）
 // 根据实际测试：小车y+→传感器x-，小车x+→传感器y+

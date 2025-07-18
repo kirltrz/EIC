@@ -2,204 +2,31 @@
 #include "taskManager.h"
 #include "config.h"
 
-// 卡尔曼滤波器启用开关
-#define KALMAN_FILTER_ENABLED 0  // 0: 禁用, 1: 启用
-
 SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
 global_position_t currentPosition; // 用于积分运算
 
-#if KALMAN_FILTER_ENABLED
-// 卡尔曼滤波器结构体 - 用于位置滤波
-typedef struct {
-    // 状态向量 [x, y, vx, vy]
-    float state[4];
-    // 状态协方差矩阵 P[4][4]
-    float P[4][4];
-    // 过程噪声协方差 Q[4][4]
-    float Q[4][4];
-    // 测量噪声协方差 R[2][2]
-    float R[2][2];
-    // 卡尔曼增益 K[4][2]
-    float K[4][2];
-    // 采样时间间隔(秒)
-    float dt;
-} KalmanFilter_t;
+// 内部旋转圈数跟踪（不对外暴露）
+static int rotationCount = 0;          // 旋转圈数，正值表示顺时针旋转的圈数，负值表示逆时针
 
-// 全局卡尔曼滤波器实例
-KalmanFilter_t positionKalman;
-#endif
-
-// 初始化卡尔曼滤波器
-#if KALMAN_FILTER_ENABLED
-void initKalmanFilter(KalmanFilter_t *kf, float dt, float processNoise, float measurementNoise)
-{
-    // 初始化状态向量
-    for (int i = 0; i < 4; i++) {
-        kf->state[i] = 0.0f;
-    }
-    
-    // 初始化协方差矩阵P (初始不确定性)
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            kf->P[i][j] = (i == j) ? 1000.0f : 0.0f; // 对角线设置较大值表示初始不确定性高
-        }
-    }
-    
-    // 初始化过程噪声协方差矩阵Q
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            kf->Q[i][j] = 0.0f;
-        }
-    }
-    // 位置过程噪声
-    kf->Q[0][0] = kf->Q[1][1] = 0.01f * processNoise;
-    // 速度过程噪声
-    kf->Q[2][2] = kf->Q[3][3] = 0.1f * processNoise;
-    
-    // 初始化测量噪声协方差矩阵R
-    kf->R[0][0] = kf->R[1][1] = measurementNoise;
-    kf->R[0][1] = kf->R[1][0] = 0.0f;
-    
-    // 设置采样时间
-    kf->dt = dt;
-}
-
-// 卡尔曼滤波预测步骤
-void kalmanPredict(KalmanFilter_t *kf)
-{
-    // 临时变量
-    float F[4][4] = {0}; // 状态转移矩阵
-    float FP[4][4] = {0}; // 中间计算结果
-    
-    // 构建状态转移矩阵F
-    // [1, 0, dt, 0]
-    // [0, 1, 0, dt]
-    // [0, 0, 1, 0]
-    // [0, 0, 0, 1]
-    F[0][0] = F[1][1] = F[2][2] = F[3][3] = 1.0f;
-    F[0][2] = F[1][3] = kf->dt;
-    
-    // 状态预测: x = F*x
-    float predicted_x = kf->state[0] + kf->state[2] * kf->dt;
-    float predicted_y = kf->state[1] + kf->state[3] * kf->dt;
-    kf->state[0] = predicted_x;
-    kf->state[1] = predicted_y;
-    // 速度保持不变
-    
-    // 协方差预测: P = F*P*F' + Q
-    // 计算F*P
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            FP[i][j] = 0;
-            for (int k = 0; k < 4; k++) {
-                FP[i][j] += F[i][k] * kf->P[k][j];
-            }
-        }
-    }
-    
-    // 计算F*P*F' + Q
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            kf->P[i][j] = kf->Q[i][j];
-            for (int k = 0; k < 4; k++) {
-                kf->P[i][j] += FP[i][k] * F[j][k]; // 注意这里F是转置的
-            }
-        }
-    }
-}
-
-// 卡尔曼滤波更新步骤
-void kalmanUpdate(KalmanFilter_t *kf, float measurement[2])
-{
-    // 测量矩阵H [2x4]
-    // [1, 0, 0, 0]
-    // [0, 1, 0, 0]
-    
-    // 计算测量残差: y = z - H*x
-    float y[2];
-    y[0] = measurement[0] - kf->state[0];
-    y[1] = measurement[1] - kf->state[1];
-    
-    // 计算残差协方差: S = H*P*H' + R
-    float S[2][2];
-    S[0][0] = kf->P[0][0] + kf->R[0][0];
-    S[0][1] = kf->P[0][1] + kf->R[0][1];
-    S[1][0] = kf->P[1][0] + kf->R[1][0];
-    S[1][1] = kf->P[1][1] + kf->R[1][1];
-    
-    // 计算S的行列式
-    float detS = S[0][0] * S[1][1] - S[0][1] * S[1][0];
-    
-    // 安全检查，确保S可逆
-    if (fabsf(detS) < 1e-10f) {
-        return; // 如果S接近奇异，放弃本次更新
-    }
-    
-    // 计算S的逆
-    float invS[2][2];
-    invS[0][0] = S[1][1] / detS;
-    invS[0][1] = -S[0][1] / detS;
-    invS[1][0] = -S[1][0] / detS;
-    invS[1][1] = S[0][0] / detS;
-    
-    // 计算卡尔曼增益: K = P*H'*inv(S)
-    for (int i = 0; i < 4; i++) {
-        kf->K[i][0] = kf->P[i][0] * invS[0][0] + kf->P[i][1] * invS[1][0];
-        kf->K[i][1] = kf->P[i][0] * invS[0][1] + kf->P[i][1] * invS[1][1];
-    }
-    
-    // 更新状态: x = x + K*y
-    for (int i = 0; i < 4; i++) {
-        kf->state[i] += kf->K[i][0] * y[0] + kf->K[i][1] * y[1];
-    }
-    
-    // 更新协方差: P = (I - K*H)*P
-    // 由于H的特殊结构，可以简化计算
-    float IKH[4][4] = {0};
-    for (int i = 0; i < 4; i++) {
-        IKH[i][i] = 1.0f;
-    }
-    IKH[0][0] -= kf->K[0][0];
-    IKH[0][1] -= kf->K[0][1];
-    IKH[1][0] -= kf->K[1][0];
-    IKH[1][1] -= kf->K[1][1];
-    IKH[2][0] -= kf->K[2][0];
-    IKH[2][1] -= kf->K[2][1];
-    IKH[3][0] -= kf->K[3][0];
-    IKH[3][1] -= kf->K[3][1];
-    
-    // 计算(I - K*H)*P
-    float newP[4][4] = {0};
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            for (int k = 0; k < 4; k++) {
-                newP[i][j] += IKH[i][k] * kf->P[k][j];
-            }
-        }
-    }
-    
-    // 更新P
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 4; j++) {
-            kf->P[i][j] = newP[i][j];
-        }
-    }
-}
-#endif
+// 传感器重置控制标志
+volatile bool sensorResetInProgress = false;
 
 void initSensor(void)
 {
     /*初始化传感器*/
     positionMutex = xSemaphoreCreateMutex(); // 创建全局坐标互斥锁
+    
+    // 初始化全局位置数据
+    currentPosition.x = 0;
+    currentPosition.y = 0;
+    currentPosition.rawYaw = 0;
+    currentPosition.continuousYaw = 0;
+    rotationCount = 0; // 初始化旋转圈数
+    
     visionInit();
     Wire.begin(PIN_HWT101_SDA, PIN_HWT101_SCL); // 初始化IIC(HWT101)
     paw3395Init(PAW3395_DPI, PIN_PAW3395_NRESET, PIN_PAW3395_NCS, PIN_PAW3395_SCLK, PIN_PAW3395_MISO, PIN_PAW3395_MOSI);
     delay(100);
-    
-#if KALMAN_FILTER_ENABLED
-    // 初始化卡尔曼滤波器 (5ms采样周期，适当的过程噪声和测量噪声值)
-    initKalmanFilter(&positionKalman, 0.005f, 8.0f, 0.05f);
-#endif
     
     // 移除resetSensor()调用，避免在启动时等待视觉模块响应导致延迟
     // resetSensor()会在主流程开始时调用
@@ -207,73 +34,105 @@ void initSensor(void)
 
 void resetSensor(void)
 {
-    const int RESET_CHECK_COUNT = 10;    // 检查次数
-    const int RESET_CHECK_DELAY = 10;    // 每次检查间隔(ms)
-    const float RESET_THRESHOLD = 0.1f;  // 判断为0的阈值
-    const int RESET_FAIL_COUNT = 7;      // 超过多少次为0则认为reset成功
+    const int RESET_CHECK_COUNT = 8;     // 检查次数
+    const int RESET_CHECK_DELAY = 15;    // 每次检查间隔(ms)
+    const float RESET_THRESHOLD = 0.15f; // 判断为0的阈值
+    const int RESET_FAIL_COUNT = 6;      // 超过多少次为0则认为reset成功
 
-    bool needReset = true;
-    int tryCount = 0;
+    DEBUG_LOG("开始重置传感器...");
+    
+    // 设置重置标志，通知其他任务
+    sensorResetInProgress = true;
+    
+    // 等待位置计算任务感知到重置标志
+    delay(20);
+    
+    // 重置传感器硬件
+    visionToIDLE();
+    HWT101.toZero();
 
-    while (needReset && tryCount < 3) // 最多尝试3次
-    {
-        visionToIDLE();
-        HWT101.toZero();
+    // 等待传感器稳定
+    delay(80);
 
-        if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
-        {
-            // 在获取到互斥锁后，清零全局位置数据
+    // 强制重置全局位置数据（使用更短的超时时间）
+    bool mutexAcquired = false;
+    int retryCount = 0;
+    
+    while (retryCount < 5 && !mutexAcquired) {
+        if (xSemaphoreTake(positionMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+            // 清零全局位置数据
             currentPosition.x = 0;
             currentPosition.y = 0;
             currentPosition.rawYaw = 0;
             currentPosition.continuousYaw = 0;
-
-            // 释放互斥锁
+            rotationCount = 0; // 清零旋转圈数
+            
             xSemaphoreGive(positionMutex);
-
-#if KALMAN_FILTER_ENABLED
-            // 重置卡尔曼滤波器状态
-            for (int i = 0; i < 4; i++) {
-                positionKalman.state[i] = 0.0f;
-            }
-#endif
-        }
-
-        // 延迟一段时间，等待传感器稳定
-        delay(50);
-
-        // 检查reset是否成功，直接检查currentPosition结构体中的x、y、rawYaw
-        int zeroCount = 0;
-        for (int i = 0; i < RESET_CHECK_COUNT; i++) {
-            if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
-            {
-                float x = currentPosition.x;
-                float y = currentPosition.y;
-                float rawYaw = currentPosition.rawYaw;
-                xSemaphoreGive(positionMutex);
-
-                if (fabs(x) < RESET_THRESHOLD && fabs(y) < RESET_THRESHOLD && fabs(rawYaw) < RESET_THRESHOLD) {
-                    zeroCount++;
-                }
-            }
-            delay(RESET_CHECK_DELAY);
-        }
-
-        if (zeroCount >= RESET_FAIL_COUNT) {
-            // reset成功
-            needReset = false;
+            DEBUG_LOG("全局位置数据已清零");
+            mutexAcquired = true;
         } else {
-            // reset失败，重试
-            tryCount++;
+            DEBUG_LOG("获取位置互斥锁超时，重试 %d/5", retryCount + 1);
+            retryCount++;
+            delay(20);
         }
     }
+    
+    if (!mutexAcquired) {
+        DEBUG_LOG("无法获取位置互斥锁，强制重置");
+        // 即使无法获取互斥锁，也要强制重置
+        currentPosition.x = 0;
+        currentPosition.y = 0;
+        currentPosition.rawYaw = 0;
+        currentPosition.continuousYaw = 0;
+        rotationCount = 0;
+    }
+
+    // 延迟一段时间，等待传感器稳定和位置计算任务更新
+    delay(150);
+
+    // 检查reset是否成功
+    int zeroCount = 0;
+    
+    for (int i = 0; i < RESET_CHECK_COUNT; i++) {
+        if (xSemaphoreTake(positionMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
+            float x = currentPosition.x;
+            float y = currentPosition.y;
+            float rawYaw = currentPosition.rawYaw;
+            xSemaphoreGive(positionMutex);
+
+            if (fabs(x) < RESET_THRESHOLD && fabs(y) < RESET_THRESHOLD && fabs(rawYaw) < RESET_THRESHOLD) {
+                zeroCount++;
+            }
+            
+            DEBUG_LOG("检查 %d: x=%.3f, y=%.3f, yaw=%.3f", i+1, x, y, rawYaw);
+        } else {
+            DEBUG_LOG("检查 %d: 获取互斥锁失败", i+1);
+        }
+        delay(RESET_CHECK_DELAY);
+    }
+
+    if (zeroCount >= RESET_FAIL_COUNT) {
+        DEBUG_LOG("传感器重置成功 (零值计数: %d/%d)", zeroCount, RESET_CHECK_COUNT);
+    } else {
+        DEBUG_LOG("传感器重置可能不完整 (零值计数: %d/%d)，但继续执行", zeroCount, RESET_CHECK_COUNT);
+    }
+    
+    // 等待一段时间确保所有任务都感知到重置完成
+    delay(20);
+    
+    // 清除重置标志
+    sensorResetInProgress = false;
+    
+    // 再次等待确保标志清除生效
+    delay(20);
+    
+    DEBUG_LOG("传感器重置流程结束");
 }
 
 void calculateGlobalPosition(void *pvParameters)
 {
     /*计算全局位置*/
     float prevYaw = HWT101.getZ();  // 上一次的yaw角度
-    int rotationCount = 0;          // 旋转圈数，正值表示顺时针旋转的圈数，负值表示逆时针
 
     int16_t dx = 0;
     int16_t dy = 0;
@@ -298,6 +157,19 @@ void calculateGlobalPosition(void *pvParameters)
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (true)
     {
+        // 检查是否正在进行传感器重置
+        if (sensorResetInProgress) {
+            // 重置期间暂停位置计算，避免数据冲突
+            // 同时重置内部状态，确保重置后从干净状态开始
+            prevYaw = HWT101.getZ(); // 重新获取当前角度作为起始点
+            pendingDx = 0.0f;
+            pendingDy = 0.0f;
+            filteredDx = 0.0f;
+            filteredDy = 0.0f;
+            vTaskDelay(pdMS_TO_TICKS(10));
+            continue;
+        }
+        
         // 获取传感器数据
         Motion_Burst(&dx, &dy);
         float rawYaw = HWT101.getZ(); // 获取原始角度值（-180到180度）
@@ -323,12 +195,6 @@ void calculateGlobalPosition(void *pvParameters)
             rawYaw = prevYaw;
         }
 
-        // 检测是否发生了跨越±180°的跳变
-        if (prevYaw > 150.0f && rawYaw < -150.0f) // 从正半圈跳到负半圈（顺时针转过了180°）
-            rotationCount++;                      // 顺时针转过了一圈
-        else if (prevYaw < -150.0f && rawYaw > 150.0f) // 从负半圈跳到正半圈（逆时针转过了180°）
-            rotationCount--;                           // 逆时针转过了一圈
-
         // 将角度转换为弧度
         float yawRad = rawYaw * DEG_TO_RAD;
         float sinYaw, cosYaw;
@@ -348,54 +214,13 @@ void calculateGlobalPosition(void *pvParameters)
             dyActual = rawDy * PAW3395_DIRECTION_Y_SCALE;
         }
         
-        /*
-        // 防抖动处理 - 应用死区
-        if (abs(dx) < MOTION_DEADZONE) {
-            dx = 0;
-        }
-        if (abs(dy) < MOTION_DEADZONE) {
-            dy = 0;
-        }
-        */
         // 低通滤波处理
         filteredDx = LOW_PASS_ALPHA * filteredDx + (1.0f - LOW_PASS_ALPHA) * dxActual;
         filteredDy = LOW_PASS_ALPHA * filteredDy + (1.0f - LOW_PASS_ALPHA) * dyActual;
 
-        // 传感器位置偏移补偿
-        float dxCompensated = filteredDx;
-        float dyCompensated = filteredDy;
-        
-        // 如果传感器不在小车中心，需要考虑旋转时的偏移影响
-        if (PAW3395_OFFSET_X != 0.0f || PAW3395_OFFSET_Y != 0.0f) {
-            // 计算角度变化
-            float yawChange = rawYaw - prevYaw;
-            
-            // 处理角度跳变（±180°）
-            if (yawChange > 180.0f) {
-                yawChange -= 360.0f;
-            } else if (yawChange < -180.0f) {
-                yawChange += 360.0f;
-            }
-            
-            // 将角度变化转换为弧度
-            float yawChangeRad = yawChange * DEG_TO_RAD;
-            
-            // 计算因为旋转而导致的传感器位置变化
-            // 传感器绕小车中心旋转时的位移
-            float offsetRotationX = -PAW3395_OFFSET_Y * yawChangeRad;  // 垂直于偏移向量的分量
-            float offsetRotationY = PAW3395_OFFSET_X * yawChangeRad;   // 垂直于偏移向量的分量
-            
-            // 将偏移补偿添加到传感器测量值
-            dxCompensated += offsetRotationX;
-            dyCompensated += offsetRotationY;
-        }
-
         // 使用旋转矩阵将局部坐标系的变化转换到全局坐标系
-        float dxGlobal = dxCompensated * cosYaw - dyCompensated * sinYaw;
-        float dyGlobal = dxCompensated * sinYaw + dyCompensated * cosYaw;
-
-        // 计算连续角度 = 原始角度 + 旋转圈数 * 360°
-        float continuousYaw = rawYaw + rotationCount * 360.0f;
+        float dxGlobal = filteredDx * cosYaw - filteredDy * sinYaw;
+        float dyGlobal = filteredDx * sinYaw + filteredDy * cosYaw;
 
         // 只有在数据有效的情况下才累加位移
         if (validMotion && validYaw) {
@@ -403,32 +228,21 @@ void calculateGlobalPosition(void *pvParameters)
             pendingDx += dxGlobal;
             pendingDy += dyGlobal;
         }
-
-#if KALMAN_FILTER_ENABLED
-        // 卡尔曼滤波器预测步骤
-        kalmanPredict(&positionKalman);
-#endif
         
-        // 更新全局坐标
-        if (xSemaphoreTake(positionMutex, 10) == pdTRUE)
-        {
-            // 原始积分位置(作为卡尔曼滤波的测量值)
-            float rawPositionX = currentPosition.x + pendingDx;
-            float rawPositionY = currentPosition.y + pendingDy;
+        // 更新全局坐标（使用更短的超时时间，避免长时间阻塞）
+        if (xSemaphoreTake(positionMutex, pdMS_TO_TICKS(15)) == pdTRUE) {
+            // 检测是否发生了跨越±180°的跳变
+            if (prevYaw > 150.0f && rawYaw < -150.0f) // 从正半圈跳到负半圈（顺时针转过了180°）
+                rotationCount++;                      // 顺时针转过了一圈
+            else if (prevYaw < -150.0f && rawYaw > 150.0f) // 从负半圈跳到正半圈（逆时针转过了180°）
+                rotationCount--;                           // 逆时针转过了一圈
+
+            // 计算连续角度 = 原始角度 + 旋转圈数 * 360°
+            float continuousYaw = rawYaw + rotationCount * 360.0f;
             
-#if KALMAN_FILTER_ENABLED
-            // 卡尔曼滤波器更新步骤
-            float measurement[2] = {rawPositionX, rawPositionY};
-            kalmanUpdate(&positionKalman, measurement);
-            
-            // 使用卡尔曼滤波后的位置作为最终结果
-            currentPosition.x = positionKalman.state[0];
-            currentPosition.y = positionKalman.state[1];
-#else
             // 使用原始积分位置
             currentPosition.x += pendingDx;
             currentPosition.y += pendingDy;
-#endif
 
             currentPosition.rawYaw = rawYaw;
             currentPosition.continuousYaw = continuousYaw;
@@ -438,6 +252,9 @@ void calculateGlobalPosition(void *pvParameters)
             pendingDy = 0.0f;
             
             xSemaphoreGive(positionMutex);
+        } else {
+            // 如果获取互斥锁失败，保留pendingDx和pendingDy，下次再尝试更新
+            // 这样可以避免数据丢失，同时不会阻塞任务
         }
 
         // 更新前一次的角度值
@@ -451,8 +268,7 @@ void getGlobalPosition(global_position_t *position)
 {
     /*获取全局位置*/
     // 使用互斥锁保护全局位置数据的读取
-    if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE)
-    {
+    if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE) {
         // 在获取到互斥锁后，复制全局位置数据
         position->x = currentPosition.x;
         position->y = currentPosition.y;
@@ -462,4 +278,10 @@ void getGlobalPosition(global_position_t *position)
         // 释放互斥锁
         xSemaphoreGive(positionMutex);
     }
+}
+
+bool isSensorResetInProgress(void)
+{
+    /*检查传感器是否正在重置*/
+    return sensorResetInProgress;
 }

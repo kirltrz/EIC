@@ -155,6 +155,13 @@ void moveTask(void *pvParameters)
     xLastWakeTime = xTaskGetTickCount(); // 初始化xLastWakeTime变量
     while (1)
     {
+        // 检查是否正在进行传感器重置
+        if (isSensorResetInProgress()) {
+            // 重置期间暂停运动控制，避免使用不稳定的位置数据
+            vTaskDelay(pdMS_TO_TICKS(50));
+            continue;
+        }
+        
         if (isMoving || isHolding)
         {
             // 获取当前位置

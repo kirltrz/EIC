@@ -6,6 +6,7 @@
 
 #define SAVE    0x00
 #define YAW     0x3F
+#define GZ 		0x39//Z轴角速度
 #define UNLOCK  0x69
 #define CALIYAW 0x76
 #define RRATE   0x03
@@ -19,6 +20,7 @@ public:
 	HWT101CLASS();
 
 	float getZ(float *ptr = nullptr);
+	float getAngularVelocityZ(float *ptr = nullptr);
 	void toZero(void);
 	bool setOutputRate(float hz);
 

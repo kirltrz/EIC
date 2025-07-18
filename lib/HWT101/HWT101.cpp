@@ -38,6 +38,22 @@ float HWT101CLASS::getZ(float *ptr)
 		*ptr = angle;
 	return angle;
 }
+/**
+ * @brief 获取Z轴角速度，单位°/s
+ * @param ptr 输出参数，可选
+ * @return 角速度值
+ */
+float HWT101CLASS::getAngularVelocityZ(float *ptr){
+	int16_t angularVelocityZ;
+	readRegisters(devAddr, GZ, 2, (char *)&angularVelocityZ);
+
+	// 角速度Z=GZ[15:0]/32768*2000°/s
+	float velocity = ((float)angularVelocityZ / 32768.0f * 2000.0f);
+	
+	if (ptr != nullptr)
+		*ptr = velocity;
+	return velocity;
+}
 void HWT101CLASS::toZero(void)
 {
 	writeRegister(devAddr, UNLOCK, 2, unlock);

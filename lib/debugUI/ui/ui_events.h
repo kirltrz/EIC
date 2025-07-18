@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+void ui_resetSensor(lv_event_t * e);
 void enableMotor(lv_event_t * e);
 void servoSetOringin(lv_event_t * e);
 void startOTA(lv_event_t * e);

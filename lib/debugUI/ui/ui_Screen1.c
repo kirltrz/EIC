@@ -234,6 +234,7 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_Label55, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label55, "toSScr");
 
+    lv_obj_add_event_cb(ui_Panel1, ui_event_Panel1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_enableMotorSwitch, ui_event_enableMotorSwitch, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button3, ui_event_Button3, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button4, ui_event_Button4, LV_EVENT_ALL, NULL);

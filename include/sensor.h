@@ -19,8 +19,4 @@ void calculateGlobalPosition(void *pvParameters);
 
 void getGlobalPosition(global_position_t *position);
 
-bool checkPaw3395(void);
-
-bool checkHWT101(void);
-
-bool checkVision(void);
+bool isSensorResetInProgress(void);
