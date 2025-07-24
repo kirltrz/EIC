@@ -6,8 +6,9 @@
 ZDT_MOTOR_EMM_V5::ZDT_MOTOR_EMM_V5(HardwareSerial *serial)
 {
   _serial = serial;
-  if (_serial != nullptr) {
-    _serial->begin(115200);
+  if (_serial == nullptr) {
+    _serial = &Serial;
+    _serial->begin(MOTOR_BAUDRATE, SERIAL_8N1, PIN_MOTOR_RX, PIN_MOTOR_TX);
   }
 }
 

@@ -86,13 +86,6 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 #define ARM_GRIPPER_OPEN_ANGLE 40.0f  // 机械臂夹爪张开角度
 #define ARM_GRIPPER_CLOSE_ANGLE -7.0f // 机械臂夹爪闭合角度
 
-// 夹爪位置监测配置
-#define GRIPPER_HOLD_ANGLE_THRESHOLD -6.5f    // 夹持检测角度阈值，单位度，大于此值为夹持状态
-#define GRIPPER_OPEN_ANGLE_THRESHOLD 35.0f    // 张开状态角度阈值，单位度，接近此值为张开状态
-#define GRIPPER_MONITOR_INTERVAL 100          // 夹爪监测任务更新间隔，单位ms
-#define GRIPPER_STABLE_COUNT 3                // 连续稳定检测次数，用于避免误判
-#define GRIPPER_ANGLE_TOLERANCE 0.5f          // 角度检测容差，单位度
-
 /******************************************************************************
  * 硬件配置
  ******************************************************************************/
