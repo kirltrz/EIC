@@ -12,20 +12,36 @@
 
 #define TASK_TIMEOUT 5000
 POS pos[] = {
-    {-178.0  , 586.0  , 0.0f  }, // 0扫二维码
-    {-10.0   , 1481.0 , 0.0f  }, // 1转盘抓取
-    {-164.0  , 986.0  , 90.0f }, // 2离开转盘
-    {-1900.0 , 986.0  , 90.0f }, // 3粗加工区
-    {-1824.0 , 1827.0 , 0.0f  }, // 4离开粗加工区
-    {-991.0  , 1924.0 , 0.0f  }, // 5暂存区
-    {-125.0  , 1846.0 , 0.0f  }, // 6离开暂存区（准备第二轮到转盘）
-    {-991.0  , 183.0  , 0.0f  }, // 7离开暂存区（准备回到启停区）
-    {-50.0   , 183.0  , 0.0f  }, // 8准备进入启停区
-    {50.0    , -50.0  , 0.0f  }, // 9回到启停区
+    {556.0  , 138.0  , 0.0f }, // 0扫二维码
+    {1378.0 , -20.0  , 0.0f }, // 1转盘抓取
+    {975.0  , 100.0  , 0.0f }, // 2离开转盘
+    {975.0  , 1900.0 , 0.0f }, // 3粗加工区
+    {1800.0 , 1800.0 , 0.0f }, // 4离开粗加工区
+    {1900.0 , 985.0  , 0.0f }, // 5暂存区
+    {1800.0 , 80.0   , 0.0f }, // 6离开暂存区（准备第二轮到转盘）
+    {150.0  , 1000.0 , 0.0f }, // 7离开暂存区（准备回到启停区）
+    {100.0  , 100.0  , 0.0f }, // 8准备进入启停区
+    {-40.0  , -40.0  , 0.0f }, //{50.0    , -50.0  , 0.0f  }, // 9回到启停区
 };
 int taskcode[2][3] = {0};
 int circleOffset[3][2] = {0};
 int startTime = 0;
+
+// 检查并等待主流程暂停信号解除
+void waitIfPaused(void) {
+    if(xSemaphoreTake(xSemaphoreMainsequencePause, 0) == pdTRUE) {
+        // 如果成功获取信号量，则说明未暂停，立即释放并继续
+        xSemaphoreGive(xSemaphoreMainsequencePause);
+    } else {
+        // 如果未能获取信号量，说明暂停中，需要等待
+        DEBUG_LOG("主流程暂停中，等待恢复...");
+        // 等待暂停信号量被释放
+        xSemaphoreTake(xSemaphoreMainsequencePause, portMAX_DELAY);
+        xSemaphoreGive(xSemaphoreMainsequencePause);
+        DEBUG_LOG("主流程已恢复");
+    }
+}
+
 void startMainSequence(void)
 {
     /*启动主流程*/
@@ -82,6 +98,10 @@ void mainSequenceTask(void *pvParameters)
         waitArrived();
         arm_catchFromTurntable(taskcode[0]);
         P(TASK_FIRST_TURNTABLE);
+        
+        // 在关键点检查暂停状态
+        waitIfPaused();
+        
         moveTo(pos[2]); // 1 前往离开转盘状态
         waitNear();
         
@@ -90,6 +110,10 @@ void mainSequenceTask(void *pvParameters)
         arm_putToGround(taskcode[0]);
         arm_catchFromGround(taskcode[0]);
         P(TASK_FIRST_ROUGH);
+        
+        // 在关键点检查暂停状态
+        waitIfPaused();
+        
         moveTo(pos[4]); // 1 离开粗加工区
         waitNear();
         
@@ -97,6 +121,10 @@ void mainSequenceTask(void *pvParameters)
         waitArrived();
         arm_putToGround(taskcode[0]);
         P(TASK_FIRST_STORAGE);
+        
+        // 在关键点检查暂停状态
+        waitIfPaused();
+        
         moveTo(pos[6]); // 1 离开暂存区
         waitNear();
         
@@ -104,6 +132,10 @@ void mainSequenceTask(void *pvParameters)
         waitArrived();
         arm_catchFromTurntable(taskcode[1]);
         P(TASK_SECOND_TURNTABLE);
+        
+        // 在关键点检查暂停状态
+        waitIfPaused();
+        
         moveTo(pos[2]); // 2 前往离开转盘状态
         waitNear();
         
@@ -112,6 +144,10 @@ void mainSequenceTask(void *pvParameters)
         arm_putToGround(taskcode[1]);
         arm_catchFromGround(taskcode[1]);
         P(TASK_SECOND_ROUGH);
+        
+        // 在关键点检查暂停状态
+        waitIfPaused();
+        
         moveTo(pos[4]); // 2 离开粗加工区
         waitNear();
         
@@ -119,6 +155,10 @@ void mainSequenceTask(void *pvParameters)
         waitArrived();
         arm_putToGround(taskcode[1]);
         P(TASK_SECOND_STORAGE);
+        
+        // 在关键点检查暂停状态
+        waitIfPaused();
+        
         moveTo(pos[7]); // 2 离开暂存区
         waitNear();
         

@@ -15,7 +15,7 @@ void initSensor(void);
 
 void resetSensor(void);
 
-void calculateGlobalPosition(void *pvParameters);
+void calculateGlobalPosition(/*void *pvParameters*/);
 
 void getGlobalPosition(global_position_t *position);
 

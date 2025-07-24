@@ -9,6 +9,8 @@
 #pragma once
 
 #include <Arduino.h>
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 // 定义绝对值宏
 #define ABS(x) ((x) > 0 ? (x) : -(x)) 
@@ -30,6 +32,15 @@ typedef enum {
   S_State = 15,     /* 读取系统状态参数 */
   S_ORG   = 16,     /* 读取正在回零/回零失败状态标志位 */
 }SysParams_t;
+
+// 电机数据缓存结构
+typedef struct {
+  uint8_t addr;
+  int velocity;
+  uint16_t voltage;
+  unsigned long lastUpdateTime;
+  bool isValid;
+} motor_data_cache_t;
 
 class ZDT_MOTOR_EMM_V5 {
 public:
@@ -59,9 +70,18 @@ public:
   void originInterrupt(uint8_t addr);                                                                                                                                              // 强制中断并退出回零
   
   // 接收数据函数
-  void receiveData(uint8_t *rxCmd, uint8_t *rxCount);            // 返回数据接收函数
+  void receiveData(uint8_t *rxCmd, uint8_t *rxCount);            // 返回数据接收函数（保留原有阻塞式函数）
+  void receiveDataNonBlocking(void);                             // 非阻塞式数据接收
   uint16_t getVoltage(uint8_t addr);
+  int getVelocity(uint8_t addr);
+  
+  // 电机数据监听任务
+  static void motorDataListenerTask(void *pvParameters);
 
 private:
   HardwareSerial* _serial;
 };
+
+// 全局声明
+extern SemaphoreHandle_t motorDataMutex;
+extern motor_data_cache_t motorDataCache[5]; // 支持最多4个电机（地址1-4）

@@ -2,12 +2,30 @@
 #include "taskManager.h"
 #include "config.h"
 
+// 全局变量定义
+SemaphoreHandle_t motorDataMutex = NULL;
+motor_data_cache_t motorDataCache[5] = {0}; // 支持最多4个电机（地址1-4）
+
 // 构造函数，自动初始化
 ZDT_MOTOR_EMM_V5::ZDT_MOTOR_EMM_V5(HardwareSerial *serial)
 {
   _serial = serial;
-  if (_serial != nullptr) {
-    _serial->begin(115200);
+  //if (_serial != nullptr) {
+  //  _serial->begin(921600);
+  //}
+  
+  // 创建互斥锁（只创建一次）
+  if (motorDataMutex == NULL) {
+    motorDataMutex = xSemaphoreCreateMutex();
+  }
+  
+  // 初始化缓存数据
+  for (int i = 0; i < 5; i++) {
+    motorDataCache[i].addr = i;
+    motorDataCache[i].velocity = 0;
+    motorDataCache[i].voltage = 0;
+    motorDataCache[i].lastUpdateTime = 0;
+    motorDataCache[i].isValid = false;
   }
 }
 
@@ -373,7 +391,7 @@ void ZDT_MOTOR_EMM_V5::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
     {
       currentTime = millis(); // 获取当前时刻的时间
 
-      if ((int)(currentTime - lastTime) > 100) // 100毫秒内串口没有数据进来，就判定一帧数据接收结束
+      if ((int)(currentTime - lastTime) > 20) // 20毫秒内串口没有数据进来，就判定一帧数据接收结束
       {
         *rxCount = i; // 数据长度
         return; // 退出循环
@@ -384,32 +402,164 @@ void ZDT_MOTOR_EMM_V5::receiveData(uint8_t *rxCmd, uint8_t *rxCount)
 
 uint16_t ZDT_MOTOR_EMM_V5::getVoltage(uint8_t addr)
 {
-  uint16_t voltage = 0;
-  uint8_t rxCmd[128] = {0};
-  uint8_t rxCount = 0;
-  readSysParams(addr, S_VBUS);
-  //DEBUG_LOG("发送读取电压命令");
-  //wait(100);//貌似不需要额外等待也可以正确接收
-  receiveData(rxCmd, &rxCount);
-  //DEBUG_LOG("读取电压命令完成");
-  // 调试输出接收到的字节
-  //DEBUG_LOG("接收到的字节数: %d", rxCount);
-  //DEBUG_LOG("字节[1]: 0x%02X", rxCmd[1]);
-
-  if (rxCmd[1] == 0x24)
-  {
-    //DEBUG_LOG("成功解析电压命令");
-    voltage = (rxCmd[2] << 8) | rxCmd[3];
+  // 验证地址范围
+  if (addr < 1 || addr > 4) {
+    return 0;
   }
-  //DEBUG_LOG("电机%d，电压: %d", addr, voltage);
-  return voltage+700/*电机内部电压压降0.7V，在此补偿*/;
+  
+  // 发送查询指令（非阻塞）
+  readSysParams(addr, S_VBUS);
+  
+  // 等待一小段时间让监听任务有机会接收数据
+  vTaskDelay(pdMS_TO_TICKS(5));
+  
+  // 从缓存中读取电压数据
+  uint16_t voltage = 0;
+  if (xSemaphoreTake(motorDataMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+    // 检查数据是否有效且未过期（1秒内的数据认为有效）
+    if (motorDataCache[addr].isValid && 
+        (millis() - motorDataCache[addr].lastUpdateTime) < 1000) {
+      voltage = motorDataCache[addr].voltage;
+    }
+    xSemaphoreGive(motorDataMutex);
+  }
+  
+  return voltage;
 }
-
+/**
+ * @return 转速，单位RPM
+ */
+int ZDT_MOTOR_EMM_V5::getVelocity(uint8_t addr)
+{
+  // 验证地址范围
+  if (addr < 1 || addr > 4) {
+    return 0;
+  }
+  
+  // 发送查询指令（非阻塞）
+  readSysParams(addr, S_VEL);
+  
+  // 等待一小段时间让监听任务有机会接收数据
+  vTaskDelay(pdMS_TO_TICKS(5));
+  
+  // 从缓存中读取速度数据
+  int velocity = 0;
+  if (xSemaphoreTake(motorDataMutex, pdMS_TO_TICKS(5)) == pdTRUE) {
+    // 检查数据是否有效且未过期（100ms内的数据认为有效）
+    if (motorDataCache[addr].isValid && 
+        (millis() - motorDataCache[addr].lastUpdateTime) < 100) {
+      velocity = motorDataCache[addr].velocity;
+    }
+    xSemaphoreGive(motorDataMutex);
+  }
+  
+  return velocity;
+}
 // 发送命令函数
 void ZDT_MOTOR_EMM_V5::sendCommand(uint8_t *cmd, uint8_t len) {
   if (_serial != nullptr) {
     _serial->write(cmd, len);
-    delay(2);
+    delay(3);//不延迟的话指令会乱
     //DEBUG_LOG("发送命令\n");
+  }
+}
+
+/**
+ * @brief 非阻塞式数据接收，持续监听串口并解析数据包
+ */
+void ZDT_MOTOR_EMM_V5::receiveDataNonBlocking(void)
+{
+  static uint8_t rxBuffer[128];
+  static uint8_t rxIndex = 0;
+  static unsigned long lastByteTime = 0;
+  
+  // 检查是否有数据可读
+  if (_serial->available() == 0) {
+    // 检查超时，如果超过20ms没收到数据且缓冲区有数据，则重置
+    if (rxIndex > 0 && (millis() - lastByteTime) > 20) {
+      rxIndex = 0;
+    }
+    return;
+  }
+  
+  // 读取一个字节
+  uint8_t byte = _serial->read();
+  lastByteTime = millis();
+  
+  // 存储字节
+  rxBuffer[rxIndex] = byte;
+  rxIndex++;
+  
+  // 检查是否收到校验字节0x6B（一帧数据结束）
+  if (byte == 0x6B && rxIndex >= 4) {
+    // 解析数据包
+    uint8_t addr = rxBuffer[0];
+    uint8_t cmd = rxBuffer[1];
+    
+    // 验证地址范围
+    if (addr >= 1 && addr <= 4) {
+      bool dataUpdated = false;
+      
+      if (cmd == 0x35 && rxIndex >= 6) { // 速度数据
+        uint16_t velocity = (rxBuffer[3] << 8) | rxBuffer[4];
+        int ultimateVelocity = rxBuffer[2] == 0x00 ? velocity : -velocity;
+        
+        // 更新缓存
+        if (xSemaphoreTake(motorDataMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
+          motorDataCache[addr].velocity = ultimateVelocity;
+          motorDataCache[addr].lastUpdateTime = millis();
+          motorDataCache[addr].isValid = true;
+          xSemaphoreGive(motorDataMutex);
+          dataUpdated = true;
+        }
+      }
+      else if (cmd == 0x24 && rxIndex >= 5) { // 电压数据
+        uint16_t voltage = (rxBuffer[2] << 8) | rxBuffer[3];
+        
+        // 更新缓存
+        if (xSemaphoreTake(motorDataMutex, pdMS_TO_TICKS(1)) == pdTRUE) {
+          motorDataCache[addr].voltage = voltage + 700; // 补偿电压压降
+          motorDataCache[addr].lastUpdateTime = millis();
+          motorDataCache[addr].isValid = true;
+          xSemaphoreGive(motorDataMutex);
+          dataUpdated = true;
+        }
+      }
+    }
+    
+    // 重置缓冲区
+    rxIndex = 0;
+  }
+  else if (rxIndex >= 128) {
+    // 缓冲区溢出，重置
+    rxIndex = 0;
+  }
+}
+
+/**
+ * @brief 电机数据监听任务 - 纯粹的数据接收监听，不主动发送指令
+ */
+void ZDT_MOTOR_EMM_V5::motorDataListenerTask(void *pvParameters)
+{
+  ZDT_MOTOR_EMM_V5* motorInstance = (ZDT_MOTOR_EMM_V5*)pvParameters;
+  
+  // 等待电机初始化完成
+  while (motorInstance->_serial == nullptr) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+  
+  // 清空串口缓冲区
+  while (motorInstance->_serial->available() > 0) {
+    motorInstance->_serial->read();
+  }
+  
+  DEBUG_LOG("电机数据监听任务已启动");
+  
+  while (true) {
+    // 纯粹的非阻塞接收数据，不主动发送任何指令
+    motorInstance->receiveDataNonBlocking();
+    
+    // 短暂延迟，让出CPU时间
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }

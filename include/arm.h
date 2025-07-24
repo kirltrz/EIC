@@ -29,14 +29,14 @@ void arm_catchFromTurntable(int taskcode[3]);
 void arm_putToGround(int taskcode[3]);
 void arm_catchFromGround(int taskcode[3]);
 void arm_putToMaterial(int taskcode[3]);
-void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, uint16_t dec);
+void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, uint16_t dec, bool needDelay=true);
 void armSet_position(float theta0, float first_arm_degree, float second_arm_degree, float third_arm_degree, uint16_t interval, uint16_t acc, uint16_t dec);
 bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree);
 void armCalculate_forward(float theta0, float first_arm_degree, float second_arm_degree, float *out_arm_location_xyz);
 void waitArm(void);
 
-// 夹爪位置监测相关函数
-void initGripperMonitor(void);       // 初始化夹爪位置监测任务
-bool isGripperHolding(void);         // 获取夹持状态（基于角度位置）
-void gripperMonitorTask(void *pvParameters); // 夹爪位置监测任务
-void stopGripperMonitor(void);       // 停止夹爪位置监测任务
+void localToGlobalCoordinates(float local_x, float local_y, float servo0_angle, float *global_x, float *global_y);
+
+// 机械臂控制MainSequence的推进与暂停相关函数
+void armPauseMainSequence(void);     // 暂停主流程
+void armResumeMainSequence(void);    // 恢复/推进主流程

@@ -68,6 +68,11 @@ void initMotor()
     motor->stopNow(MOTOR_BROADCAST, 0);
 
     motor->enControl(MOTOR_BROADCAST, false);//失能电机方便摆位置
+    
+    // 创建电机数据监听任务
+    xTaskCreate(ZDT_MOTOR_EMM_V5::motorDataListenerTask, "Motor Data Listener", 2048, motor, 2, NULL);
+    DEBUG_LOG("电机数据监听任务已创建");
+    
     DEBUG_LOG("电机初始化和通信测试完成");
 }
 
@@ -276,30 +281,6 @@ void moveTask(void *pvParameters)
 
                 // 使用速度控制模式
                 motor->velocityControl(motor_addrs[i], dir, abs(speed), DEFAULT_ACC, 0);
-
-                /* 接收会导致重启
-                // 在receiveData之前添加
-                memset(rxCmd, 0, sizeof(rxCmd)); // 每次使用前清空
-
-                // 接收并处理来自电机的反馈数据
-                motor->receiveData(rxCmd, &rxCount);
-
-                // 限制rxCount大小
-                if (rxCount >= sizeof(rxCmd))
-                    rxCount = sizeof(rxCmd) - 1;
-                */
-
-                // 添加调试信息，显示电机回复
-                /*if (i == 0 && (currentTime % 1000) < 10) { // 每秒输出一次第一个电机的回复情况
-                    DEBUG_LOG("电机回复数据: 长度=");
-                    DEBUG_LOG(rxCount);
-                    DEBUG_LOG(", 数据:");
-                    for(uint8_t j = 0; j < rxCount && j < 10; j++) {
-                        DEBUG_LOG(" 0x");
-                        DEBUG_LOG(rxCmd[j], HEX);
-                    }
-                    Serial.println();
-                }*/
             }
 
             // 判断是否到达目标点
@@ -317,8 +298,9 @@ void moveTask(void *pvParameters)
                 DEBUG_SERIAL.println("到达目标位置，切换到位置保持模式");
             }
         }
-
-        // 使用vTaskDelayUntil严格控制执行周期为10ms
+        //delay(10);
+        calculateGlobalPosition();
+        // 使用vTaskDelayUntil严格控制执行周期为20ms
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
     }
 }
