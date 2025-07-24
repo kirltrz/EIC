@@ -30,13 +30,13 @@ static void updateClawSwitchColor(void)
         
         if (switchChecked) {
             // 开关处于闭合状态
-            if (isGripperHolding()) {
+            //if (isGripperHolding()) {
                 // 夹持状态：设置knob为绿色（成功夹持）
                 lv_obj_set_style_bg_color(ui_uiSetClawSwitch, lv_color_hex(0x00FF00), LV_PART_KNOB | LV_STATE_CHECKED);
-            } else {
+            //} else {
                 // 未夹持状态：设置knob为红色（闭合但未夹持）
-                lv_obj_set_style_bg_color(ui_uiSetClawSwitch, lv_color_hex(0xFF0000), LV_PART_KNOB | LV_STATE_CHECKED);
-            }
+            //    lv_obj_set_style_bg_color(ui_uiSetClawSwitch, lv_color_hex(0xFF0000), LV_PART_KNOB | LV_STATE_CHECKED);
+            //}
         }
         // 张开状态：knob保持默认颜色，不需要设置
     }

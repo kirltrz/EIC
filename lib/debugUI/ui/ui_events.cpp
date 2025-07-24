@@ -314,39 +314,6 @@ void armTestFunc3(lv_event_t * e)
 	arm_putToGround(taskcode);
 }
 
-// 测试夹爪位置监测功能
-void testGripperMonitor(lv_event_t * e)
-{
-    static bool testRunning = false;
-    
-    if (!testRunning) {
-        testRunning = true;
-        DEBUG_LOG("开始夹爪位置监测测试");
-        
-        // 测试序列：张开 -> 闭合 -> 等待检测 -> 张开
-        arm_setClaw(true);   // 张开夹爪
-        delay(1000);
-        
-        DEBUG_LOG("当前夹持状态: %s", isGripperHolding() ? "已夹持" : "未夹持");
-        DEBUG_LOG("当前角度: %.1f°", currentGripperAngle);
-        
-        arm_setClaw(false);  // 闭合夹爪
-        delay(2000);         // 等待2秒让监测系统检测
-        
-        DEBUG_LOG("闭合后夹持状态: %s", isGripperHolding() ? "已夹持" : "未夹持");
-        DEBUG_LOG("闭合后角度: %.1f°", currentGripperAngle);
-        
-        arm_setClaw(true);   // 再次张开
-        delay(1000);
-        
-        DEBUG_LOG("最终夹持状态: %s", isGripperHolding() ? "已夹持" : "未夹持");
-        DEBUG_LOG("最终角度: %.1f°", currentGripperAngle);
-        DEBUG_LOG("夹爪位置监测测试完成");
-        
-        testRunning = false;
-    }
-}
-
 void ui_resetSensor(lv_event_t * e)
 {
 	resetSensor();

@@ -66,7 +66,20 @@ def qr_code_mode(frame):
     barcodes = pyzbar.decode(gray)
 
     for barcode in barcodes:
+        # 提取二维码的边界框
+        (x, y, w, h) = barcode.rect
+        
+        # 在图像上绘制二维码边界框
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        
+        # 解码二维码数据
         barcode_data = barcode.data.decode("utf-8")
+        barcode_type = barcode.type
+        
+        # 在图像上显示二维码类型和数据
+        text = f"{barcode_type}: {barcode_data}"
+        cv2.putText(frame, text, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        
         # 假设二维码内容是 "123+321" 这样的格式
         if '+' in barcode_data:
             parts = barcode_data.split('+')
@@ -74,11 +87,20 @@ def qr_code_mode(frame):
                 try:
                     data1 = int(parts[0])  # 提取第一个数据
                     data2 = int(parts[1])  # 提取第二个数据
+                    
+                    # 显示分离后的数据
+                    cv2.putText(frame, f"Data1: {data1}, Data2: {data2}", (x, y + h + 20), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                    
                     return data1, data2, 0x00  # 返回两个数据，颜色位为0x00
                 except ValueError:
                     print("二维码内容格式错误，无法转换为整数")
+                    cv2.putText(frame, "Format Error", (x, y + h + 20), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
         else:
             print("二维码内容格式错误，未包含 '+' 分隔符")
+            cv2.putText(frame, "Format Error: Missing '+'", (x, y + h + 20), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
     return 0, 0, 0x00  # 未检测到二维码或格式错误
 
@@ -182,11 +204,14 @@ def color_ring_mode(frame):
             cv2.circle(frame, center, radius, (0, 255, 0), 2)  # 绘制圆
             cv2.circle(frame, center, 2, (0, 0, 255), 3)  # 绘制圆心
 
-           # 提取半径（R）值并显示在图像上
-            #R_value = int(radius)  # 转换为整数以方便显示
-            #text = f"R: {R_value}"
-            #cv2.putText(frame, text, (center[0] + radius + 5, center[1]), cv2.FONT_HERSHEY_SIMPLEX, 
-            #            0.5, (255, 0, 0), 1, cv2.LINE_AA)
+            # 提取半径（R）值并显示在图像上
+            R_value = int(radius)  # 转换为整数以方便显示
+            cv2.putText(frame, f"R: {R_value}", (center[0] + radius + 5, center[1]), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
+            
+            # 显示圆心坐标
+            cv2.putText(frame, f"Center: ({center[0]}, {center[1]})", (center[0] - 70, center[1] - radius - 10), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
             
             # 返回圆心坐标和颜色
             return center[0], center[1], 0x00  # 返回圆心位置，颜色位为0x00

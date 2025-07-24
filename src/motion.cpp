@@ -54,7 +54,7 @@ const TickType_t xFrequency = pdMS_TO_TICKS(PID_INTERVAL);
 void initMotor()
 {
     // 初始化串口通信，用于与电机通信
-    MOTOR_SERIAL.begin(SERIAL_BAUDRATE, SERIAL_8N1, PIN_MOTOR_RX, PIN_MOTOR_TX);
+    MOTOR_SERIAL.begin(MOTOR_BAUDRATE, SERIAL_8N1, PIN_MOTOR_RX, PIN_MOTOR_TX);
     // delay(1000); // 等待通信稳定
 
     DEBUG_LOG("开始初始化电机...");
@@ -380,7 +380,7 @@ void waitArrived(void)
     uint32_t startTime = millis();
     while (!arrived(30, 5, true))
     {
-        if (millis() - startTime > 10000) // 超时10秒
+        if (millis() - startTime > 5000) // 超时5秒
         {
             DEBUG_SERIAL.println("等待到达目标点超时!");
             break;
@@ -394,7 +394,7 @@ void waitNear(void)
     uint32_t startTime = millis();
     while (!arrived(50, 30, false))
     {
-        if (millis() - startTime > 10000) // 超时10秒
+        if (millis() - startTime > 5000) // 超时5秒
         {
             DEBUG_SERIAL.println("等待到达目标点超时!");
             break;

@@ -17,7 +17,6 @@ void setup()
     #endif
 
     initArm();
-    initGripperMonitor(); // 初始化夹爪位置监测任务
     initLED();
     initSensor();
     initMotor();//电机驱动板初始化较慢，为确保上电后失能电机，让其他部分先初始化以等待

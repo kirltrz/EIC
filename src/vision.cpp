@@ -183,11 +183,19 @@ bool visionGetCircle(int *x, int *y)
     
     while (millis() - startTime < VISION_TIMEOUT)
     {
-        if (readVisionCache(&packet) && packet.mode == CMD_CIRCLE)
+        if (readVisionCache(&packet))
         {
-            *x = packet.data1;
-            *y = packet.data2;
-            return true;
+            if (packet.mode == CMD_CIRCLE)
+            {
+                *x = packet.data1;
+                *y = packet.data2;
+                return true;
+            }
+            else
+            {
+                // 如果不是色环检测模式，重新发送色环检测指令
+                sendCommand(CMD_CIRCLE);
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
     }
@@ -204,11 +212,19 @@ bool visionGetMaterial(int color, int *x, int *y)
     
     while (millis() - startTime < VISION_TIMEOUT)
     {
-        if (readVisionCache(&packet) && packet.mode == CMD_MATERIAL && packet.color == color)
+        if (readVisionCache(&packet))
         {
-            *x = packet.data1;
-            *y = packet.data2;
-            return true;
+            if (packet.mode == CMD_MATERIAL && packet.color == color)
+            {
+                *x = packet.data1;
+                *y = packet.data2;
+                return true;
+            }
+            else if (packet.mode != CMD_MATERIAL)
+            {
+                // 如果不是物料检测模式，重新发送物料检测指令
+                sendCommand(CMD_MATERIAL);
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
     }

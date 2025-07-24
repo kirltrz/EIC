@@ -26,7 +26,7 @@ void initTaskManager(void)
     );
     xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
     xTaskCreate(moveTask, "Move Task", 8192, NULL, 1, NULL);
-    xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 2048, NULL, 1, NULL);
+    xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 4096, NULL, 1, NULL); // 增加堆栈大小到4096
     
     // Vision监听任务
     xTaskCreate(visionListenerTask, "Vision Listener Task", 2048, NULL, 2, NULL);
