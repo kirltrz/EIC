@@ -71,23 +71,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_currentYaw, LV_ALIGN_CENTER);
     lv_label_set_text(ui_currentYaw, "0");
 
-    ui_Label70 = lv_label_create(ui_Panel1);
-    lv_obj_set_width(ui_Label70, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_Label70, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_Label70, -37);
-    lv_obj_set_y(ui_Label70, 36);
-    lv_obj_set_align(ui_Label70, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label70, "当前v:");
-    lv_obj_set_style_text_font(ui_Label70, &ui_font_chinese, LV_PART_MAIN | LV_STATE_DEFAULT);
-
-    ui_currentV = lv_label_create(ui_Panel1);
-    lv_obj_set_width(ui_currentV, LV_SIZE_CONTENT);   /// 1
-    lv_obj_set_height(ui_currentV, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_x(ui_currentV, 40);
-    lv_obj_set_y(ui_currentV, 36);
-    lv_obj_set_align(ui_currentV, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_currentV, "0");
-
     ui_enableMotorSwitch = lv_switch_create(ui_Screen1);
     lv_obj_set_width(ui_enableMotorSwitch, 50);
     lv_obj_set_height(ui_enableMotorSwitch, 25);
@@ -234,6 +217,21 @@ void ui_Screen1_screen_init(void)
     lv_obj_set_align(ui_Label55, LV_ALIGN_CENTER);
     lv_label_set_text(ui_Label55, "toSScr");
 
+    ui_testbtn = lv_button_create(ui_Screen1);
+    lv_obj_set_width(ui_testbtn, 156);
+    lv_obj_set_height(ui_testbtn, 38);
+    lv_obj_set_x(ui_testbtn, -72);
+    lv_obj_set_y(ui_testbtn, 26);
+    lv_obj_set_align(ui_testbtn, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_testbtn, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_testbtn, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+
+    ui_Label70 = lv_label_create(ui_testbtn);
+    lv_obj_set_width(ui_Label70, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_Label70, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_Label70, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_Label70, "test");
+
     lv_obj_add_event_cb(ui_Panel1, ui_event_Panel1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_enableMotorSwitch, ui_event_enableMotorSwitch, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button3, ui_event_Button3, LV_EVENT_ALL, NULL);
@@ -241,5 +239,6 @@ void ui_Screen1_screen_init(void)
     lv_obj_add_event_cb(ui_Button6, ui_event_Button6, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button11, ui_event_Button11, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Button29, ui_event_Button29, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_testbtn, ui_event_testbtn, LV_EVENT_ALL, NULL);
 
 }

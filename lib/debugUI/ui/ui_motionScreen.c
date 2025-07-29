@@ -61,7 +61,7 @@ void ui_motionScreen_screen_init(void)
     lv_obj_set_width(ui_Label23, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label23, LV_SIZE_CONTENT);    /// 1
     lv_obj_set_align(ui_Label23, LV_ALIGN_CENTER);
-    lv_label_set_text(ui_Label23, "lock");
+    lv_label_set_text(ui_Label23, "all");
 
     ui_TabView4 = lv_tabview_create(ui_motionScreen);
     lv_tabview_set_tab_bar_size(ui_TabView4, 30);

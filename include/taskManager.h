@@ -8,4 +8,7 @@ extern SemaphoreHandle_t xSemaphoreMainsequence;
 extern SemaphoreHandle_t xSemaphoreArmTest;
 extern SemaphoreHandle_t xSemaphoreOTA;
 
+// 任务句柄声明
+extern TaskHandle_t xTaskHandleMainSequence;
+
 void initTaskManager(void);

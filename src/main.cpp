@@ -9,6 +9,7 @@
 #include "arm.h"
 #include "ota.h"
 #include "devMonitor.h"
+#include "VOFAdebug.h"
 
 void setup()
 {
@@ -27,7 +28,8 @@ void setup()
     initTaskManager();
     
     #if DEBUG_ENABLE
-    initOTA();
+    //initOTA();
+    initVOFAdebug();
     #else
     initDevMonitor();
     #endif

@@ -10,6 +10,9 @@
 SemaphoreHandle_t xSemaphoreMainsequence = NULL; // 创建一个信号量句柄
 SemaphoreHandle_t xSemaphoreOTA = NULL;
 
+// 任务句柄定义
+TaskHandle_t xTaskHandleMainSequence = NULL;
+
 void initTaskManager(void)
 {
     xSemaphoreMainsequence = xSemaphoreCreateBinary(); // 创建一个指示主流程开始的二进制信号量
@@ -24,7 +27,7 @@ void initTaskManager(void)
         2,           // 任务优先级
         NULL         // 任务句柄
     );
-    xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, NULL);
+    xTaskCreate(mainSequenceTask, "Main Sequence Task", 4096, NULL, 1, &xTaskHandleMainSequence);
     xTaskCreate(moveTask, "Move Task", 8192, NULL, 1, NULL);
     xTaskCreate(calculateGlobalPosition, "Calculate Global Position", 4096, NULL, 1, NULL); // 增加堆栈大小到4096
     

@@ -2,6 +2,7 @@
 #include "sensor.h"
 #include "taskManager.h" // 导入wait函数
 #include <esp_timer.h>
+#include "VOFAdebug.h"
 
 // 声明ZDT_MOTOR控制对象指针
 ZDT_MOTOR_EMM_V5 *motor = nullptr;
@@ -194,6 +195,10 @@ void moveTask(void *pvParameters)
             pos_x_error = targetPos.x - currentPosition.x;
             pos_y_error = targetPos.y - currentPosition.y;
             yaw_error = targetPos.yaw - currentPosition.continuousYaw;
+
+#if DEBUG_ENABLE
+            sendDebugValuesUDP(targetPos.x,targetPos.y,targetPos.yaw,currentPosition.x,currentPosition.y,currentPosition.continuousYaw);
+#endif
 
             // 更新积分项
             pos_x_integral += pos_x_error * PID_INTERVAL / 1000.0f;

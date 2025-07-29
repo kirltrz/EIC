@@ -19,8 +19,6 @@ lv_obj_t * ui_Label5;
 lv_obj_t * ui_currentX;
 lv_obj_t * ui_currentY;
 lv_obj_t * ui_currentYaw;
-lv_obj_t * ui_Label70;
-lv_obj_t * ui_currentV;
 void ui_event_enableMotorSwitch(lv_event_t * e);
 lv_obj_t * ui_enableMotorSwitch;
 lv_obj_t * ui_Label6;
@@ -41,6 +39,9 @@ lv_obj_t * ui_Label52;
 void ui_event_Button29(lv_event_t * e);
 lv_obj_t * ui_Button29;
 lv_obj_t * ui_Label55;
+void ui_event_testbtn(lv_event_t * e);
+lv_obj_t * ui_testbtn;
+lv_obj_t * ui_Label70;
 // CUSTOM VARIABLES
 
 // SCREEN: ui_otaScreen
@@ -300,6 +301,18 @@ void ui_event_Button29(lv_event_t * e)
 
     if(event_code == LV_EVENT_CLICKED) {
         _ui_screen_change(&ui_servoTestScreen, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_servoTestScreen_screen_init);
+    }
+}
+
+void ui_event_testbtn(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if(event_code == LV_EVENT_CLICKED) {
+        testFunc(e);
+    }
+    if(event_code == LV_EVENT_LONG_PRESSED) {
+        testLongPressedFunc(e);
     }
 }
 

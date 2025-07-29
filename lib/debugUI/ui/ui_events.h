@@ -13,6 +13,8 @@ extern "C" {
 void ui_resetSensor(lv_event_t * e);
 void enableMotor(lv_event_t * e);
 void servoSetOringin(lv_event_t * e);
+void testFunc(lv_event_t * e);
+void testLongPressedFunc(lv_event_t * e);
 void startOTA(lv_event_t * e);
 void switchPIDtarget(lv_event_t * e);
 void applyPID(lv_event_t * e);

@@ -36,8 +36,6 @@ extern lv_obj_t * ui_Label5;
 extern lv_obj_t * ui_currentX;
 extern lv_obj_t * ui_currentY;
 extern lv_obj_t * ui_currentYaw;
-extern lv_obj_t * ui_Label70;
-extern lv_obj_t * ui_currentV;
 void ui_event_enableMotorSwitch(lv_event_t * e);
 extern lv_obj_t * ui_enableMotorSwitch;
 extern lv_obj_t * ui_Label6;
@@ -58,6 +56,9 @@ extern lv_obj_t * ui_Label52;
 void ui_event_Button29(lv_event_t * e);
 extern lv_obj_t * ui_Button29;
 extern lv_obj_t * ui_Label55;
+void ui_event_testbtn(lv_event_t * e);
+extern lv_obj_t * ui_testbtn;
+extern lv_obj_t * ui_Label70;
 // CUSTOM VARIABLES
 
 // SCREEN: ui_otaScreen

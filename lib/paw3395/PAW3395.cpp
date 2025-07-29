@@ -24,6 +24,9 @@ void paw3395Init(uint16_t dpi, uint8_t nrst, uint8_t ncs, uint8_t sclk, uint8_t 
 
 	// 配置DPI设置
 	DPI_Config(dpi);
+
+	// 利用已知参数进行校准
+	Enable_Lift_Cutoff_Calibration(0x0B, 0x0C, 0x30);
 }
 
 /*
@@ -273,5 +276,482 @@ void DPI_Config(uint16_t CPI_Num)
 	// 拉高片选信号
 	cs_high();
 	// 等待退出时间
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+}
+
+/**
+ * 设置PAW3395传感器的抬起截止高度
+ * 
+ * @param height_mm 抬起截止高度，只支持1mm或2mm
+ *                  1 = 1mm抬起截止高度
+ *                  2 = 2mm抬起截止高度
+ *                  其他值将设置为默认的1mm
+ * 
+ * 注意：根据PAW3395手册，需要访问寄存器0x0C4E的低2位进行配置
+ */
+void Set_Lift_Cutoff_Height(uint8_t height_mm)
+{
+	uint8_t reg_value;
+	uint8_t lift_setting;
+
+	// 根据输入确定设置值
+	if (height_mm == 2) {
+		lift_setting = LIFT_CUTOFF_2MM; // 低2位设置为10 (2mm)
+	} else {
+		lift_setting = LIFT_CUTOFF_1MM; // 低2位设置为00 (1mm)
+	}
+
+	// 拉低片选信号
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+
+	// 切换到Bank 0x0C以访问0x0C4E寄存器
+	write_register(0x7F, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWR);
+
+	// 读取当前寄存器值
+	reg_value = read_register(LIFT_CUTOFF_CONFIG);
+	delay_us(PAW3395_TIMINGS_SRWSRR);
+
+	// 清除低2位，然后设置新值
+	reg_value = (reg_value & ~LIFT_CUTOFF_MASK) | lift_setting;
+
+	// 写回修改后的寄存器值
+	write_register(LIFT_CUTOFF_CONFIG, reg_value);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// 切换回Bank 0
+	write_register(0x7F, 0x00);
+
+	// 拉高片选信号
+	cs_high();
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+}
+
+/**
+ * 获取PAW3395传感器当前的抬起截止高度设置
+ * 
+ * @return 抬起截止高度值：1表示1mm，2表示2mm，0表示读取失败或未知状态
+ * 
+ * 注意：根据PAW3395手册，从寄存器0x0C4E的低2位读取配置
+ */
+uint8_t Get_Lift_Cutoff_Height(void)
+{
+	uint8_t reg_value;
+	uint8_t lift_bits;
+
+	// 拉低片选信号
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+
+	// 切换到Bank 0x0C以访问0x0C4E寄存器
+	write_register(0x7F, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWR);
+
+	// 读取寄存器值
+	reg_value = read_register(LIFT_CUTOFF_CONFIG);
+	delay_us(PAW3395_TIMINGS_SRWSRR);
+
+	// 切换回Bank 0
+	write_register(0x7F, 0x00);
+
+	// 拉高片选信号
+	cs_high();
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+
+	// 提取低2位
+	lift_bits = reg_value & LIFT_CUTOFF_MASK;
+
+	// 根据低2位的值返回对应的高度
+	switch (lift_bits) {
+		case LIFT_CUTOFF_1MM: // 00
+			return 1; // 1mm
+		case LIFT_CUTOFF_2MM: // 10 (0x02)
+			return 2; // 2mm
+		default:
+			return 0; // 未知状态
+	}
+}
+
+/**
+ * 扩展的Motion Burst读取，包含SQUAL、RawData_Sum等完整15字节数据
+ * 
+ * @param data 指向motion_burst_data_t结构的指针，用于存储读取的数据
+ */
+void Motion_Burst_Extended(motion_burst_data_t *data)
+{
+	uint8_t buffer[15] = {0}; // 完整15字节的Motion Burst数据
+
+	// 片选拉低，开始SPI通信
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+
+	// 发送运动突发读取命令
+	SPI_SendReceive(PAW3395_SPIREGISTER_MotionBurst);
+	delay_us(PAW3395_TIMINGS_SRAD);
+
+	// 连续读取15字节数据
+	for (uint8_t i = 0; i < 15; i++)
+	{
+		buffer[i] = SPI_SendReceive(0x00);
+	}
+
+	// 片选拉高，结束SPI通信
+	cs_high();
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+
+	// 解析数据到结构体
+	data->motion = buffer[0];
+	data->observation = buffer[1];
+	data->delta_x = (int16_t)(buffer[2] | (buffer[3] << 8));
+	data->delta_y = (int16_t)(buffer[4] | (buffer[5] << 8));
+	data->squal = buffer[6];
+	data->rawdata_sum = buffer[7];
+	data->maximum_rawdata = buffer[8];
+	data->minimum_rawdata = buffer[9];
+	data->shutter_upper = buffer[10];
+	data->shutter_lower = buffer[11];
+	data->reserved1 = buffer[12];
+	data->reserved2 = buffer[13];
+	data->squal2 = buffer[14];
+}
+
+/**
+ * 执行PAW3395传感器的手动抬起截止校准
+ * 严格按照PAW3395手册第7.5.1节的步骤执行
+ * 
+ * @return true: 校准成功, false: 校准失败
+ * 
+ * 注意：
+ * - 校准前确保传感器已正确上电
+ * - 校准期间鼠标必须放置在表面上（未抬起）
+ * - 用户需要在校准过程中移动鼠标覆盖大于20英寸的距离
+ */
+bool Manual_Lift_Cutoff_Calibration(void)
+{
+	uint8_t var_mode;
+	uint8_t calibration_status;
+	uint8_t timeout_counter = 0;
+	const uint8_t MAX_TIMEOUT = 200; // 最大等待时间
+
+	// 拉低片选信号
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+
+	// 步骤3：开始校准程序，按照手册顺序加载寄存器值
+	// a. Write register 0x7F with value 0x00
+	write_register(0x7F, 0x00);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// b. Read register 0x40 and store its value into Var_Mode
+	var_mode = read_register(0x40);
+	delay_us(PAW3395_TIMINGS_SRWSRR);
+
+	// c. Write register 0x40 with value 0x80
+	write_register(0x40, 0x80);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// d. Write register 0x7F with value 0x05
+	write_register(0x7F, 0x05);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// e. Write register 0x43 with value 0xE7
+	write_register(0x43, 0xE7);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// f. Write register 0x7F with value 0x04
+	write_register(0x7F, 0x04);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// g. Write register 0x40 with value 0xC0
+	write_register(0x40, 0xC0);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// h. Write register 0x41 with value 0x10
+	write_register(0x41, 0x10);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// i-p. Write registers 0x44-0x4B with value 0x0C
+	for (uint8_t reg = 0x44; reg <= 0x4B; reg++) {
+		write_register(reg, 0x0C);
+		delay_us(PAW3395_TIMINGS_SWW);
+	}
+
+	// q. Write register 0x40 with value 0xC1 (启动校准)
+	write_register(0x40, 0xC1);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// 拉高片选信号，等待用户移动鼠标
+	cs_high();
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+
+	// 等待一段时间让用户移动鼠标（建议>20英寸距离）
+	// 这里可以通过回调函数或者延时来处理
+	delay_ms(5000); // 给用户5秒时间移动鼠标
+
+	// 步骤5：停止校准过程
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+	write_register(0x40, 0x40);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	// 步骤6：检查校准状态
+	do {
+		calibration_status = read_register(CALIBRATION_STATUS_REG);
+		delay_us(PAW3395_TIMINGS_SRWSRR);
+		
+		// 检查低4位是否等于5（校准成功）
+		if ((calibration_status & 0x0F) == CALIBRATION_SUCCESS) {
+			break; // 校准成功
+		}
+		
+		delay_ms(50);
+		timeout_counter++;
+	} while (timeout_counter < MAX_TIMEOUT);
+
+	// 检查校准结果
+	if (timeout_counter >= MAX_TIMEOUT || (calibration_status & 0x0F) != CALIBRATION_SUCCESS) {
+		// 校准失败，恢复通用1mm设置
+		write_register(LIFT_CUTOFF_CONFIG, UNIVERSAL_1MM_SETTING);
+		delay_us(PAW3395_TIMINGS_SWW);
+		
+		write_register(0x7F, 0x05);
+		delay_us(PAW3395_TIMINGS_SWW);
+		write_register(0x43, 0xE4);
+		delay_us(PAW3395_TIMINGS_SWW);
+		
+		write_register(0x7F, 0x00);
+		delay_us(PAW3395_TIMINGS_SWW);
+		write_register(0x40, var_mode);
+		
+		cs_high();
+		delay_125_ns(PAW3395_TIMINGS_BEXIT);
+		return false;
+	}
+
+	// 步骤7：校准成功，读取校准结果
+	uint8_t varA = read_register(CALIBRATION_RESULT_REG);
+	delay_us(PAW3395_TIMINGS_SRWSRR);
+
+	write_register(0x7F, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	uint8_t varB = 0x0C;
+	uint8_t varC = 0x30;
+
+	write_register(LIFT_CUTOFF_CONFIG, UNIVERSAL_1MM_SETTING);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	write_register(0x7F, 0x05);
+	delay_us(PAW3395_TIMINGS_SWW);
+	write_register(0x43, 0xE4);
+	delay_us(PAW3395_TIMINGS_SWW);
+
+	write_register(0x7F, 0x00);
+	delay_us(PAW3395_TIMINGS_SWW);
+	write_register(0x40, var_mode);
+
+	cs_high();
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+
+	// 启用校准设置
+	Enable_Lift_Cutoff_Calibration(varA, varB, varC);
+
+	return true;
+}
+
+/**
+ * 固件辅助手动抬起截止校准（可选功能）
+ * 根据PAW3395手册第7.5.1.1节实现
+ * 
+ * @param varA 输出参数，校准后的VarA值
+ * @param varB 输出参数，校准后的VarB值  
+ * @param varC 输出参数，校准后的VarC值
+ * @return true: 检测到独特表面，参数已更新; false: 未检测到独特表面，参数保持默认值
+ */
+bool Firmware_Aided_Calibration(uint8_t *varA, uint8_t *varB, uint8_t *varC)
+{
+	motion_burst_data_t burst_data;
+	uint32_t squal_accumulator = 0;
+	uint32_t rawdata_sum_accumulator = 0;
+	uint32_t squal2_accumulator = 0;
+	uint16_t sample_count = 0;
+
+	// 设置默认值
+	*varA = 0x25; // 读取的校准结果或默认值
+	*varB = 0x0C;
+	*varC = 0x30;
+
+	// 步骤1：收集至少3000个样本
+	while (sample_count < MIN_MOTION_SAMPLES) {
+		Motion_Burst_Extended(&burst_data);
+		
+		// 只在有运动时累加数据
+		if (burst_data.motion & 0x80) { // 检查运动标志位
+			squal_accumulator += burst_data.squal;
+			rawdata_sum_accumulator += burst_data.rawdata_sum;
+			squal2_accumulator += burst_data.squal2;
+			sample_count++;
+		}
+		
+		delay_ms(1); // 小延时避免过快采样
+	}
+
+	// 计算平均值
+	uint16_t squal_avg = squal_accumulator / sample_count;
+	uint16_t rawdata_sum_avg = rawdata_sum_accumulator / sample_count;
+	uint16_t squal2_avg = squal2_accumulator / sample_count;
+
+	// 步骤2：确定SQUAL阈值
+	uint8_t squal_th = (rawdata_sum_avg < 48) ? 23 : 30;
+
+	// 步骤3：计算SQUAL比率
+	uint16_t squal_ratio = 0;
+	if (squal_avg > 0) {
+		squal_ratio = (squal2_avg * 100) / squal_avg;
+	}
+
+	// 步骤4：检查是否检测到独特表面
+	if ((squal_ratio < squal_th) && (rawdata_sum_avg < 68)) {
+		// 检测到独特表面，更新参数
+		*varA = 0x25;
+		*varB = 0x0C;
+		*varC = 0x2D;
+		return true;
+	}
+
+	// 未检测到独特表面，保持默认值
+	return false;
+}
+
+/**
+ * 启用抬起截止校准寄存器设置
+ * 根据PAW3395手册第7.5.2节实现
+ * 
+ * @param varA 校准参数A
+ * @param varB 校准参数B
+ * @param varC 校准参数C
+ */
+void Enable_Lift_Cutoff_Calibration(uint8_t varA, uint8_t varB, uint8_t varC)
+{
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+
+	// 按照手册步骤设置寄存器
+	write_register(0x7F, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x41, varA);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x43, varC);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x44, varB);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x4E, 0x08);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x5A, 0x0D);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x5B, 0x05);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x05);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x6E, 0x0F);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x09);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x71, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x00);
+
+	cs_high();
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+}
+
+/**
+ * 禁用抬起截止校准寄存器设置，恢复默认通用1mm设置
+ * 根据PAW3395手册第7.5.3节实现
+ */
+void Disable_Lift_Cutoff_Calibration(void)
+{
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+
+	// 按照手册步骤恢复默认设置
+	write_register(0x7F, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x41, 0x25);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x43, 0x2D);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x44, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x4A, 0x10);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x4B, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x4C, 0x40);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x4E, 0x08);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x53, 0x16);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x54, 0x1A);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x55, 0x18);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x56, 0x14);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x5A, 0x0D);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x5B, 0x05);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x5F, 0x1E);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x66, 0x30);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x05);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x6E, 0x0F);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x09);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x71, 0x0C);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x72, 0x07);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x00);
+
+	cs_high();
 	delay_125_ns(PAW3395_TIMINGS_BEXIT);
 }

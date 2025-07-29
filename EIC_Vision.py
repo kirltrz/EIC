@@ -9,10 +9,10 @@ import time
 ser = serial.Serial('/dev/serial0', 115200, timeout=1)
 
 # 定义模式常量
-MODE_STANDBY = 0x00
+MODE_IDLE = 0x00
 MODE_QR_CODE = 0x01
-MODE_CIRCLE_COLOR = 0x02  # 原料区定位
-MODE_COLOR_RING = 0x03
+MODE_SOLID_CIRCLE = 0x02  # 实心圆形识别
+MODE_CONCENTRIC_RING = 0x03   # 同心色环识别
 
 # 定义颜色常量
 COLOR_RED = 0x01
@@ -24,7 +24,7 @@ FRAME_HEADER = 0x7B
 FRAME_FOOTER = 0x7D
 
 # 全局变量，用于存储当前模式和摄像头帧
-current_mode = MODE_STANDBY
+current_mode = MODE_IDLE
 latest_frame = None
 frame_lock = threading.Lock()
 target_color = 0x00  # 添加全局变量存储目标颜色
@@ -104,7 +104,7 @@ def qr_code_mode(frame):
 
     return 0, 0, 0x00  # 未检测到二维码或格式错误
 
-def circle_color_mode(frame, target_color=0x00):
+def solid_circle_mode(frame, target_color=0x00):
         # 将BGR图像转换为HSV图像
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -162,19 +162,21 @@ def circle_color_mode(frame, target_color=0x00):
             if target_color != 0x00 and dominant_color != target_color:
                 continue
 
-            # 在图像上标注面积和主要颜色
+            # 在图像上标注面积、主要颜色和中心坐标
             cv2.putText(frame, f"Area: {area:.0f}", (x, y - 10), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-            cv2.putText(frame, f"Color: {dominant_color}", (x, y - 30), 
+            cv2.putText(frame, f"Color: {get_color_name(dominant_color)}", (x, y - 30), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            cv2.putText(frame, f"Center: ({cx}, {cy})", (x, y - 50), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
             # 输出中心坐标、面积和主要颜色到控制台
-            print(f"中心坐标(x, y): ({cx}, {cy}), 区域面积: {area:.0f}, 主要颜色: {dominant_color}")
+            print(f"实心圆形 - 中心坐标(x, y): ({cx}, {cy}), 区域面积: {area:.0f}, 主要颜色: {get_color_name(dominant_color)}")
             return cx, cy, dominant_color
 
-        return 0, 0, 0x00  # 未检测到圆
+        return 0, 0, 0x00  # 未检测到实心圆形
 
-def color_ring_mode(frame):
+def concentric_ring_mode(frame):
     # 转换为灰度图像
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -214,9 +216,10 @@ def color_ring_mode(frame):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1, cv2.LINE_AA)
             
             # 返回圆心坐标和颜色
+            print(f"同心色环 - 中心坐标(x, y): ({center[0]}, {center[1]}), 半径: {R_value}")
             return center[0], center[1], 0x00  # 返回圆心位置，颜色位为0x00
 
-    return 0, 0, 0x00  # 未检测到圆
+    return 0, 0, 0x00  # 未检测到同心色环
 
 def uart_listener():
     global current_mode, target_color
@@ -252,6 +255,51 @@ def uart_listener():
                 print("数据包长度错误，丢弃数据包")
         else:
             print(f"丢弃非帧头字节: {byte[0]:02X}")
+
+def get_mode_name(mode):
+    """获取模式名称"""
+    mode_names = {
+        MODE_IDLE: "IDLE",
+        MODE_QR_CODE: "QR_CODE", 
+        MODE_SOLID_CIRCLE: "SOLID_CIRCLE",
+        MODE_CONCENTRIC_RING: "CONCENTRIC_RING"
+    }
+    return mode_names.get(mode, "UNKNOWN")
+
+def get_color_name(color):
+    """获取颜色名称"""
+    color_names = {
+        0x00: "ALL",
+        COLOR_RED: "RED",
+        COLOR_GREEN: "GREEN", 
+        COLOR_BLUE: "BLUE"
+    }
+    return color_names.get(color, "UNKNOWN")
+
+def draw_status_info(frame):
+    """在帧上绘制状态信息和控制说明"""
+    # 创建半透明背景
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (10, 10), (500, 150), (0, 0, 0), -1)
+    cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
+    
+    # 显示当前模式和目标颜色
+    mode_text = f"Mode: {get_mode_name(current_mode)} ({current_mode})"
+    color_text = f"Target Color: {get_color_name(target_color)}"
+    
+    cv2.putText(frame, mode_text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+    cv2.putText(frame, color_text, (15, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+    
+    # 显示控制说明
+    controls = [
+        "Controls:",
+        "0-Idle  1-QR Code  2-Solid Circle  3-Concentric Ring",
+        "R-Red  G-Green  B-Blue  A-All Colors",
+        "ESC-Exit"
+    ]
+    
+    for i, text in enumerate(controls):
+        cv2.putText(frame, text, (15, 80 + i * 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
 
 def camera_capture():
     global latest_frame, frame_lock
@@ -328,7 +376,7 @@ def camera_capture():
         time.sleep(0.01)  # 小延迟避免CPU过度使用
 
 def camera_processor():
-    global latest_frame, frame_lock, target_color
+    global latest_frame, frame_lock, target_color, current_mode
     while True:
         with frame_lock:
             if latest_frame is not None:
@@ -340,19 +388,50 @@ def camera_processor():
         if current_mode == MODE_QR_CODE:
             data1, data2, color = qr_code_mode(frame)
             send_data_packet(current_mode, data1, data2, color)
-        elif current_mode == MODE_CIRCLE_COLOR:
-            x, y, color = circle_color_mode(frame, target_color)
+        elif current_mode == MODE_SOLID_CIRCLE:
+            x, y, color = solid_circle_mode(frame, target_color)
             send_data_packet(current_mode, x, y, color)
-        elif current_mode == MODE_COLOR_RING:
-            x, y, color = color_ring_mode(frame)
+        elif current_mode == MODE_CONCENTRIC_RING:
+            x, y, color = concentric_ring_mode(frame)
             send_data_packet(current_mode, x, y, color)
-        elif current_mode == MODE_STANDBY:
+        elif current_mode == MODE_IDLE:
             send_data_packet(current_mode, 0, 0, 0x00)
+
+        # 绘制状态信息
+        draw_status_info(frame)
 
         # 显示处理后的帧
         cv2.imshow("Camera Feed", frame)
-        if cv2.waitKey(1) == 27:
+        
+        # 键盘控制
+        key = cv2.waitKey(1) & 0xFF
+        
+        if key == 27:  # ESC键退出
             break
+        elif key == ord('0'):  # 切换到空闲模式
+            current_mode = MODE_IDLE
+            print(f"切换到模式: {get_mode_name(current_mode)}")
+        elif key == ord('1'):  # 切换到二维码模式
+            current_mode = MODE_QR_CODE
+            print(f"切换到模式: {get_mode_name(current_mode)}")
+        elif key == ord('2'):  # 切换到实心圆形模式
+            current_mode = MODE_SOLID_CIRCLE
+            print(f"切换到模式: {get_mode_name(current_mode)}")
+        elif key == ord('3'):  # 切换到同心色环模式
+            current_mode = MODE_CONCENTRIC_RING
+            print(f"切换到模式: {get_mode_name(current_mode)}")
+        elif key == ord('r') or key == ord('R'):  # 设置目标颜色为红色
+            target_color = COLOR_RED
+            print(f"设置目标颜色: {get_color_name(target_color)}")
+        elif key == ord('g') or key == ord('G'):  # 设置目标颜色为绿色
+            target_color = COLOR_GREEN
+            print(f"设置目标颜色: {get_color_name(target_color)}")
+        elif key == ord('b') or key == ord('B'):  # 设置目标颜色为蓝色
+            target_color = COLOR_BLUE
+            print(f"设置目标颜色: {get_color_name(target_color)}")
+        elif key == ord('a') or key == ord('A'):  # 设置目标颜色为全部
+            target_color = 0x00
+            print(f"设置目标颜色: {get_color_name(target_color)}")
 
 def main():
     # 启动UART监听线程

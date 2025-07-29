@@ -115,8 +115,8 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 // 传感器方向配置（相对于小车坐标系的方向变换）
 // 根据实际测试：小车y+→传感器x-，小车x+→传感器y+
 #define PAW3395_DIRECTION_X_SCALE 1.0f   // X方向缩放因子，1表示正向
-#define PAW3395_DIRECTION_Y_SCALE 1.0f   // Y方向缩放因子，1表示正向
-#define PAW3395_SWAP_XY false             // 交换X和Y轴，true表示传感器旋转90度安装
+#define PAW3395_DIRECTION_Y_SCALE -1.0f   // Y方向缩放因子，1表示正向
+#define PAW3395_SWAP_XY true             // 交换X和Y轴，true表示传感器旋转90度安装
 
 // 硬件引脚配置
 #define PAW3395_SPI_HOST SPI3_HOST

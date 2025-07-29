@@ -1,6 +1,7 @@
 #include "sensor.h"
 #include "taskManager.h"
 #include "config.h"
+#include "VOFAdebug.h"
 
 SemaphoreHandle_t positionMutex = NULL; // 全局坐标互斥锁
 global_position_t currentPosition; // 用于积分运算
@@ -136,8 +137,10 @@ void calculateGlobalPosition(void *pvParameters)
 
     int16_t dx = 0;
     int16_t dy = 0;
-    const float scaleFactor = 0.0009769f; // 比例因子，将传感器读数转换为实际位移
-    
+    const float scaleFactor = 0.0009769f; // 26000CPI下的理论比例因子，将传感器读数转换为实际位移
+    const float scaleFactorX = scaleFactor * (300.0f /*实际位移*/ / 285.0f /*传感器读数*/);
+    const float scaleFactorY = scaleFactor * (300.0f /*实际位移*/ / 295.0f /*传感器读数*/);
+
     // 未能更新的位移增量
     float pendingDx = 0.0f;
     float pendingDy = 0.0f;
@@ -148,7 +151,7 @@ void calculateGlobalPosition(void *pvParameters)
     
     // 防抖动处理参数
     const float MOTION_DEADZONE = 5.0f;     // 位移传感器死区阈值
-    const float LOW_PASS_ALPHA = 0.7f;      // 低通滤波系数(0-1)，越大滤波越强
+    const float LOW_PASS_ALPHA = 0.5f;      // 低通滤波系数(0-1)，越大滤波越强
     
     // 滤波后的数据
     float filteredDx = 0.0f;
@@ -172,6 +175,7 @@ void calculateGlobalPosition(void *pvParameters)
         
         // 获取传感器数据
         Motion_Burst(&dx, &dy);
+        //sendDebugValues(dx,dy);
         float rawYaw = HWT101.getZ(); // 获取原始角度值（-180到180度）
         
         // 传感器数据有效性检查
@@ -199,19 +203,15 @@ void calculateGlobalPosition(void *pvParameters)
         float yawRad = rawYaw * DEG_TO_RAD;
         float sinYaw, cosYaw;
         sincosf(yawRad, &sinYaw, &cosYaw); // 使用sincosf同时计算sin和cos，提高效率
-
-        // 计算实际位移（考虑传感器方向与车身方向的关系）
-        float rawDx = dx * scaleFactor;
-        float rawDy = dy * scaleFactor;
         
-        // 应用传感器方向配置
+        // 应用传感器方向配置、比例因子
         float dxActual, dyActual;
         if (PAW3395_SWAP_XY) {
-            dxActual = rawDy * PAW3395_DIRECTION_X_SCALE;
-            dyActual = rawDx * PAW3395_DIRECTION_Y_SCALE;
+            dxActual = dy * PAW3395_DIRECTION_X_SCALE *scaleFactorX;
+            dyActual = dx * PAW3395_DIRECTION_Y_SCALE *scaleFactorY;
         } else {
-            dxActual = rawDx * PAW3395_DIRECTION_X_SCALE;
-            dyActual = rawDy * PAW3395_DIRECTION_Y_SCALE;
+            dxActual = dx * PAW3395_DIRECTION_X_SCALE *scaleFactorX;
+            dyActual = dy * PAW3395_DIRECTION_Y_SCALE *scaleFactorY;
         }
         
         // 低通滤波处理

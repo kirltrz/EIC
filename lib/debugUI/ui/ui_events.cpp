@@ -14,6 +14,8 @@
 #include "LED.h"
 #include "mainSequence.h"
 #include "displayInterface.h"
+#include "PAW3395.h"
+#include "usr_spi.h"
 
 void toNextPos(lv_event_t *e)
 {
@@ -25,61 +27,22 @@ void toNextPos(lv_event_t *e)
 	if (current_pos_index >= sizeof(pos) / sizeof(pos[0]))
 	{
 		current_pos_index = 0;
-	}/*
+	}
+	/*
 	global_position_t currentPosition;
 	getGlobalPosition(&currentPosition);
 	POS pos = {currentPosition.x, currentPosition.y + 500.0, currentPosition.rawYaw + 90.0f};
 	moveTo(pos);*/
 }
 
+// lockCurrentPos改为自动跑全程
 void lockCurrentPos(lv_event_t *e)
 {
-	// 静态变量记录当前状态：是否已锁定位置
-	static bool is_position_locked = false;
-
-	// 获取当前位置
-	global_position_t currentPosition;
-	getGlobalPosition(&currentPosition);
-
-	if (!is_position_locked)
+	motor->enControl(MOTOR_BROADCAST, true);
+	for (int i = 0; i < sizeof(que) / sizeof(que[0]); i++)
 	{
-		// 当前未锁定，按下按钮后锁定当前位置
-		POS currentPos = {currentPosition.x, currentPosition.y, currentPosition.rawYaw};
-
-		// 重要：先调用stopMotion停止任何现有运动，然后再锁定位置
-		stopMotion();
-		delay(50); // 短暂延时，确保电机停止
-
-		// 现在锁定在当前位置
-		moveTo(currentPos); // 移动到当前位置（实际上是锁定位置）
-
-		// 修改按钮显示文本
-		lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
-		lv_obj_t *label = lv_obj_get_child(btn, 0);
-		if (label != NULL)
-		{
-			lv_label_set_text(label, "unlock");
-		}
-
-		// 更新状态
-		is_position_locked = true;
-	}
-	else
-	{
-		// 当前已锁定，按下按钮后解锁
-		stopMotion();
-		delay(50); // 短暂延时，确保电机完全停止
-
-		// 恢复按钮显示文本
-		lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
-		lv_obj_t *label = lv_obj_get_child(btn, 0);
-		if (label != NULL)
-		{
-			lv_label_set_text(label, "lock");
-		}
-
-		// 更新状态
-		is_position_locked = false;
+		moveTo(que[i]);
+		waitNear();
 	}
 }
 
@@ -309,4 +272,277 @@ void armTestFunc3(lv_event_t * e)
 void ui_resetSensor(lv_event_t * e)
 {
 	resetSensor();
+}
+
+void testFunc(lv_event_t * e)
+{
+	// 获取按钮对象
+	lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+	lv_obj_t *label = lv_obj_get_child(btn, 0);
+	
+	if (label == NULL) {
+		DEBUG_LOG("无法获取按钮标签");
+		return;
+	}
+	
+	DEBUG_LOG("开始固件辅助抬起截止校准...");
+	
+	// 提示用户开始移动
+	lv_label_set_text(label, "请移动鼠标");
+	lv_refr_now(NULL);
+	
+	// 初始化校准参数
+	uint8_t varA, varB, varC;
+	motion_burst_data_t burst_data;
+	uint32_t squal_accumulator = 0;
+	uint32_t rawdata_sum_accumulator = 0;
+	uint32_t squal2_accumulator = 0;
+	uint16_t sample_count = 0;
+	uint16_t progress_update_interval = MIN_MOTION_SAMPLES / 10; // 每10%更新一次进度
+	
+	// 设置默认值
+	varA = 0x25;
+	varB = 0x0C; 
+	varC = 0x30;
+	
+	// 步骤1：收集至少3000个样本
+	while (sample_count < MIN_MOTION_SAMPLES) {
+		Motion_Burst_Extended(&burst_data);
+		
+		// 只在有运动时累加数据
+		if (burst_data.motion & 0x80) { // 检查运动标志位
+			squal_accumulator += burst_data.squal;
+			rawdata_sum_accumulator += burst_data.rawdata_sum;
+			squal2_accumulator += burst_data.squal2;
+			sample_count++;
+			
+			// 每收集一定数量样本更新进度显示
+			if (sample_count % progress_update_interval == 0) {
+				uint8_t progress = (sample_count * 100) / MIN_MOTION_SAMPLES;
+				char progress_msg[30];
+				sprintf(progress_msg, "采样中...%d%%", progress);
+				lv_label_set_text(label, progress_msg);
+				lv_refr_now(NULL);
+			}
+		}
+		
+		delay_ms(1); // 小延时避免过快采样
+	}
+	
+	// 显示分析中
+	lv_label_set_text(label, "分析数据...");
+	lv_refr_now(NULL);
+	
+	// 计算平均值
+	uint16_t squal_avg = squal_accumulator / sample_count;
+	uint16_t rawdata_sum_avg = rawdata_sum_accumulator / sample_count;
+	uint16_t squal2_avg = squal2_accumulator / sample_count;
+	
+	// 步骤2：确定SQUAL阈值
+	uint8_t squal_th = (rawdata_sum_avg < 48) ? 23 : 30;
+	
+	// 步骤3：计算SQUAL比率
+	uint16_t squal_ratio = 0;
+	if (squal_avg > 0) {
+		squal_ratio = (squal2_avg * 100) / squal_avg;
+	}
+	
+	// 步骤4：检查是否检测到独特表面
+	bool unique_surface_detected = false;
+	if ((squal_ratio < squal_th) && (rawdata_sum_avg < 68)) {
+		// 检测到独特表面，更新参数
+		varA = 0x25;
+		varB = 0x0C;
+		varC = 0x2D;
+		unique_surface_detected = true;
+		
+		// 启用校准设置
+		Enable_Lift_Cutoff_Calibration(varA, varB, varC);
+		
+		// 显示成功信息
+		char success_msg[50];
+		sprintf(success_msg, "独特表面 A:%02X B:%02X C:%02X", varA, varB, varC);
+		lv_label_set_text(label, success_msg);
+		
+		DEBUG_LOG("固件辅助校准成功! 检测到独特表面");
+		DEBUG_LOG("SQUAL比率: %d, 阈值: %d, RawSum平均: %d", squal_ratio, squal_th, rawdata_sum_avg);
+		DEBUG_LOG("校准参数 - VarA: 0x%02X, VarB: 0x%02X, VarC: 0x%02X", varA, varB, varC);
+		
+	} else {
+		// 未检测到独特表面，使用默认值
+		char default_msg[50];
+		sprintf(default_msg, "通用设置 A:%02X B:%02X C:%02X", varA, varB, varC);
+		lv_label_set_text(label, default_msg);
+		
+		DEBUG_LOG("固件辅助校准完成! 未检测到独特表面，使用通用设置");
+		DEBUG_LOG("SQUAL比率: %d, 阈值: %d, RawSum平均: %d", squal_ratio, squal_th, rawdata_sum_avg);
+		DEBUG_LOG("默认参数 - VarA: 0x%02X, VarB: 0x%02X, VarC: 0x%02X", varA, varB, varC);
+	}
+	
+	// 5秒后恢复按钮原始文本
+	delay_ms(5000);
+	lv_label_set_text(label, "测试");
+}
+
+void testLongPressedFunc(lv_event_t * e)
+{
+	// 获取按钮对象
+	lv_obj_t *btn = (lv_obj_t *)lv_event_get_target(e);
+	lv_obj_t *label = lv_obj_get_child(btn, 0);
+	
+	if (label == NULL) {
+		DEBUG_LOG("无法获取按钮标签");
+		return;
+	}
+	
+	DEBUG_LOG("开始手动抬起截止校准...");
+	
+	// 提示用户校准开始
+	lv_label_set_text(label, "初始化...");
+	lv_refr_now(NULL);
+	
+	// 执行校准前的准备工作
+	uint8_t var_mode;
+	uint8_t calibration_status;
+	uint8_t timeout_counter = 0;
+	const uint8_t MAX_TIMEOUT = 200;
+	
+	// 开始校准程序
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+	
+	// 按照PAW3395手册执行校准步骤
+	write_register(0x7F, 0x00);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	var_mode = read_register(0x40);
+	delay_us(PAW3395_TIMINGS_SRWSRR);
+	
+	write_register(0x40, 0x80);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x05);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x43, 0xE7);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x7F, 0x04);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x40, 0xC0);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	write_register(0x41, 0x10);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	// 写入寄存器0x44-0x4B
+	for (uint8_t reg = 0x44; reg <= 0x4B; reg++) {
+		write_register(reg, 0x0C);
+		delay_us(PAW3395_TIMINGS_SWW);
+	}
+	
+	// 启动校准
+	write_register(0x40, 0xC1);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	cs_high();
+	delay_125_ns(PAW3395_TIMINGS_BEXIT);
+	
+	// 提示用户移动鼠标，分阶段显示倒计时
+	for (int countdown = 5; countdown > 0; countdown--) {
+		char msg[50];
+		sprintf(msg, "移动鼠标%ds", countdown);
+		lv_label_set_text(label, msg);
+		lv_refr_now(NULL);
+		delay_ms(1000);
+	}
+	
+	// 停止校准过程
+	cs_low();
+	delay_125_ns(PAW3395_TIMINGS_NCS_SCLK);
+	write_register(0x40, 0x40);
+	delay_us(PAW3395_TIMINGS_SWW);
+	
+	// 提示检查结果
+	lv_label_set_text(label, "检查结果...");
+	lv_refr_now(NULL);
+	
+	// 检查校准状态
+	bool calibration_success = false;
+	do {
+		calibration_status = read_register(CALIBRATION_STATUS_REG);
+		delay_us(PAW3395_TIMINGS_SRWSRR);
+		
+		if ((calibration_status & 0x0F) == CALIBRATION_SUCCESS) {
+			calibration_success = true;
+			break;
+		}
+		
+		delay_ms(50);
+		timeout_counter++;
+	} while (timeout_counter < MAX_TIMEOUT);
+	
+	// 处理校准结果
+	if (calibration_success) {
+		// 校准成功，读取校准结果
+		uint8_t varA = read_register(CALIBRATION_RESULT_REG);
+		delay_us(PAW3395_TIMINGS_SRWSRR);
+		
+		write_register(0x7F, 0x0C);
+		delay_us(PAW3395_TIMINGS_SWW);
+		
+		uint8_t varB = 0x0C;
+		uint8_t varC = 0x30;
+		
+		write_register(LIFT_CUTOFF_CONFIG, UNIVERSAL_1MM_SETTING);
+		delay_us(PAW3395_TIMINGS_SWW);
+		
+		write_register(0x7F, 0x05);
+		delay_us(PAW3395_TIMINGS_SWW);
+		write_register(0x43, 0xE4);
+		delay_us(PAW3395_TIMINGS_SWW);
+		
+		write_register(0x7F, 0x00);
+		delay_us(PAW3395_TIMINGS_SWW);
+		write_register(0x40, var_mode);
+		
+		cs_high();
+		delay_125_ns(PAW3395_TIMINGS_BEXIT);
+		
+		// 启用校准设置
+		Enable_Lift_Cutoff_Calibration(varA, varB, varC);
+		
+		// 显示校准成功及参数
+		char success_msg[60];
+		sprintf(success_msg, "成功A:%02X B:%02X C:%02X", varA, varB, varC);
+		lv_label_set_text(label, success_msg);
+		
+		DEBUG_LOG("校准成功! VarA: 0x%02X, VarB: 0x%02X, VarC: 0x%02X", varA, varB, varC);
+		
+	} else {
+		// 校准失败，恢复默认设置
+		write_register(LIFT_CUTOFF_CONFIG, UNIVERSAL_1MM_SETTING);
+		delay_us(PAW3395_TIMINGS_SWW);
+		
+		write_register(0x7F, 0x05);
+		delay_us(PAW3395_TIMINGS_SWW);
+		write_register(0x43, 0xE4);
+		delay_us(PAW3395_TIMINGS_SWW);
+		
+		write_register(0x7F, 0x00);
+		delay_us(PAW3395_TIMINGS_SWW);
+		write_register(0x40, var_mode);
+		
+		cs_high();
+		delay_125_ns(PAW3395_TIMINGS_BEXIT);
+		
+		// 显示校准失败
+		lv_label_set_text(label, "校准失败");
+		DEBUG_LOG("校准失败，已恢复默认设置");
+	}
+	
+	// 5秒后恢复按钮原始文本
+	delay_ms(5000);
+	lv_label_set_text(label, "测试");
 }
