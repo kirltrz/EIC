@@ -14,10 +14,10 @@
 POS pos[] = {
     {-153.0  , 576.0  , 0.0f  }, // 0扫二维码
     {  0.0   , 1420.0 , 0.0f  }, // 1转盘抓取
-    {-194.0  , 1000.0 , 90.0f }, // 2离开转盘
-    {-1940.0 , 1017.0 , 90.0f }, // 3粗加工区
-    {-1853.0 , 1824.0 , 0.0f  }, // 4离开粗加工区
-    {-1008.0 , 1957.0 , 0.0f  }, // 5暂存区
+    {-194.0  , 1000.0 , 80.0f }, // 2离开转盘
+    {-1940.0 , 980.0 , 90.0f }, // 3粗加工区
+    {-1853.0 , 1824.0 , 10.0f  }, // 4离开粗加工区
+    {-1038.0 , 1957.0 , 0.0f  }, // 5暂存区
     {-143.0  , 1857.0 , 0.0f  }, // 6离开暂存区（准备第二轮到转盘）
     {-1021.0 , 187.0  , 0.0f  }, // 7离开暂存区（准备回到启停区）
     {-132.0  , 190.0  , 0.0f  }, // 8准备进入启停区
@@ -96,12 +96,13 @@ void mainSequenceTask(void *pvParameters)
         updateTaskcodeDisplay();
         P(TASK_SCAN_QRCODE);
 
-        moveTo(pos[1]); // 1 前往转盘
-        waitArrived();
+        moveTo({pos[1].x-50.0, pos[1].y, pos[1].yaw}); // 1 先靠近转盘，防止由于误差而超出边界
+        //waitNear();
+        caliTurntable(); // 根据转盘校准车身
         arm_catchFromTurntable(taskcode[0]);
         P(TASK_FIRST_TURNTABLE);
         moveTo(pos[2]); // 1 前往离开转盘状态
-        waitNear();
+        waitArrived();
         
         moveTo(pos[3]); // 1 前往粗加工区
         waitArrived();
@@ -118,12 +119,13 @@ void mainSequenceTask(void *pvParameters)
         moveTo(pos[6]); // 1 离开暂存区
         waitNear();
         
-        moveTo(pos[1]); // 2 前往转盘
-        waitArrived();
+        moveTo({pos[1].x-100, pos[1].y, pos[1].yaw}); // 1 先靠近转盘，防止由于误差而超出边界
+        waitNear();
+        caliTurntable(); // 根据转盘校准车身
         arm_catchFromTurntable(taskcode[1]);
         P(TASK_SECOND_TURNTABLE);
         moveTo(pos[2]); // 2 前往离开转盘状态
-        waitNear();
+        waitArrived();
         
         moveTo(pos[3]); // 2 前往粗加工区
         waitArrived();
@@ -135,7 +137,7 @@ void mainSequenceTask(void *pvParameters)
         
         moveTo(pos[5]); // 2 前往暂存区
         waitArrived();
-        arm_putToGround(taskcode[1]);
+        arm_putToMaterial(taskcode[1]);
         P(TASK_SECOND_STORAGE);
         moveTo(pos[7]); // 2 离开暂存区
         waitNear();
@@ -152,4 +154,46 @@ void mainSequenceTask(void *pvParameters)
     }
     
     vTaskDelete(NULL); // 删除当前任务
+}
+
+void caliTurntable(void){
+    arm_turntableDetect();
+    waitArm();
+        
+    // 根据摄像头返回的与转盘中心的差值逐步靠近转盘
+    int x, y;
+    const float scale = 0.5f;
+    const int threshold = 10; // 阈值，当摄像头返回的数值小于此值时终止校准
+    const int timeout_ms = 5000; // 超时时间
+    int start_time = millis();
+    
+    global_position_t current_pos;
+    POS current_pos_xy;
+    
+    while (millis() - start_time < timeout_ms) {
+        if (visionGetTurntable(&x, &y)) {
+            // 根据视觉反馈调整位置
+            getGlobalPosition(&current_pos);
+            current_pos_xy = {current_pos.x, current_pos.y, pos[1].yaw};
+            current_pos_xy.x += y * scale * 0.9f;
+            current_pos_xy.y += -x * scale * 0.9f+3.0f;
+            moveTo(current_pos_xy);
+            // 检查是否达到阈值
+            if (abs(x) < threshold && abs(y) < threshold) {
+                //DEBUG_LOG("转盘校准完成，误差在阈值内: x=%d, y=%d", x, y);
+                break;
+            }
+        } else {
+            //DEBUG_LOG("获取转盘位置失败，继续尝试");
+            delay(100);
+        }
+    }
+    
+    if (millis() - start_time >= timeout_ms) {
+        //DEBUG_LOG("转盘校准超时");
+    }
+    
+    // 设置全局定位xy数据为pos[1]中的数据
+    setGlobalPosition(pos[1].x, pos[1].y);
+    moveTo(pos[1]);
 }

@@ -37,6 +37,7 @@ void ui_startScr_screen_init(void)
     lv_obj_set_y(ui_RPI, 50);
     lv_obj_set_align(ui_RPI, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_RPI, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_RPI, LV_OBJ_FLAG_CLICKABLE);      /// Flags
 
     lv_obj_set_style_border_color(ui_RPI, lv_color_hex(0x71B3EB), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_RPI, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -53,6 +54,7 @@ void ui_startScr_screen_init(void)
     lv_obj_set_y(ui_HWT101, 50);
     lv_obj_set_align(ui_HWT101, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_HWT101, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_HWT101, LV_OBJ_FLAG_CLICKABLE);      /// Flags
 
     lv_obj_set_style_border_color(ui_HWT101, lv_color_hex(0x71B3EB), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_HWT101, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -69,6 +71,7 @@ void ui_startScr_screen_init(void)
     lv_obj_set_y(ui_PAW3395, 50);
     lv_obj_set_align(ui_PAW3395, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_PAW3395, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_PAW3395, LV_OBJ_FLAG_CLICKABLE);      /// Flags
 
     lv_obj_set_style_border_color(ui_PAW3395, lv_color_hex(0x71B3EB), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_PAW3395, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -85,6 +88,7 @@ void ui_startScr_screen_init(void)
     lv_obj_set_y(ui_Motor, 50);
     lv_obj_set_align(ui_Motor, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_Motor, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_Motor, LV_OBJ_FLAG_CLICKABLE);      /// Flags
 
     lv_obj_set_style_border_color(ui_Motor, lv_color_hex(0x71B3EB), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_Motor, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
@@ -101,6 +105,7 @@ void ui_startScr_screen_init(void)
     lv_obj_set_y(ui_Servo, 50);
     lv_obj_set_align(ui_Servo, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_Servo, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_remove_flag(ui_Servo, LV_OBJ_FLAG_CLICKABLE);      /// Flags
 
     lv_obj_set_style_border_color(ui_Servo, lv_color_hex(0x71B3EB), LV_PART_INDICATOR | LV_STATE_DEFAULT);
     lv_obj_set_style_border_opa(ui_Servo, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);

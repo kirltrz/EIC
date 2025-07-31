@@ -143,3 +143,47 @@ void sendDebugValuesUDP(Args... args) {
         sendDebugDataUDP(data, count, targetIP, targetPort);
     }
 }
+
+/**
+ * 通过UDP发送字符串到指定地址
+ * @param message 要发送的字符串
+ * @param targetIP 目标IP地址
+ * @param targetPort 目标端口
+ */
+void sendStringUDP(const char* message, const char* targetIP, uint16_t targetPort);
+
+/**
+ * 使用预设配置通过UDP发送字符串
+ * @param message 要发送的字符串
+ * 注意：需要先调用setUDPConfig设置目标地址和端口
+ */
+void sendStringUDP(const char* message);
+
+/**
+ * 类似printf的UDP发送函数，支持格式化字符串
+ * @param targetIP 目标IP地址
+ * @param targetPort 目标端口
+ * @param format 格式化字符串
+ * @param ... 可变参数
+ * 使用示例: udpPrintf("192.168.1.100", 1234, "Position: x=%.2f, y=%.2f\n", x, y);
+ */
+void udpPrintf(const char* targetIP, uint16_t targetPort, const char* format, ...);
+
+/**
+ * 使用预设配置的类似printf的UDP发送函数
+ * @param format 格式化字符串
+ * @param ... 可变参数
+ * 使用示例: udpPrintf("Position: x=%.2f, y=%.2f\n", x, y);
+ * 注意：需要先调用setUDPConfig设置目标地址和端口
+ */
+void udpPrintf(const char* format, ...);
+
+// 便捷宏定义，类似DEBUG_LOG
+#define UDP_LOG(...) udpPrintf(__VA_ARGS__)
+
+/**
+ * 设置UDP日志的目标地址（便捷函数）
+ * @param targetIP 目标IP地址
+ * @param targetPort 目标端口，默认1234
+ */
+void setUDPLogTarget(const char* targetIP, uint16_t targetPort = 1234);

@@ -19,4 +19,6 @@ void calculateGlobalPosition(void *pvParameters);
 
 void getGlobalPosition(global_position_t *position);
 
+void setGlobalPosition(float x, float y);
+
 bool isSensorResetInProgress(void);

@@ -27,9 +27,10 @@ void setup()
 
     initTaskManager();
     
+    initVOFAdebug();
     #if DEBUG_ENABLE
     //initOTA();
-    initVOFAdebug();
+    
     #else
     initDevMonitor();
     #endif

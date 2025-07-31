@@ -153,7 +153,7 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 /* 串口通信 */
 #define SERIAL_BAUDRATE 115200 // 通用串口波特率
 #define MOTOR_BAUDRATE 921600 // 电机串口波特率
-#define VISION_TIMEOUT 3000    // 视觉超时时间(ms)
+#define VISION_TIMEOUT 5000    // 视觉超时时间(ms)
 
 /******************************************************************************
  * 视觉模块命令
@@ -161,8 +161,9 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 /* 视觉命令类型 */
 #define CMD_IDLE 0     // 待机模式
 #define CMD_QRCODE 1   // 二维码识别
-#define CMD_CIRCLE 2   // 色环识别
-#define CMD_MATERIAL 3 // 物料识别
+#define CMD_MATERIAL 2 // 物料识别
+#define CMD_CIRCLE 3   // 色环识别
+#define CMD_TURNTABLE 4 // 转盘识别
 
 /* 颜色定义 */
 #define COLOR_RED 1   // 红色

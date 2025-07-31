@@ -284,7 +284,13 @@ void testFunc(lv_event_t * e)
 		DEBUG_LOG("无法获取按钮标签");
 		return;
 	}
-	
+	int taskcode[3]={1,2,3};
+	setGlobalPosition(pos[1].x, pos[1].y);
+	motor->enControl(MOTOR_BROADCAST, true);
+	caliTurntable();
+	arm_catchFromTurntable(taskcode);
+	//armControl_xyz(240.0f,0.0f,240.0f,1000,100,100,false);
+	/*
 	DEBUG_LOG("开始固件辅助抬起截止校准...");
 	
 	// 提示用户开始移动
@@ -382,6 +388,7 @@ void testFunc(lv_event_t * e)
 	// 5秒后恢复按钮原始文本
 	delay_ms(5000);
 	lv_label_set_text(label, "测试");
+	*/
 }
 
 void testLongPressedFunc(lv_event_t * e)
@@ -395,6 +402,7 @@ void testLongPressedFunc(lv_event_t * e)
 		return;
 	}
 	
+	/*
 	DEBUG_LOG("开始手动抬起截止校准...");
 	
 	// 提示用户校准开始
@@ -545,4 +553,5 @@ void testLongPressedFunc(lv_event_t * e)
 	// 5秒后恢复按钮原始文本
 	delay_ms(5000);
 	lv_label_set_text(label, "测试");
+	*/
 }

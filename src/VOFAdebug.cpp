@@ -1,7 +1,11 @@
 #include "VOFAdebug.h"
+#include <stdarg.h>
 
 // 固定的帧尾标识符
 const unsigned char DEBUG_FRAME_TAIL[4] = {0x00, 0x00, 0x80, 0x7f};
+
+// UDP字符串发送缓冲区大小
+#define UDP_STRING_BUFFER_SIZE 1024
 
 // UDP相关全局变量
 static WiFiUDP udp;
@@ -139,4 +143,110 @@ bool getUDPConfig(const char*& targetIP, uint16_t& targetPort) {
         return true;
     }
     return false;
+}
+
+/**
+ * 通过UDP发送字符串到指定地址
+ * @param message 要发送的字符串
+ * @param targetIP 目标IP地址
+ * @param targetPort 目标端口
+ */
+void sendStringUDP(const char* message, const char* targetIP, uint16_t targetPort) {
+    if (message == nullptr || targetIP == nullptr || !isWiFiConnected()) {
+        return;
+    }
+    
+    // 开始UDP数据包
+    if (udp.beginPacket(targetIP, targetPort)) {
+        // 发送字符串数据
+        udp.print(message);
+        
+        // 结束并发送数据包
+        udp.endPacket();
+    }
+}
+
+/**
+ * 使用预设配置通过UDP发送字符串
+ * @param message 要发送的字符串
+ */
+void sendStringUDP(const char* message) {
+    const char* targetIP;
+    uint16_t targetPort;
+    if (getUDPConfig(targetIP, targetPort)) {
+        sendStringUDP(message, targetIP, targetPort);
+    }
+}
+
+/**
+ * 类似printf的UDP发送函数，支持格式化字符串
+ * @param targetIP 目标IP地址
+ * @param targetPort 目标端口
+ * @param format 格式化字符串
+ * @param ... 可变参数
+ */
+void udpPrintf(const char* targetIP, uint16_t targetPort, const char* format, ...) {
+    if (format == nullptr || targetIP == nullptr || !isWiFiConnected()) {
+        return;
+    }
+    
+    // 创建格式化缓冲区
+    static char buffer[UDP_STRING_BUFFER_SIZE];
+    
+    // 处理可变参数
+    va_list args;
+    va_start(args, format);
+    
+    // 格式化字符串
+    int len = vsnprintf(buffer, UDP_STRING_BUFFER_SIZE, format, args);
+    
+    va_end(args);
+    
+    // 检查格式化是否成功
+    if (len > 0 && len < UDP_STRING_BUFFER_SIZE) {
+        sendStringUDP(buffer, targetIP, targetPort);
+    }
+}
+
+/**
+ * 使用预设配置的类似printf的UDP发送函数
+ * @param format 格式化字符串
+ * @param ... 可变参数
+ */
+void udpPrintf(const char* format, ...) {
+    if (format == nullptr || !isWiFiConnected()) {
+        return;
+    }
+    
+    const char* targetIP;
+    uint16_t targetPort;
+    if (!getUDPConfig(targetIP, targetPort)) {
+        return;
+    }
+    
+    // 创建格式化缓冲区
+    static char buffer[UDP_STRING_BUFFER_SIZE];
+    
+    // 处理可变参数
+    va_list args;
+    va_start(args, format);
+    
+    // 格式化字符串
+    int len = vsnprintf(buffer, UDP_STRING_BUFFER_SIZE, format, args);
+    
+    va_end(args);
+    
+    // 检查格式化是否成功
+    if (len > 0 && len < UDP_STRING_BUFFER_SIZE) {
+        sendStringUDP(buffer, targetIP, targetPort);
+    }
+}
+
+/**
+ * 设置UDP日志的目标地址（便捷函数）
+ * @param targetIP 目标IP地址
+ * @param targetPort 目标端口，默认1234
+ */
+void setUDPLogTarget(const char* targetIP, uint16_t targetPort) {
+    setUDPConfig(targetIP, targetPort, true);
 } 

@@ -197,7 +197,7 @@ void moveTask(void *pvParameters)
             yaw_error = targetPos.yaw - currentPosition.continuousYaw;
 
 #if DEBUG_ENABLE
-            sendDebugValuesUDP(targetPos.x,targetPos.y,targetPos.yaw,currentPosition.x,currentPosition.y,currentPosition.continuousYaw);
+            //sendDebugValuesUDP(targetPos.x,targetPos.y,targetPos.yaw,currentPosition.x,currentPosition.y,currentPosition.continuousYaw);
 #endif
 
             // 更新积分项

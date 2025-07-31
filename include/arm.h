@@ -24,6 +24,7 @@ void arm_catchFromTurntable(int taskcode[3]);
 void arm_putToGround(int taskcode[3]);
 void arm_catchFromGround(int taskcode[3]);
 void arm_putToMaterial(int taskcode[3]);
+void arm_turntableDetect(void);
 void armControl_xyz(float x, float y, float z, uint16_t interval, uint16_t acc, uint16_t dec, bool needWait = true);
 void armSet_position(float theta0, float first_arm_degree, float second_arm_degree, float third_arm_degree, uint16_t interval, uint16_t acc, uint16_t dec);
 bool armCalculate_inverse(float x, float y, float z, float *out_arm_degree);

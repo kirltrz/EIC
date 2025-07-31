@@ -19,6 +19,7 @@ struct vision_packet_t
     int16_t data1;
     int16_t data2;
     int8_t color;
+    bool fresh;
 };
 
 // 全局变量声明
@@ -39,7 +40,7 @@ void visionListenerTask(void *pvParameters);
 @brief 发送命令
 @param mode 命令模式 0：待命模式 1：二维码识别 2：色环识别 3：物料识别
 */
-void sendCommand(int mode);
+void sendCommand(int mode, int color = 0);
 
 /*
 @brief 持续监听并接收数据，验证格式后写入缓存
@@ -82,3 +83,11 @@ bool visionGetCircle(int *x, int *y);
 @return 是否扫描成功
 */
 bool visionGetMaterial(int color, int *x, int *y);
+
+/*
+@brief 视觉扫描转盘
+@param x 存储获取到的转盘x坐标的指针
+@param y 存储获取到的转盘y坐标的指针
+@return 是否扫描成功
+*/
+bool visionGetTurntable(int *x, int *y);

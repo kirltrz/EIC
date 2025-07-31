@@ -175,6 +175,7 @@ void calculateGlobalPosition(void *pvParameters)
         
         // 获取传感器数据
         Motion_Burst(&dx, &dy);
+        //sendDebugValuesUDP(sqrt(dx*dx+dy*dy));
         //sendDebugValues(dx,dy);
         float rawYaw = HWT101.getZ(); // 获取原始角度值（-180到180度）
         
@@ -276,6 +277,13 @@ void getGlobalPosition(global_position_t *position)
         position->continuousYaw = currentPosition.continuousYaw;
 
         // 释放互斥锁
+        xSemaphoreGive(positionMutex);
+    }
+}
+void setGlobalPosition(float x, float y){
+    if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE) {
+        currentPosition.x = x;
+        currentPosition.y = y;
         xSemaphoreGive(positionMutex);
     }
 }

@@ -100,6 +100,7 @@ void receiveDataContinuous(void)
     if (xSemaphoreTake(visionDataMutex, pdMS_TO_TICKS(1)) == pdTRUE)
     {
         visionDataCache = new_data;
+        visionDataCache.fresh = true;
         xSemaphoreGive(visionDataMutex);
     }
 }
@@ -109,18 +110,20 @@ bool readVisionCache(vision_packet_t *data)
     if (xSemaphoreTake(visionDataMutex, pdMS_TO_TICKS(10)) == pdTRUE)
     {
         *data = visionDataCache;
+        visionDataCache.fresh = false;
         xSemaphoreGive(visionDataMutex);
         return true;
     }
     return false;
 }
 
-void sendCommand(int mode)
+void sendCommand(int mode, int color)
 {
     /*发送命令*/
     byte frame[9] = {0x7B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7D};
 
     frame[1] = mode & 0xFF;
+    frame[6] = color & 0xFF;
     for (int i = 0; i < 7; i++)
     {
         frame[7] ^= frame[i];
@@ -185,7 +188,7 @@ bool visionGetCircle(int *x, int *y)
     {
         if (readVisionCache(&packet))
         {
-            if (packet.mode == CMD_CIRCLE)
+            if (packet.mode == CMD_CIRCLE && packet.data1 != 0 && packet.data2 != 0)
             {
                 *x = packet.data1;
                 *y = packet.data2;
@@ -208,13 +211,14 @@ bool visionGetMaterial(int color, int *x, int *y)
     vision_packet_t packet;
     unsigned long startTime = millis();
     
-    sendCommand(CMD_MATERIAL);
+    if(color==3) color += 1; // 如果是蓝色则+1发送
+    sendCommand(CMD_MATERIAL, color);
     
     while (millis() - startTime < VISION_TIMEOUT)
     {
-        if (readVisionCache(&packet))
+        if (readVisionCache(&packet)&&packet.fresh)
         {
-            if (packet.mode == CMD_MATERIAL && packet.color == color)
+            if (packet.mode == CMD_MATERIAL && packet.color == (color==4?color-1:color) && packet.data1 != 0 && packet.data2 != 0)
             {
                 *x = packet.data1;
                 *y = packet.data2;
@@ -223,7 +227,36 @@ bool visionGetMaterial(int color, int *x, int *y)
             else if (packet.mode != CMD_MATERIAL)
             {
                 // 如果不是物料检测模式，重新发送物料检测指令
-                sendCommand(CMD_MATERIAL);
+                sendCommand(CMD_MATERIAL, color);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+    
+    return false;
+}
+
+bool visionGetTurntable(int *x, int *y)
+{
+    vision_packet_t packet;
+    unsigned long startTime = millis();
+    
+    sendCommand(CMD_TURNTABLE);
+    
+    while (millis() - startTime < VISION_TIMEOUT)
+    {
+        if (readVisionCache(&packet)&&packet.fresh)
+        {
+            if (packet.mode == CMD_TURNTABLE && packet.data1 != 0 && packet.data2 != 0)
+            {
+                *x = packet.data1;
+                *y = packet.data2;
+                return true;
+            }
+            else
+            {
+                // 如果不是转盘检测模式，重新发送转盘检测指令
+                sendCommand(CMD_TURNTABLE);
             }
         }
         vTaskDelay(pdMS_TO_TICKS(50));
