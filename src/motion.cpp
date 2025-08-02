@@ -159,6 +159,7 @@ void moveTask(void *pvParameters)
         // 检查是否正在进行传感器重置
         if (isSensorResetInProgress()) {
             // 重置期间暂停运动控制，避免使用不稳定的位置数据
+            stopMotion();
             vTaskDelay(pdMS_TO_TICKS(50));
             continue;
         }

@@ -260,7 +260,7 @@ void armTestFunc(lv_event_t *e)
 void armTestFunc2(lv_event_t * e)
 {
 	int taskcode[3]={1,2,3};
-	arm_catchFromGround(taskcode);
+	arm_catchFromGround(taskcode, 1);
 }
 
 void armTestFunc3(lv_event_t * e)
@@ -284,11 +284,14 @@ void testFunc(lv_event_t * e)
 		DEBUG_LOG("无法获取按钮标签");
 		return;
 	}
+	caliCircle(pos[3]);
+	/*
 	int taskcode[3]={1,2,3};
 	setGlobalPosition(pos[1].x, pos[1].y);
 	motor->enControl(MOTOR_BROADCAST, true);
 	caliTurntable();
 	arm_catchFromTurntable(taskcode);
+	*/
 	//armControl_xyz(240.0f,0.0f,240.0f,1000,100,100,false);
 	/*
 	DEBUG_LOG("开始固件辅助抬起截止校准...");

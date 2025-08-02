@@ -45,6 +45,7 @@ public:
   void readSysParams(uint8_t addr, SysParams_t s);               // 读取参数
   void modifyCtrlMode(uint8_t addr, bool svF, uint8_t ctrl_mode); // 发送命令切换开环/闭环控制模式
   void enControl(uint8_t addr, bool state, uint8_t snF = 0);      // 电机使能控制
+  void enControlWithRetry(uint8_t addr, bool state, uint8_t snF = 0, int maxRetries = 3); // 带自定义重试次数的使能控制
   
   // 运动控制函数
   void velocityControl(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF = false);                          // 速度模式控制
@@ -61,6 +62,13 @@ public:
   // 接收数据函数
   void receiveData(uint8_t *rxCmd, uint8_t *rxCount);            // 返回数据接收函数
   uint16_t getVoltage(uint8_t addr);
+  
+  // 状态读取函数
+  uint8_t getMotorStatus(uint8_t addr);                          // 读取电机状态标志位
+  bool isMotorEnabled(uint8_t addr);                             // 判断电机是否使能
+  bool isMotorInPosition(uint8_t addr);                          // 判断电机是否到位
+  bool isMotorStalled(uint8_t addr);                             // 判断电机是否堵转
+  bool isMotorStallProtected(uint8_t addr);                      // 判断电机是否堵转保护
 
 private:
   HardwareSerial* _serial;

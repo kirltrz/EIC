@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include "errorHandler.h"
 #include "VOFAdebug.h"
+#include "sensor.h"
+#include "mainSequence.h"
 
 FSUS_Protocol protocol(&SERVO_SERIAL, SERIAL_BAUDRATE);
 FSUS_Servo servo0(0, &protocol); // 云台舵机
@@ -37,7 +39,7 @@ const armPos rPlate = {67, -65, 95};      // 红色物料托盘位置
 const armPos bPlate = {-67, 65, 95};      // 蓝色物料托盘位置
 const armPos gPlate = {67, 67, 95};      // 绿色物料托盘位置
 const int plateAngle[3] = {136,46,-46}; // 托盘角度
-//const armPos gdDetect = {0, 0, 0};    // 地面检测位置
+const armPos gdDetect = {0, 180, 60};    // 地面检测位置
 const armPos rCircleBase = {145, 220, 0}; // 红色色环基础位置（未视觉纠偏的位置）
 const armPos bCircleBase = {-155,200, 0}; // 蓝色色环基础位置（未视觉纠偏的位置）
 const armPos gCircleBase = {-6, 210, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
@@ -398,6 +400,8 @@ void GOGOGO()
 // 任务参数结构体
 typedef struct {
     int taskcode[3];
+    bool isRoughArea; // 是否在粗加工区（true=粗加工区，false=暂存区）
+    int cycleNum; // 第一轮在暂存区放在地面，第二轮码垛
 } ArmTaskParams;
 
 // 简化的物料抓取结构体
@@ -415,26 +419,31 @@ void catchFromTurntable(int sequence/*抓取序号：0=第一次，1=中间，2=
         turntablePos[material.turntablePos].x,
         turntablePos[material.turntablePos].y,
         turntablePos[material.turntablePos].z + (material.turntablePos == 0 ? 0 : /*重力补偿*/ 15),
-        isFirst || material.turntablePos == 0 ? 600 : 1000, 300, 300);
+        600, 300, 300);
     arm_setClaw(0);
     waitArm();
     armControl_xyz( 85 , 0 , 180 , material.turntablePos == 0 ? 300 : 600, 150, 150, false);
     delay(material.turntablePos == 0 ? 200 : 500);
     servo0.setAngle(plateAngle[material.plateColor], material.plateColor == 2/*蓝色远一些*/ ? 500 : 300, 150, 150);
-    delay(material.plateColor == 2/*蓝色远一些*/ ? 400 : 200);
-    armControl_xyz(platePos[material.plateColor].x, platePos[material.plateColor].y, platePos[material.plateColor].z, 200, 100, 100, false);
-    delay(100);
+    delay(material.plateColor == 2/*蓝色远一些*/ ? 450 : 250);
+    armControl_xyz(platePos[material.plateColor].x, platePos[material.plateColor].y, platePos[material.plateColor].z, 300, 150, 150);
     arm_setClaw(1);
     waitArm();
     if(isLast) GOGOGO();//最后一次放完，恢复主流程任务，无需等待复位
     armControl_xyz(platePos[material.plateColor].x, platePos[material.plateColor].y, platePos[material.plateColor].z + 100, 200, 100, 100, false);
     delay(100);
-    servo0.setAngle(90.0f, material.plateColor == 2/*蓝色远一些*/ ? 500 : 300, 150, 150);
-    if(!isLast) delay(material.plateColor == 2/*蓝色远一些*/ ? 400 : 200);//如果是最后一次抓取，则不需要等待
+    if(isLast)
+        arm_groundDetect();
+    else{
+        servo0.setAngle(90.0f, material.plateColor == 2/*蓝色远一些*/ ? 500 : 300, 150, 150);
+        delay(material.plateColor == 2/*蓝色远一些*/ ? 400 : 200);
+        arm_turntableDetect();
+    }
 }
 void arm_turntableDetect(void){
     arm_setClaw(1);
-    armControl_raw(ttDetect, 800, 400, 400, true);
+    armControl_raw(ttDetect, 600, 300, 300, false);
+    delay(500);
 }
 // 将xy坐标转换为极坐标角度的函数
 // 参数：target_x, target_y - 目标点坐标
@@ -604,7 +613,7 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
         while (1)
         {
             arm_setClaw(1);
-            armControl_raw(ttDetect, 600, 300, 300, true); // 停在转盘中心，xyz的单位为mm
+            //armControl_raw(ttDetect, 400, 200, 200, true); // 停在转盘中心，xyz的单位为mm
             
             if(isRotate==-1||isLastRotate==-1) visionGetTurntable(&ttCenterX, &ttCenterY);
             
@@ -703,7 +712,7 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
                     break;
                 }else{
                     if(posOfMaterial[taskcode[gotMaterialCount]-1]==-1) continue;
-                    catchFromTurntable(0, {posOfMaterial[taskcode[gotMaterialCount]-1], taskcode[gotMaterialCount]-1});
+                    catchFromTurntable(gotMaterialCount==2?2:0, {posOfMaterial[taskcode[gotMaterialCount]-1], taskcode[gotMaterialCount]-1});
                     UDP_LOG("抓取物料%d,角度：%f,位置：%d", taskcode[gotMaterialCount]-1, cAngle, posOfMaterial[taskcode[gotMaterialCount]-1]);
                     gotMaterialCount++;
                     // 重置状态，准备检测下一个物料
@@ -756,7 +765,23 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
         DEBUG_LOG("主流程任务已挂起");
     }
 }
-
+void arm_groundDetect(int higherOrLower)
+{
+    arm_setClaw(1);
+    servo0.setAngle(0.0f, 400, 200, 200);
+    delay(350);
+    if(higherOrLower==1)
+    {
+        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z+40, 500, 250, 250);
+    }
+    else if(higherOrLower==2)
+    {
+        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z-40, 500, 250, 250);
+    }
+    else {
+        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z, 500, 250, 250);
+    }
+}
 void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的色环
 {
     // 分配任务参数内存
@@ -771,14 +796,87 @@ void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的�
         params->taskcode[i] = taskcode[i];
     }
     
+    // 获取当前位置判断是粗加工区还是暂存区
+    global_position_t current_pos;
+    getGlobalPosition(&current_pos);
+    // 修复区域判断逻辑：基于当前位置相对于基础区域位置来判断，与caliCircle逻辑保持一致
+    float dist_to_rough_base = sqrt(pow(current_pos.x - pos[3].x, 2) + pow(current_pos.y - pos[3].y, 2));
+    // 如果距离粗加工区基础位置在CIRCLE_DISTANCE范围内，认为是粗加工区
+    params->isRoughArea = (dist_to_rough_base <= (CIRCLE_DISTANCE + 50));
+    
     // 使用lambda表达式创建任务
     auto taskFunction = [](void* parameter) -> void {
         ArmTaskParams* params = (ArmTaskParams*)parameter;
         int* taskcode = params->taskcode;
         
         /*放置到地面，需要通过视觉识别放置位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
+        // 区域判断：params->isRoughArea 为 true 表示粗加工区，false 表示暂存区
+        if (params->isRoughArea) {
+            DEBUG_LOG("当前在粗加工区执行 arm_putToGround");
+        } else {
+            DEBUG_LOG("当前在暂存区执行 arm_putToGround");
+        }
+        
         for (int i = 0; i < 3; i++)
         {
+            if (taskcode[i] == 1)
+            {
+                if (params->isRoughArea)
+                {
+                    moveTo({pos[3].x, pos[3].y + CIRCLE_DISTANCE, pos[3].yaw});
+                }
+                else
+                {
+                    moveTo({pos[5].x + CIRCLE_DISTANCE, pos[5].y, pos[5].yaw});
+                }
+            }
+            else if (taskcode[i] == 2)
+            {
+                if (params->isRoughArea)
+                {
+                    moveTo({pos[3].x, pos[3].y, pos[3].yaw});
+                }
+                else
+                {
+                    moveTo({pos[5].x, pos[5].y, pos[5].yaw});
+                }
+            }
+            else if (taskcode[i] == 3)
+            {
+                if (params->isRoughArea)
+                {
+                    moveTo({pos[3].x, pos[3].y - CIRCLE_DISTANCE, pos[3].yaw});
+                }
+                else
+                {
+                    moveTo({pos[5].x - CIRCLE_DISTANCE, pos[5].y, pos[5].yaw});
+                }
+            }
+            delay(200);
+            if (i == 0)
+            {
+                armControl_xyz(0, 85, 180, 300, 150, 150, false);
+                delay(250);
+            }
+            arm_setClaw(1);
+            servo0.setAngle(plateAngle[taskcode[i] - 1], taskcode[i] == 1 ? 500 : 300, 150, 150);
+            delay(taskcode[i] == 1 ? 450 : 250);
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z, 300, 150, 150);
+            arm_setClaw(0);
+            waitArm();
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z + 100, 400, 200, 200, false);
+            delay(350);
+            servo0.setAngle(0.0f, taskcode[i] == 1 ? 500 : 300, 150, 150);
+            delay(taskcode[i] == 1 ? 450 : 250);
+            waitArrived();
+            delay(200);
+            armControl_xyz(0, 213, 0, 800, 400, 400);
+            delay(200);
+            arm_setClaw(1);
+            waitArm();
+            armControl_xyz(0, 85, 180, 500, 250, 250, false);
+
+#if 0
             arm_setClaw(1);
             armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 停在托盘上方
             armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z,400, 200, 200); // 下降到托盘
@@ -838,8 +936,13 @@ void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的�
             waitArm();
             armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
             armControl_xyz(0, 93, 130, 400, 200, 200);
+#endif
         }
-
+        if(!params->isRoughArea)
+        {
+            delay(250);
+            armControl_raw(ttDetect, 800, 400, 400, false); // 停在转盘中心，xyz的单位为mm
+        }
         GOGOGO();
 
         // 释放参数内存并删除任务
@@ -868,7 +971,7 @@ void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的�
     }
 }
 
-void arm_catchFromGround(int taskcode[3])//将物料从地面抓取到托盘
+void arm_catchFromGround(int taskcode[3], int cycleNum)//将物料从地面抓取到托盘
 {
     // 分配任务参数内存
     ArmTaskParams* params = (ArmTaskParams*)malloc(sizeof(ArmTaskParams));
@@ -881,15 +984,73 @@ void arm_catchFromGround(int taskcode[3])//将物料从地面抓取到托盘
     for (int i = 0; i < 3; i++) {
         params->taskcode[i] = taskcode[i];
     }
+    params->cycleNum = cycleNum;
     
     // 使用lambda表达式创建任务
     auto taskFunction = [](void* parameter) -> void {
         ArmTaskParams* params = (ArmTaskParams*)parameter;
         int* taskcode = params->taskcode;
-        
+        int cycleNum = params->cycleNum;
+
+        if (taskcode[0] == 1)
+        {
+            moveTo({pos[3].x, pos[3].y + CIRCLE_DISTANCE, pos[3].yaw});
+        }
+        else if (taskcode[0] == 2)
+        {
+            moveTo({pos[3].x, pos[3].y, pos[3].yaw});
+        }
+        else if (taskcode[0] == 3)
+        {
+            moveTo({pos[3].x, pos[3].y - CIRCLE_DISTANCE, pos[3].yaw});
+        }
+        delay(500);
         /*从地面抓取，获取放置时的偏差，叠加偏移量进行抓取*/
         for (int i = 0; i < 3; i++)// 循环3次，分别抓取3种颜色物料
         {
+            if (i == 0)
+            {
+                armControl_xyz(0, 85, 180, 300, 150, 150, false);
+            }
+            arm_setClaw(1);
+            waitArrived();
+            delay(200);
+            armControl_xyz(0, 213, 0, 800, 400, 400);
+            delay(200);
+            arm_setClaw(0);
+            waitArm();
+            delay(200);
+            armControl_xyz(0, 85, 180, 500, 250, 250, false);
+            delay(350);
+            if(i<2){
+            if (taskcode[i+1] == 1)
+            {
+                moveTo({pos[3].x, pos[3].y + CIRCLE_DISTANCE, pos[3].yaw});
+            }
+            else if (taskcode[i+1] == 2)
+            {
+                moveTo({pos[3].x, pos[3].y, pos[3].yaw});
+            }
+            else if (taskcode[i+1] == 3)
+            {
+                moveTo({pos[3].x, pos[3].y - CIRCLE_DISTANCE, pos[3].yaw});
+            }
+            }
+            servo0.setAngle(plateAngle[taskcode[i] - 1], taskcode[i] == 1 ? 500 : 400, 200, 200);
+            delay(taskcode[i] == 1 ? 450 : 350);
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z, 300, 150, 150);
+            arm_setClaw(1);
+            waitArm();
+            if(i==2){
+                GOGOGO();
+            }
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z + 100, 400, 200, 200, false);
+            delay(350);
+            servo0.setAngle(0.0f, taskcode[i] == 1 ? 500 : 300, 150, 150);
+            delay(taskcode[i] == 1 ? 450 : 250);
+            armControl_xyz(0, 85, 180, 300, 150, 150, false);
+            delay(250);
+#if 0
             arm_setClaw(1);
             armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + overCircleHeight, 400, 200, 200); // 上升到色环上方
             armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z, 400, 200, 200); // 下降到色环
@@ -907,8 +1068,10 @@ void arm_catchFromGround(int taskcode[3])//将物料从地面抓取到托盘
             waitArm();
             armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 上升到托盘上方
             armControl_xyz(0, 93, 130, 400, 200, 200);
+#endif
         }
-        
+        arm_groundDetect(cycleNum == 1 ? 0 : 1);
+
         GOGOGO();
 
         // 释放参数内存并删除任务
@@ -959,6 +1122,39 @@ void arm_putToMaterial(int taskcode[3])//将第二次的物料重合到第一次
         /*码垛，同样需要通过视觉识别物料位置，然后在预先设置的位置基础上叠加偏移量进行放置*/
         for (int i = 0; i < 3; i++)
         {
+            if (taskcode[i] == 1)
+            {
+                moveTo({pos[5].x + CIRCLE_DISTANCE, pos[5].y, pos[5].yaw});
+            }
+            else if (taskcode[i] == 2)
+            {
+                moveTo({pos[5].x, pos[5].y, pos[5].yaw});
+            }
+            else if (taskcode[i] == 3)
+            {
+                moveTo({pos[5].x - CIRCLE_DISTANCE, pos[5].y, pos[5].yaw});
+            }
+            delay(500);
+            if (i == 0)
+            {
+                armControl_xyz(0, 85, 180, 300, 150, 150, false);
+                delay(250);
+            }
+            arm_setClaw(1);
+            servo0.setAngle(plateAngle[taskcode[i] - 1], taskcode[i] == 1 ? 500 : 300, 150, 150);
+            delay(taskcode[i] == 1 ? 450 : 250);
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z, 300, 150, 150);
+            arm_setClaw(0);
+            waitArm();
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z + 100, 400, 200, 200, false);
+            delay(350);
+            servo0.setAngle(0.0f, taskcode[i] == 1 ? 500 : 300, 150, 150);
+            delay(taskcode[i] == 1 ? 450 : 250);
+            armControl_xyz(0, 200, MATERIAL_HEIGHT+10, 800, 400, 400);
+            arm_setClaw(1);
+            armControl_xyz(0, 85, 180, 300, 150, 150, false);
+            //delay(250);
+#if 0
             arm_setClaw(1);
             armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z + overPlateHeight, 400, 200, 200); // 停在托盘上方
             armControl_xyz(platePos[taskcode[i]-1].x, platePos[taskcode[i]-1].y, platePos[taskcode[i]-1].z, 400, 200, 200); // 下降到托盘
@@ -983,6 +1179,7 @@ void arm_putToMaterial(int taskcode[3])//将第二次的物料重合到第一次
             waitArm();
             armControl_xyz(circlePos[taskcode[i]-1].x, circlePos[taskcode[i]-1].y, circlePos[taskcode[i]-1].z + MATERIAL_HEIGHT +  overCircleHeight, 400, 200, 200); // 上升到色环上方
             armControl_xyz(0, 93, 140, 400, 200, 200);
+#endif
         }
 
         GOGOGO();

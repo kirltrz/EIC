@@ -269,7 +269,7 @@ void getGlobalPosition(global_position_t *position)
 {
     /*获取全局位置*/
     // 使用互斥锁保护全局位置数据的读取
-    if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE) {
+    if (xSemaphoreTake(positionMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
         // 在获取到互斥锁后，复制全局位置数据
         position->x = currentPosition.x;
         position->y = currentPosition.y;
@@ -281,10 +281,12 @@ void getGlobalPosition(global_position_t *position)
     }
 }
 void setGlobalPosition(float x, float y){
+    sensorResetInProgress = true;
     if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE) {
         currentPosition.x = x;
         currentPosition.y = y;
         xSemaphoreGive(positionMutex);
+        sensorResetInProgress = false;
     }
 }
 

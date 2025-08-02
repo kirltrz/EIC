@@ -14,6 +14,7 @@ MODE_QR_CODE = 0x01
 MODE_HIGH_SATURATION = 0x02  # 高饱和度区域识别
 MODE_CIRCLE = 0x03   # 圆形识别
 MODE_CALI_TURNTABLE = 0x04   # 转台校准模式
+MODE_GET_CIRCLE_COLOR = 0x05   # 获取圆形颜色模式
 
 # 定义颜色常量
 COLOR_RED = 0x01
@@ -26,7 +27,7 @@ FRAME_FOOTER = 0x7D
 
 # 高饱和度识别参数
 SATURATION_THRESHOLD = 100  # 饱和度阈值
-AREA_THRESHOLD = 10000      # 面积阈值
+AREA_THRESHOLD = 3000      # 面积阈值
 
 # DEBUG模式开关 (类似C语言宏定义)
 # 设置为True: 启用图形界面显示和键盘控制
@@ -41,8 +42,8 @@ FRAME_CENTER_Y = FRAME_HEIGHT // 2  # 240
 
 # 曝光时间控制参数
 AUTO_EXPOSURE_ENABLED = False  # 是否启用自动曝光 (False=手动曝光, True=自动曝光)
-MANUAL_EXPOSURE_TIME = 250      # 手动曝光时间 (较低值避免过亮，从50开始测试)
-EXPOSURE_ADJUSTMENT_STEP = 50  # 键盘调整曝光时间的步长
+MANUAL_EXPOSURE_TIME = 200      # 手动曝光时间 (较低值避免过亮，从50开始测试)
+EXPOSURE_ADJUSTMENT_STEP = 10  # 键盘调整曝光时间的步长
 
 # 曝光值尝试范围（针对你的摄像头类型调整）
 EXPOSURE_MIN_RANGE = 1         # 最小曝光值（最暗）
@@ -348,8 +349,137 @@ def circle_mode(frame, min_radius=95, max_radius=100):
 
     return 0, 0, 0x00  # 未检测到圆形
 
+def get_circle_color_mode(frame):
+    """
+    获取圆形区域的主要颜色信息（基于高饱和度识别逻辑）
+    
+    参数:
+    - frame: 输入图像
+    
+    返回:
+    - 0, 0, 主要颜色 (不返回坐标，只返回主要颜色)
+    """
+    # 将BGR图像转换为HSV图像
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    # 提取饱和度通道
+    saturation = hsv[:, :, 1]
+
+    # 设置独立的高饱和度阈值（与其他模式独立）
+    GET_CIRCLE_COLOR_SATURATION_THRESHOLD = 50
+    high_saturation_mask = cv2.threshold(saturation, GET_CIRCLE_COLOR_SATURATION_THRESHOLD, 255, cv2.THRESH_BINARY)[1]
+
+    # 创建圆形区域掩膜：以画面中心为原点，画面尺寸更短的一个边的长度为直径的圆
+    frame_height, frame_width = frame.shape[:2]
+    center_x, center_y = frame_width // 2, frame_height // 2
+    # 圆的半径 = 较短边长度的一半
+    radius = min(frame_width, frame_height) // 2
+    
+    # 创建圆形掩膜
+    circle_mask = np.zeros((frame_height, frame_width), dtype=np.uint8)
+    cv2.circle(circle_mask, (center_x, center_y), radius, 255, -1)
+    
+    # 将高饱和度掩膜与圆形掩膜结合：只保留圆形区域内的高饱和度像素
+    high_saturation_mask = cv2.bitwise_and(high_saturation_mask, circle_mask)
+
+    # 形态学操作优化掩膜
+    kernel = np.ones((5, 5), np.uint8)
+    cleaned_mask = cv2.morphologyEx(high_saturation_mask, cv2.MORPH_OPEN, kernel)
+
+    # DEBUG模式下显示掩膜图像和圆形处理区域
+    if DEBUG_MODE:
+        # 在原始画面上绘制圆形处理区域边界（仅用于可视化）
+        cv2.circle(frame, (center_x, center_y), radius, (255, 0, 255), 2)  # 紫色圆圈表示处理区域
+        
+        # 显示圆形掩膜和处理后的掩膜
+        cv2.imshow("Circle Mask", circle_mask)
+        cv2.imshow("Saturation Mask - Original", high_saturation_mask)
+        cv2.imshow("Saturation Mask - Cleaned", cleaned_mask)
+
+    # 查找轮廓
+    contours, _ = cv2.findContours(cleaned_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        return 0, 0, 0x00  # 未检测到轮廓
+
+    # 对所有高饱和度区域进行颜色统计
+    total_red_area = 0
+    total_green_area = 0
+    total_blue_area = 0
+    total_area = 0
+    valid_contours = []
+
+    # 遍历所有轮廓，降低面积阈值以包含更多小面积区域
+    min_area_threshold = 5  # 降低面积阈值，包含小面积区域
+    
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area < min_area_threshold:  # 过滤掉过小的噪点
+            continue
+            
+        valid_contours.append(contour)
+        
+        # 创建轮廓精确mask，只包含轮廓内部的像素
+        contour_mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+        cv2.fillPoly(contour_mask, [contour], 255)
+        
+        # 计算该轮廓内的平均BGR值
+        mean_bgr = cv2.mean(frame, mask=contour_mask)[:3]
+        
+        # 转换为RGB顺序
+        mean_rgb = (mean_bgr[2], mean_bgr[1], mean_bgr[0])
+        
+        # 判断RGB三个值中最大的一个对应的颜色，并按面积加权统计
+        max_color_index = np.argmax(mean_rgb)
+        if max_color_index == 0:  # 红色
+            total_red_area += area
+        elif max_color_index == 1:  # 绿色
+            total_green_area += area
+        elif max_color_index == 2:  # 蓝色
+            total_blue_area += area
+            
+        total_area += area
+
+    if total_area == 0:
+        return 0, 0, 0x00  # 没有有效区域
+
+    # 根据面积加权确定主要颜色
+    if total_red_area >= total_green_area and total_red_area >= total_blue_area:
+        dominant_color = COLOR_RED
+    elif total_green_area >= total_blue_area:
+        dominant_color = COLOR_GREEN
+    else:
+        dominant_color = COLOR_BLUE
+
+    if DEBUG_MODE:
+        # 绘制所有有效轮廓
+        for contour in valid_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 1)  # 绿色矩形框
+            
+        # 显示颜色统计信息
+        info_y = 30
+        cv2.putText(frame, f"Red: {total_red_area:.0f}", (10, info_y), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        cv2.putText(frame, f"Green: {total_green_area:.0f}", (10, info_y + 25), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        cv2.putText(frame, f"Blue: {total_blue_area:.0f}", (10, info_y + 50), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+        cv2.putText(frame, f"Main Color: {get_color_name(dominant_color)}", (10, info_y + 80), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+    # 输出统计结果
+    print(f"获取圆形颜色模式 - 轮廓数量: {len(valid_contours)}, 总面积: {total_area:.0f}")
+    print(f"颜色统计 - 红色面积: {total_red_area:.0f}, 绿色面积: {total_green_area:.0f}, 蓝色面积: {total_blue_area:.0f}")
+    print(f"主要颜色: {get_color_name(dominant_color)}")
+    print(f"圆形处理区域 - 中心: ({center_x}, {center_y}), 半径: {radius}px")
+    
+    return 0, 0, dominant_color  # 不返回坐标，只返回主要颜色
+
 def uart_listener():
     global current_mode, target_color
+    non_header_count = 0  # 连续非帧头字节计数器
+    
     while True:
         # 读取一个字节
         byte = ser.read(1)
@@ -358,6 +488,7 @@ def uart_listener():
 
         # 判断是否是帧头
         if byte[0] == FRAME_HEADER:
+            non_header_count = 0  # 找到帧头，重置计数器
             # 读取后面的8个字节
             packet = byte + ser.read(8)
             if len(packet) == 9:
@@ -381,7 +512,14 @@ def uart_listener():
             else:
                 print("数据包长度错误，丢弃数据包")
         else:
-            print(f"丢弃非帧头字节: {byte[0]:02X}")
+            non_header_count += 1  # 非帧头字节计数
+            print(f"丢弃非帧头字节: {byte[0]:02X} (连续第{non_header_count}个)")
+            
+            # 如果连续检测到超过10个非帧头字节，清空接收缓冲区
+            if non_header_count > 10:
+                print("连续收到超过10个非帧头字节，清空接收缓冲区重新开始")
+                ser.reset_input_buffer()  # 清空输入缓冲区
+                non_header_count = 0  # 重置计数器
 
 def get_mode_name(mode):
     """获取模式名称"""
@@ -390,7 +528,8 @@ def get_mode_name(mode):
         MODE_QR_CODE: "QR_CODE", 
         MODE_HIGH_SATURATION: "HIGH_SATURATION",
         MODE_CIRCLE: "CIRCLE",
-        MODE_CALI_TURNTABLE: "CALI_TURNTABLE"
+        MODE_CALI_TURNTABLE: "CALI_TURNTABLE",
+        MODE_GET_CIRCLE_COLOR: "GET_CIRCLE_COLOR"
     }
     return mode_names.get(mode, "UNKNOWN")
 
@@ -861,6 +1000,9 @@ def camera_processor():
         elif current_mode == MODE_CALI_TURNTABLE:
             x, y, color = circle_mode(frame, min_radius=200, max_radius=300)
             send_data_packet(current_mode, x, y, color)
+        elif current_mode == MODE_GET_CIRCLE_COLOR:
+            x, y, color = get_circle_color_mode(frame)
+            send_data_packet(current_mode, x, y, color)
         elif current_mode == MODE_IDLE:
             send_data_packet(current_mode, 0, 0, 0x00)
 
@@ -906,6 +1048,9 @@ def camera_processor():
                 print(f"切换到模式: {get_mode_name(current_mode)}")
             elif key == ord('4'):  # 切换到转台校准模式
                 current_mode = MODE_CALI_TURNTABLE
+                print(f"切换到模式: {get_mode_name(current_mode)}")
+            elif key == ord('5'):  # 切换到同心圆检测模式
+                current_mode = MODE_GET_CIRCLE_COLOR
                 print(f"切换到模式: {get_mode_name(current_mode)}")
             elif key == ord('r') or key == ord('R'):  # 设置目标颜色为红色
                 target_color = COLOR_RED

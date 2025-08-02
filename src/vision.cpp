@@ -50,6 +50,8 @@ void visionListenerTask(void *pvParameters)
 */
 void receiveDataContinuous(void)
 {
+    static int non_header_count = 0;  // 连续非帧头字节计数器
+    
     // 检查是否有数据可读
     if (VISION_SERIAL.available() == 0)
     {
@@ -57,13 +59,27 @@ void receiveDataContinuous(void)
     }
     
     byte buffer[9];
+    byte first_byte = VISION_SERIAL.read();
     
     // 查找帧头0x7B
-    if (VISION_SERIAL.read() != 0x7B)
+    if (first_byte != 0x7B)
     {
+        non_header_count++;  // 非帧头字节计数
+        
+        // 如果连续检测到超过10个非帧头字节，清空接收缓冲区
+        if (non_header_count > 10)
+        {
+            // 清空串口缓冲区中的所有数据
+            while (VISION_SERIAL.available() > 0)
+            {
+                VISION_SERIAL.read();
+            }
+            non_header_count = 0;  // 重置计数器
+        }
         return;
     }
     
+    non_header_count = 0;  // 找到帧头，重置计数器
     buffer[0] = 0x7B;
     
     // 读取剩余8个字节，如果数据不足则返回
@@ -253,10 +269,38 @@ bool visionGetTurntable(int *x, int *y)
                 *y = packet.data2;
                 return true;
             }
-            else
+            else if(packet.mode != CMD_TURNTABLE)
             {
                 // 如果不是转盘检测模式，重新发送转盘检测指令
                 sendCommand(CMD_TURNTABLE);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+    
+    return false;
+}
+
+bool visionGetCircleColor(int *color)
+{
+    vision_packet_t packet;
+    unsigned long startTime = millis();
+    
+    sendCommand(CMD_GET_CIRCLE_COLOR);
+    
+    while (millis() - startTime < VISION_TIMEOUT)
+    {
+        if (readVisionCache(&packet))
+        {
+            if (packet.mode == CMD_GET_CIRCLE_COLOR && packet.color != 0)
+            {
+                *color = packet.color;
+                return true;
+            }
+            else if (packet.mode != CMD_GET_CIRCLE_COLOR)
+            {
+                // 如果不是获取圆形颜色模式，重新发送获取圆形颜色指令
+                sendCommand(CMD_GET_CIRCLE_COLOR);
             }
         }
         vTaskDelay(pdMS_TO_TICKS(50));

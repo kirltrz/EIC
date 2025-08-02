@@ -8,6 +8,7 @@ extern struct POS que[15];
 extern int taskcode[2][3];
 
 void caliTurntable(void);
+void caliCircle(POS caliBase, int higherOrLower=0);
 void startMainSequence(void);
 void mainSequenceTask(void *);
 void updateTaskcodeDisplay(void);

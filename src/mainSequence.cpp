@@ -5,6 +5,7 @@
 #include "errorHandler.h"
 #include "config.h"
 #include "sensor.h"
+#include "VOFAdebug.h"
 
 #if !DEBUG_ENABLE
 #include "ui.h"
@@ -14,7 +15,7 @@
 POS pos[] = {
     {-153.0  , 576.0  , 0.0f  }, // 0扫二维码
     {  0.0   , 1420.0 , 0.0f  }, // 1转盘抓取
-    {-194.0  , 1000.0 , 80.0f }, // 2离开转盘
+    {-194.0  , 1000.0 , 90.0f }, // 2离开转盘
     {-1940.0 , 980.0 , 90.0f }, // 3粗加工区
     {-1853.0 , 1824.0 , 10.0f  }, // 4离开粗加工区
     {-1038.0 , 1957.0 , 0.0f  }, // 5暂存区
@@ -96,7 +97,7 @@ void mainSequenceTask(void *pvParameters)
         updateTaskcodeDisplay();
         P(TASK_SCAN_QRCODE);
 
-        moveTo({pos[1].x-50.0, pos[1].y, pos[1].yaw}); // 1 先靠近转盘，防止由于误差而超出边界
+        moveTo({pos[1].x-20.0, pos[1].y, pos[1].yaw}); // 1 先靠近转盘，防止由于误差而超出边界
         //waitNear();
         caliTurntable(); // 根据转盘校准车身
         arm_catchFromTurntable(taskcode[0]);
@@ -106,20 +107,22 @@ void mainSequenceTask(void *pvParameters)
         
         moveTo(pos[3]); // 1 前往粗加工区
         waitArrived();
+        caliCircle(pos[3]);
         arm_putToGround(taskcode[0]);
-        arm_catchFromGround(taskcode[0]);
+        arm_catchFromGround(taskcode[0], 1);
         P(TASK_FIRST_ROUGH);
         moveTo(pos[4]); // 1 离开粗加工区
         waitNear();
         
-        moveTo(pos[5]); // 1 前往暂存区
+        moveTo({pos[5].x, pos[5].y-20, pos[5].yaw}); // 1 前往暂存区
         waitArrived();
+        caliCircle(pos[5]);
         arm_putToGround(taskcode[0]);
         P(TASK_FIRST_STORAGE);
         moveTo(pos[6]); // 1 离开暂存区
         waitNear();
         
-        moveTo({pos[1].x-100, pos[1].y, pos[1].yaw}); // 1 先靠近转盘，防止由于误差而超出边界
+        moveTo({pos[1].x-30, pos[1].y, pos[1].yaw}); // 2 先靠近转盘，防止由于误差而超出边界
         waitNear();
         caliTurntable(); // 根据转盘校准车身
         arm_catchFromTurntable(taskcode[1]);
@@ -129,16 +132,20 @@ void mainSequenceTask(void *pvParameters)
         
         moveTo(pos[3]); // 2 前往粗加工区
         waitArrived();
+        caliCircle(pos[3]);
         arm_putToGround(taskcode[1]);
-        arm_catchFromGround(taskcode[1]);
+        arm_catchFromGround(taskcode[1], 2);
         P(TASK_SECOND_ROUGH);
         moveTo(pos[4]); // 2 离开粗加工区
         waitNear();
         
-        moveTo(pos[5]); // 2 前往暂存区
+        moveTo({pos[5].x, pos[5].y-20, pos[5].yaw}); // 2 前往暂存区
         waitArrived();
+        caliCircle(pos[5], 1); // 码垛时，机械臂在更高高度校准
         arm_putToMaterial(taskcode[1]);
         P(TASK_SECOND_STORAGE);
+        moveTo(pos[5]); // 先归中防止压线
+        waitNear();
         moveTo(pos[7]); // 2 离开暂存区
         waitNear();
         
@@ -158,12 +165,11 @@ void mainSequenceTask(void *pvParameters)
 
 void caliTurntable(void){
     arm_turntableDetect();
-    waitArm();
         
     // 根据摄像头返回的与转盘中心的差值逐步靠近转盘
     int x, y;
     const float scale = 0.5f;
-    const int threshold = 10; // 阈值，当摄像头返回的数值小于此值时终止校准
+    const int threshold = 5; // 阈值，当摄像头返回的数值小于此值时终止校准
     const int timeout_ms = 5000; // 超时时间
     int start_time = millis();
     
@@ -185,7 +191,7 @@ void caliTurntable(void){
             }
         } else {
             //DEBUG_LOG("获取转盘位置失败，继续尝试");
-            delay(100);
+            delay(200);
         }
     }
     
@@ -196,4 +202,107 @@ void caliTurntable(void){
     // 设置全局定位xy数据为pos[1]中的数据
     setGlobalPosition(pos[1].x, pos[1].y);
     moveTo(pos[1]);
+}
+
+/**
+ * @brief 校准色环
+ * @param caliBase 校准基准点，即中间色环所在的位置
+ * @param higherOrLower 0: 机械臂在标准高度校准，1: 机械臂在更高高度校准
+ */
+void caliCircle(POS caliBase, int higherOrLower)
+{
+    arm_groundDetect(higherOrLower);
+
+    // 根据摄像头返回的与转盘中心的差值逐步靠近转盘
+    int x, y, color;
+    const float scale = 0.5f;
+    const int threshold = 10;    // 阈值，当摄像头返回的数值小于此值时终止校准
+    const int timeout_ms = 5000; // 超时时间
+    int start_time = millis();
+    bool isRoughArea = false;
+
+    if (caliBase.x == pos[3].x && caliBase.y == pos[3].y && caliBase.yaw == pos[3].yaw)
+    {
+        isRoughArea = true;
+    }
+    else if (caliBase.x == pos[5].x && caliBase.y == pos[5].y && caliBase.yaw == pos[5].yaw)
+    {
+        isRoughArea = false;
+    }
+
+    global_position_t current_pos;
+    POS current_pos_xy;
+
+    while (millis() - start_time < timeout_ms)
+    {
+        if (visionGetCircle(&x, &y))
+        {            // 检查是否达到阈值
+            if (abs(x) < threshold && abs(y) < threshold)
+            {
+                // DEBUG_LOG("校准完成，误差在阈值内: x=%d, y=%d", x, y);
+                break;
+            }
+            // 根据视觉反馈调整位置
+            getGlobalPosition(&current_pos);
+            current_pos_xy = {current_pos.x, current_pos.y, caliBase.yaw};
+            if(isRoughArea)
+            {
+                current_pos_xy.x += -y * scale * 0.7f;
+                current_pos_xy.y += x * scale * 0.7f - 15.0f;
+            }
+            else
+            {
+                current_pos_xy.x += x * scale * 0.7f - 15.0f;
+                current_pos_xy.y += y * scale * 0.7f;
+            }
+            moveTo(current_pos_xy);
+        }
+        else
+        {
+            // DEBUG_LOG("获取位置失败，继续尝试");
+            delay(100);
+        }
+    }
+
+    if (millis() - start_time >= timeout_ms)
+    {
+        // DEBUG_LOG("校准超时");
+    }
+
+    visionGetCircleColor(&color);
+
+    UDP_LOG("color: %d，isRoughArea: %d", color, isRoughArea);
+    //motor->enControl(MOTOR_BROADCAST, false);//防止车身在重置位置的时候乱动
+    if (color == 1)
+    {
+        if (isRoughArea)
+        {
+            setGlobalPosition(caliBase.x, caliBase.y + CIRCLE_DISTANCE);
+            moveTo({caliBase.x, caliBase.y + CIRCLE_DISTANCE, caliBase.yaw});
+        }
+        else
+        {
+            setGlobalPosition(caliBase.x + CIRCLE_DISTANCE, caliBase.y);
+            moveTo({caliBase.x + CIRCLE_DISTANCE, caliBase.y, caliBase.yaw});
+        }
+    }
+    else if (color == 3)
+    {
+        if (isRoughArea)
+        {
+            setGlobalPosition(caliBase.x, caliBase.y - CIRCLE_DISTANCE);
+            moveTo({caliBase.x, caliBase.y - CIRCLE_DISTANCE, caliBase.yaw});
+        }
+        else
+        {
+            setGlobalPosition(caliBase.x - CIRCLE_DISTANCE, caliBase.y);
+            moveTo({caliBase.x - CIRCLE_DISTANCE, caliBase.y, caliBase.yaw});
+        }
+    }
+    else
+    {
+        setGlobalPosition(caliBase.x, caliBase.y);
+        moveTo({caliBase.x, caliBase.y, caliBase.yaw});
+    }
+    //motor->enControl(MOTOR_BROADCAST, true);
 }

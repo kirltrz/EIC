@@ -38,7 +38,7 @@ void visionListenerTask(void *pvParameters);
 
 /*
 @brief 发送命令
-@param mode 命令模式 0：待命模式 1：二维码识别 2：色环识别 3：物料识别
+@param mode 命令模式 0：待命模式 1：二维码识别 2：物料识别 3：色环识别 4：转盘识别 5：获取圆形颜色模式
 */
 void sendCommand(int mode, int color = 0);
 
@@ -91,3 +91,10 @@ bool visionGetMaterial(int color, int *x, int *y);
 @return 是否扫描成功
 */
 bool visionGetTurntable(int *x, int *y);
+
+/*
+@brief 视觉获取圆形区域颜色
+@param color 存储获取到的颜色信息的指针
+@return 是否检测成功
+*/
+bool visionGetCircleColor(int *color);

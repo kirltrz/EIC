@@ -22,6 +22,7 @@
 #define GRAB_FREELY 1       // 是否可以自由抓取
 #define TURNTABLE_HEIGHT 80 // 转盘高度mm
 #define MATERIAL_HEIGHT 70 // 物料高度mm
+#define CIRCLE_DISTANCE 155 // 色环距离mm
 /******************************************************************************
  * 底盘参数配置
  ******************************************************************************/
@@ -164,6 +165,7 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 #define CMD_MATERIAL 2 // 物料识别
 #define CMD_CIRCLE 3   // 色环识别
 #define CMD_TURNTABLE 4 // 转盘识别
+#define CMD_GET_CIRCLE_COLOR 5 // 获取圆形颜色模式
 
 /* 颜色定义 */
 #define COLOR_RED 1   // 红色
