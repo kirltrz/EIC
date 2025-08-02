@@ -373,7 +373,7 @@ def get_circle_color_mode(frame):
     frame_height, frame_width = frame.shape[:2]
     center_x, center_y = frame_width // 2, frame_height // 2
     # 圆的半径 = 较短边长度的一半
-    radius = min(frame_width, frame_height) // 2
+    radius = min(frame_width, frame_height) // 3
     
     # 创建圆形掩膜
     circle_mask = np.zeros((frame_height, frame_width), dtype=np.uint8)
@@ -410,7 +410,7 @@ def get_circle_color_mode(frame):
     valid_contours = []
 
     # 遍历所有轮廓，降低面积阈值以包含更多小面积区域
-    min_area_threshold = 5  # 降低面积阈值，包含小面积区域
+    min_area_threshold = 500  # 降低面积阈值，包含小面积区域
     
     for contour in contours:
         area = cv2.contourArea(contour)
@@ -995,7 +995,7 @@ def camera_processor():
             x, y, color = high_saturation_mode(frame, target_color)
             send_data_packet(current_mode, x, y, color)
         elif current_mode == MODE_CIRCLE:
-            x, y, color = circle_mode(frame, min_radius=95, max_radius=100)
+            x, y, color = circle_mode(frame, min_radius=90, max_radius=130)
             send_data_packet(current_mode, x, y, color)
         elif current_mode == MODE_CALI_TURNTABLE:
             x, y, color = circle_mode(frame, min_radius=200, max_radius=300)

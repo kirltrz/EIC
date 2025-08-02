@@ -1150,7 +1150,7 @@ void arm_putToMaterial(int taskcode[3])//将第二次的物料重合到第一次
             delay(350);
             servo0.setAngle(0.0f, taskcode[i] == 1 ? 500 : 300, 150, 150);
             delay(taskcode[i] == 1 ? 450 : 250);
-            armControl_xyz(0, 200, MATERIAL_HEIGHT+10, 800, 400, 400);
+            armControl_xyz(0, 213, MATERIAL_HEIGHT+10, 800, 400, 400);
             arm_setClaw(1);
             armControl_xyz(0, 85, 180, 300, 150, 150, false);
             //delay(250);

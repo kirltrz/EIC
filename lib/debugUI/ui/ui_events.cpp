@@ -284,7 +284,7 @@ void testFunc(lv_event_t * e)
 		DEBUG_LOG("无法获取按钮标签");
 		return;
 	}
-	caliCircle(pos[3]);
+	arm_groundDetect(0);
 	/*
 	int taskcode[3]={1,2,3};
 	setGlobalPosition(pos[1].x, pos[1].y);
