@@ -90,15 +90,21 @@ float constrain_float(float value, float min_value, float max_value)
     return value;
 }
 
-void moveTo(POS pos)
+void moveTo(POS pos,bool slower)
 {
     /*移动到目标点，仅用于传入目标点*/
     // 保存目标位置
     targetPos = pos;
 
     // 设置运动状态
-    isMoving = true;
-    isHolding = false;
+    if(slower){
+        isMoving = false;
+        isHolding = true;
+    }
+    else{
+        isMoving = true;
+        isHolding = false;
+    }
 
     // 重置PID参数
     resetPIDparam();
@@ -263,17 +269,17 @@ void moveTask(void *pvParameters)
                 speed = wheel_speeds[i] * 60.0f / (2.0f * PI); // RAD/s转换为RPM
 
                 // 限制最小速度
-                if (abs(speed) < MIN_SPEED_RPM && abs(speed) > 0.01f)
+                if (abs(speed) < MIN_SPEED_RPM /*&& abs(speed) > 0.01f*/)
                 {
                     speed = (speed > 0) ? MIN_SPEED_RPM : -MIN_SPEED_RPM;
                 }
-
+/*
                 // 如果速度几乎为零，不发送命令
                 if (abs(speed) < 0.01f)
                 {
                     continue;
                 }
-
+*/
                 // 限制最大速度
                 speed = constrain_float(speed, -MAX_SPEED_RPM, MAX_SPEED_RPM);
 
@@ -398,7 +404,7 @@ void waitNear(void)
 {
     /*等待到达目标点*/
     uint32_t startTime = millis();
-    while (!arrived(50, 30, false))
+    while (!arrived(50, 15, false))
     {
         if (millis() - startTime > 5000) // 超时5秒
         {

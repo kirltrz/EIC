@@ -288,7 +288,7 @@ bool visionGetCircleColor(int *color)
     
     sendCommand(CMD_GET_CIRCLE_COLOR);
     
-    while (millis() - startTime < VISION_TIMEOUT)
+    while (millis() - startTime < 1000)
     {
         if (readVisionCache(&packet))
         {

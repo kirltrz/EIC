@@ -14,7 +14,7 @@ struct POS{
 extern ZDT_MOTOR_EMM_V5 *motor;
 
 void initMotor(void);
-void moveTo(POS pos);
+void moveTo(POS pos,bool slower=false);
 void resetPIDparam(void);
 void moveTask(void*pvParameters);
 /*

@@ -36,7 +36,7 @@ struct armPosRaw
 const armPos fold = {35,0, 99};        // 折叠状态
 const armPosRaw ttDetect = {90.0f, 2.7f, -41.9f, 25.8f}; // 转盘检测位置
 const armPos rPlate = {67, -65, 95};      // 红色物料托盘位置
-const armPos bPlate = {-67, 65, 95};      // 蓝色物料托盘位置
+const armPos bPlate = {-72, 60, 95};      // 蓝色物料托盘位置
 const armPos gPlate = {67, 67, 95};      // 绿色物料托盘位置
 const int plateAngle[3] = {136,46,-46}; // 托盘角度
 const armPos gdDetect = {0, 180, 60};    // 地面检测位置
@@ -45,9 +45,9 @@ const armPos bCircleBase = {-155,200, 0}; // 蓝色色环基础位置（未视�
 const armPos gCircleBase = {-6, 210, 0}; // 绿色色环基础位置（未视觉纠偏的位置）
 
 armPos turntablePos[3] = {
-    {161, -7, TURNTABLE_HEIGHT},
-    {318, 80, TURNTABLE_HEIGHT},
-    {317, -97, TURNTABLE_HEIGHT}};
+    {161, -7, TURNTABLE_HEIGHT},//0
+    {318, 80, TURNTABLE_HEIGHT},//1
+    {317, -92, TURNTABLE_HEIGHT}};//2
 armPos platePos[3] = {rPlate,gPlate,bPlate};
 armPos circlePos[3] = {rCircleBase,gCircleBase,bCircleBase};
 
@@ -437,7 +437,7 @@ void catchFromTurntable(int sequence/*抓取序号：0=第一次，1=中间，2=
     else{
         servo0.setAngle(90.0f, material.plateColor == 2/*蓝色远一些*/ ? 500 : 300, 150, 150);
         delay(material.plateColor == 2/*蓝色远一些*/ ? 400 : 200);
-        arm_turntableDetect();
+        //arm_turntableDetect();
     }
 }
 void arm_turntableDetect(void){
@@ -607,7 +607,9 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
         int loopCounter = 0;
         const int MAX_LOOP_COUNT = 50;
         int stableCount = 0; // 连续稳定次数计数
-        const int REQUIRED_STABLE_COUNT = 3; // 需要连续3次稳定才认为停止
+        int rotatingCount = 0; // 连续转动次数计数
+        const int REQUIRED_STABLE_COUNT = 2; // 需要连续2次稳定才认为停止
+        const int REQUIRED_ROTATING_COUNT = 2; // 需要连续2次转动才认为开始转动
         const float STABLE_THRESHOLD = 2.0; // 角度变化小于2度认为稳定
         
         while (1)
@@ -634,24 +636,34 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
             // 基于转盘固定转动方向的检测逻辑
             if (angleDiff > STABLE_THRESHOLD) // 转盘顺时针转动
             {
-                if (isRotate != 1) {
+                rotatingCount++; // 增加转动计数
+                stableCount = 0; // 重置稳定计数
+                
+                // 只有达到所需转动次数才认为真正开始转动
+                if (rotatingCount >= REQUIRED_ROTATING_COUNT && isRotate != 1) {
                     isLastRotate = isRotate; // 只在状态改变时更新
                     UDP_LOG("状态变化：停止->转动，isLastRotate=%d", isLastRotate);
+                    isRotate = 1;
+                } else if (rotatingCount >= REQUIRED_ROTATING_COUNT) {
+                    isRotate = 1;
                 }
-                isRotate = 1;
-                stableCount = 0; // 重置稳定计数
             }
             else
             {
-                if (isRotate != 0) {
+                stableCount++; // 增加稳定计数
+                rotatingCount = 0; // 重置转动计数
+                
+                // 只有达到所需稳定次数才认为真正停止
+                if (stableCount >= REQUIRED_STABLE_COUNT && isRotate != 0) {
                     isLastRotate = isRotate; // 只在状态改变时更新
                     UDP_LOG("状态变化：转动->停止，isLastRotate=%d", isLastRotate);
+                    isRotate = 0;
+                } else if (stableCount >= REQUIRED_STABLE_COUNT) {
+                    isRotate = 0;
                 }
-                isRotate = 0;
-                stableCount++; // 增加稳定计数
             }
             
-            UDP_LOG("当前状态：isRotate=%d, isLastRotate=%d, stableCount=%d", isRotate, isLastRotate, stableCount);
+            UDP_LOG("当前状态：isRotate=%d, isLastRotate=%d, stableCount=%d, rotatingCount=%d", isRotate, isLastRotate, stableCount, rotatingCount);
 
             // 只有从转动状态刚停止时才开始解析物料位置
             if (isRotate == 0 && stableCount >= REQUIRED_STABLE_COUNT && isLastRotate == 1) // 解析物料位置
@@ -674,32 +686,50 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
                     // 不在预期位置则继续循环
                     continue;
                 }
-                /*
+                
                 if(gotMaterialCount+1<3)
                 {
-                visionGetMaterial(taskcode[gotMaterialCount+1], &cx, &cy);
+                    cx=0;
+                    cy=0;
+                    visionGetMaterial(taskcode[gotMaterialCount+1], &cx, &cy);
+                    UDP_LOG("物料：%d,x:%d,y:%d",taskcode[gotMaterialCount+1],cx,cy);
                 if(cy<0)
                 {
                     posOfMaterial[taskcode[gotMaterialCount+1]-1] = 0;
                 }
-                else
+                else if(cy>0)
                 {
                     if(cx>0)
                     {
-                        posOfMaterial[taskcode[gotMaterialCount+1]-1] = 1;
+                        posOfMaterial[taskcode[gotMaterialCount+1]-1] = 2;
                     }
                     else
                     {
-                        posOfMaterial[taskcode[gotMaterialCount+1]-1] = 2;
+                        posOfMaterial[taskcode[gotMaterialCount+1]-1] = 1;
                     }
                 }
+                else {continue;}
                 }
-                if(gotMaterialCount==0) posOfMaterial[2] = 3 - posOfMaterial[0] - posOfMaterial[1];
-*/
-                if(0/*isLastRotate==1*/){
+                posOfMaterial[taskcode[2]-1] = 3 - posOfMaterial[taskcode[0]-1] - posOfMaterial[taskcode[1]-1]+1;
+                if(posOfMaterial[taskcode[2]-1]==3)posOfMaterial[taskcode[2]-1]=0;
+                UDP_LOG("颜色：%d%d%d在%d%d%d号位",taskcode[0],taskcode[1],taskcode[2],posOfMaterial[taskcode[0]-1],posOfMaterial[taskcode[1]-1],posOfMaterial[taskcode[2]-1]);
+
+                if(1/*isLastRotate==1*/){
                     if(gotMaterialCount==0){
                         catchFromTurntable(0, {posOfMaterial[taskcode[0]-1], taskcode[0]-1});
+                        if(posOfMaterial[taskcode[0]-1]==0){
+                            delay(200);
+                        }
+                        if(taskcode[0]!=3){
+                            delay(200);
+                        }
                         catchFromTurntable(1, {posOfMaterial[taskcode[1]-1], taskcode[1]-1});
+                        if(posOfMaterial[taskcode[1]-1]==0){
+                            delay(300);
+                        }
+                        if(taskcode[1]!=3){
+                            delay(300);
+                        }
                         catchFromTurntable(2, {posOfMaterial[taskcode[2]-1], taskcode[2]-1});
                     }
                     else if(gotMaterialCount==1){
@@ -765,21 +795,24 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
         DEBUG_LOG("主流程任务已挂起");
     }
 }
-void arm_groundDetect(int higherOrLower)
+void arm_groundDetect(int higherOrLower, bool needDelay)
 {
     arm_setClaw(1);
     servo0.setAngle(0.0f, 400, 200, 200);
-    delay(350);
+    if(needDelay)
+    {
+        delay(350);
+    }
     if(higherOrLower==1)
     {
-        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z+40, 500, 250, 250);
+        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z+40, 500, 250, 250,needDelay);
     }
     else if(higherOrLower==2)
     {
-        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z-40, 500, 250, 250);
+        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z-40, 500, 250, 250,needDelay);
     }
     else {
-        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z, 500, 250, 250);
+        armControl_xyz(gdDetect.x, gdDetect.y, gdDetect.z, 500, 250, 250,needDelay);
     }
 }
 void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的色环
@@ -823,39 +856,39 @@ void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的�
             {
                 if (params->isRoughArea)
                 {
-                    moveTo({pos[3].x, pos[3].y + CIRCLE_DISTANCE, pos[3].yaw});
+                    moveTo({pos[3].x, pos[3].y + CIRCLE_DISTANCE, pos[3].yaw},true);
                 }
                 else
                 {
-                    moveTo({pos[5].x + CIRCLE_DISTANCE, pos[5].y, pos[5].yaw});
+                    moveTo({pos[5].x + CIRCLE_DISTANCE, pos[5].y, pos[5].yaw},true);
                 }
             }
             else if (taskcode[i] == 2)
             {
                 if (params->isRoughArea)
                 {
-                    moveTo({pos[3].x, pos[3].y, pos[3].yaw});
+                    moveTo({pos[3].x, pos[3].y, pos[3].yaw},true);
                 }
                 else
                 {
-                    moveTo({pos[5].x, pos[5].y, pos[5].yaw});
+                    moveTo({pos[5].x, pos[5].y, pos[5].yaw},true);
                 }
             }
             else if (taskcode[i] == 3)
             {
                 if (params->isRoughArea)
                 {
-                    moveTo({pos[3].x, pos[3].y - CIRCLE_DISTANCE, pos[3].yaw});
+                    moveTo({pos[3].x, pos[3].y - CIRCLE_DISTANCE, pos[3].yaw},true);
                 }
                 else
                 {
-                    moveTo({pos[5].x - CIRCLE_DISTANCE, pos[5].y, pos[5].yaw});
+                    moveTo({pos[5].x - CIRCLE_DISTANCE, pos[5].y, pos[5].yaw},true);
                 }
             }
             delay(200);
             if (i == 0)
             {
-                armControl_xyz(0, 85, 180, 300, 150, 150, false);
+                armControl_xyz(0, 85, 180, 500, 250, 250, false);
                 delay(250);
             }
             arm_setClaw(1);
@@ -870,7 +903,7 @@ void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的�
             delay(taskcode[i] == 1 ? 450 : 250);
             waitArrived();
             delay(200);
-            armControl_xyz(0, 213, 0, 800, 400, 400);
+            armControl_xyz(0, 212, 0, 800, 400, 400);//放置物料到地面
             delay(200);
             arm_setClaw(1);
             waitArm();
@@ -1013,27 +1046,26 @@ void arm_catchFromGround(int taskcode[3], int cycleNum)//将物料从地面抓�
                 armControl_xyz(0, 85, 180, 300, 150, 150, false);
             }
             arm_setClaw(1);
-            waitArrived();
-            delay(200);
-            armControl_xyz(0, 213, 0, 800, 400, 400);
-            delay(200);
+            waitNear();
+            delay(100);
+            armControl_xyz(0, 212, 0, 800, 400, 400); // 从地面抓取物料
+            delay(100);
             arm_setClaw(0);
             waitArm();
-            delay(200);
-            armControl_xyz(0, 85, 180, 500, 250, 250, false);
-            delay(350);
+            armControl_xyz(0, 85, 180, 600, 300, 300, false);
+            delay(400);
             if(i<2){
             if (taskcode[i+1] == 1)
             {
-                moveTo({pos[3].x, pos[3].y + CIRCLE_DISTANCE, pos[3].yaw});
+                moveTo({pos[3].x, pos[3].y + CIRCLE_DISTANCE, pos[3].yaw},true);
             }
             else if (taskcode[i+1] == 2)
             {
-                moveTo({pos[3].x, pos[3].y, pos[3].yaw});
+                moveTo({pos[3].x, pos[3].y, pos[3].yaw},true);
             }
             else if (taskcode[i+1] == 3)
             {
-                moveTo({pos[3].x, pos[3].y - CIRCLE_DISTANCE, pos[3].yaw});
+                moveTo({pos[3].x, pos[3].y - CIRCLE_DISTANCE, pos[3].yaw},true);
             }
             }
             servo0.setAngle(plateAngle[taskcode[i] - 1], taskcode[i] == 1 ? 500 : 400, 200, 200);
@@ -1150,8 +1182,9 @@ void arm_putToMaterial(int taskcode[3])//将第二次的物料重合到第一次
             delay(350);
             servo0.setAngle(0.0f, taskcode[i] == 1 ? 500 : 300, 150, 150);
             delay(taskcode[i] == 1 ? 450 : 250);
-            armControl_xyz(0, 213, MATERIAL_HEIGHT+10, 800, 400, 400);
+            armControl_xyz(0, 213, MATERIAL_HEIGHT+7, 800, 400, 400);
             arm_setClaw(1);
+            waitArm();
             armControl_xyz(0, 85, 180, 300, 150, 150, false);
             //delay(250);
 #if 0
