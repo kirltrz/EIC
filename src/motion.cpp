@@ -204,9 +204,9 @@ void moveTask(void *pvParameters)
             yaw_error = targetPos.yaw - currentPosition.continuousYaw;
 
 #if DEBUG_ENABLE
-            //sendDebugValuesUDP(targetPos.x,targetPos.y,targetPos.yaw,currentPosition.x,currentPosition.y,currentPosition.continuousYaw);
+      sendDebugValuesUDP(targetPos.x,targetPos.y,targetPos.yaw,currentPosition.x,currentPosition.y,currentPosition.continuousYaw);
+      
 #endif
-
             // 更新积分项
             pos_x_integral += pos_x_error * PID_INTERVAL / 1000.0f;
             pos_y_integral += pos_y_error * PID_INTERVAL / 1000.0f;
@@ -409,6 +409,20 @@ void waitNear(void)
         if (millis() - startTime > 5000) // 超时5秒
         {
             DEBUG_SERIAL.println("等待到达目标点超时!");
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+void waitCompeletelyArrived(void)
+{
+    /*等待完全到达目标点*/
+    uint32_t startTime = millis();
+    while (!arrived(2, 2, true))
+    {
+        if (millis() - startTime > 5000) // 超时5秒
+        {
+            DEBUG_SERIAL.println("等待完全到达目标点超时!");
             break;
         }
         vTaskDelay(pdMS_TO_TICKS(10));

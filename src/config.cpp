@@ -2,7 +2,7 @@
 
 // PID控制参数 - 运动中使用
 float POS_KP = 2.5f;      // 位置环比例系数
-float POS_KI = 0.004f;       // 位置环积分系数
+float POS_KI = 0.005f;       // 位置环积分系数
 float POS_KD = 0.002f;      // 位置环微分系数
 float YAW_KP = 5.0f;      // 偏航角比例系数
 float YAW_KI = 0.005f;       // 偏航角积分系数
@@ -10,7 +10,7 @@ float YAW_KD = 0.003f;      // 偏航角微分系数
 
 // PID控制参数 - 位置锁定时使用
 float HOLD_POS_KP = 2.0f;    // 位置保持比例系数
-float HOLD_POS_KI = 0.002f;     // 位置保持积分系数
+float HOLD_POS_KI = 0.005f;     // 位置保持积分系数
 float HOLD_POS_KD = 0.002f;    // 位置保持微分系数
 float HOLD_YAW_KP = 2.0f;   // 偏航角保持比例系数
 float HOLD_YAW_KI = 0.005f;     // 偏航角保持积分系数(该状态不使用)

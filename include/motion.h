@@ -25,5 +25,6 @@ void moveTask(void*pvParameters);
 bool arrived(float pos_tolerance, float yaw_tolerance, bool anti_oscillation);//返回true表示到达目标点
 void waitArrived(void);
 void waitNear(void);
+void waitCompeletelyArrived(void);
 void stopMotion(void);//停止运动并释放电机控制
 void forceStopAllMotors(void);//强制停止所有电机，确保速度为0

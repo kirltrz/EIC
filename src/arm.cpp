@@ -888,26 +888,26 @@ void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的�
             delay(200);
             if (i == 0)
             {
-                armControl_xyz(0, 85, 180, 500, 250, 250, false);
-                delay(250);
+                armControl_xyz(0, 85, 180, 500+100, 250+50, 250+50, false);
+                delay(250+100);
             }
             arm_setClaw(1);
-            servo0.setAngle(plateAngle[taskcode[i] - 1], taskcode[i] == 1 ? 500 : 300, 150, 150);
-            delay(taskcode[i] == 1 ? 450 : 250);
-            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z, 300, 150, 150);
+            servo0.setAngle(plateAngle[taskcode[i] - 1], taskcode[i] == 1 ? 500+100 : 300+100, 150+50, 150+50);
+            delay(taskcode[i] == 1 ? 450+100 : 250+100);
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z, 300+100, 150+50, 150+50);
             arm_setClaw(0);
             waitArm();
-            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z + 100, 400, 200, 200, false);
-            delay(350);
-            servo0.setAngle(0.0f, taskcode[i] == 1 ? 500 : 300, 150, 150);
-            delay(taskcode[i] == 1 ? 450 : 250);
-            waitArrived();
+            armControl_xyz(platePos[taskcode[i] - 1].x, platePos[taskcode[i] - 1].y, platePos[taskcode[i] - 1].z + 100, 400+100, 200+50, 200+50, false);
+            delay(350+100);
+            servo0.setAngle(0.0f, taskcode[i] == 1 ? 500+100 : 300+100, 150+50, 150+50);
+            delay(taskcode[i] == 1 ? 450+100 : 250+100);
+            waitCompeletelyArrived();
             delay(200);
-            armControl_xyz(0, 212, 0, 800, 400, 400);//放置物料到地面
+            armControl_xyz(0, 212, 0, 800+100, 400+50, 400+50);//放置物料到地面
             delay(200);
             arm_setClaw(1);
             waitArm();
-            armControl_xyz(0, 85, 180, 500, 250, 250, false);
+            armControl_xyz(0, 85, 180, 500+100, 250+50, 250+50, false);
 
 #if 0
             arm_setClaw(1);

@@ -22,7 +22,7 @@
 #define GRAB_FREELY 1       // 是否可以自由抓取
 #define TURNTABLE_HEIGHT 80 // 转盘高度mm
 #define MATERIAL_HEIGHT 70 // 物料高度mm
-#define CIRCLE_DISTANCE 155 // 色环距离mm
+#define CIRCLE_DISTANCE 154 // 色环距离mm
 /******************************************************************************
  * 底盘参数配置
  ******************************************************************************/
