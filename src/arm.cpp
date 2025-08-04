@@ -437,7 +437,7 @@ void catchFromTurntable(int sequence/*抓取序号：0=第一次，1=中间，2=
     else{
         servo0.setAngle(90.0f, material.plateColor == 2/*蓝色远一些*/ ? 500 : 300, 150, 150);
         delay(material.plateColor == 2/*蓝色远一些*/ ? 400 : 200);
-        //arm_turntableDetect();
+        if(!CONTINUOUS_GRAB)arm_turntableDetect();
     }
 }
 void arm_turntableDetect(void){
@@ -686,35 +686,36 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
                     // 不在预期位置则继续循环
                     continue;
                 }
-                
-                if(gotMaterialCount+1<3)
+                if (CONTINUOUS_GRAB)
                 {
-                    cx=0;
-                    cy=0;
-                    visionGetMaterial(taskcode[gotMaterialCount+1], &cx, &cy);
-                    UDP_LOG("物料：%d,x:%d,y:%d",taskcode[gotMaterialCount+1],cx,cy);
-                if(cy<0)
-                {
-                    posOfMaterial[taskcode[gotMaterialCount+1]-1] = 0;
-                }
-                else if(cy>0)
-                {
-                    if(cx>0)
+                    cx = 0;
+                    cy = 0;
+                    visionGetMaterial(taskcode[gotMaterialCount + 1], &cx, &cy);
+                    UDP_LOG("物料：%d,x:%d,y:%d", taskcode[gotMaterialCount + 1], cx, cy);
+                    if (cy < 0)
                     {
-                        posOfMaterial[taskcode[gotMaterialCount+1]-1] = 2;
+                        posOfMaterial[taskcode[gotMaterialCount + 1] - 1] = 0;
+                    }
+                    else if (cy > 0)
+                    {
+                        if (cx > 0)
+                        {
+                            posOfMaterial[taskcode[gotMaterialCount + 1] - 1] = 2;
+                        }
+                        else
+                        {
+                            posOfMaterial[taskcode[gotMaterialCount + 1] - 1] = 1;
+                        }
                     }
                     else
                     {
-                        posOfMaterial[taskcode[gotMaterialCount+1]-1] = 1;
+                        continue;
                     }
-                }
-                else {continue;}
-                }
-                posOfMaterial[taskcode[2]-1] = 3 - posOfMaterial[taskcode[0]-1] - posOfMaterial[taskcode[1]-1]+1;
-                if(posOfMaterial[taskcode[2]-1]==3)posOfMaterial[taskcode[2]-1]=0;
-                UDP_LOG("颜色：%d%d%d在%d%d%d号位",taskcode[0],taskcode[1],taskcode[2],posOfMaterial[taskcode[0]-1],posOfMaterial[taskcode[1]-1],posOfMaterial[taskcode[2]-1]);
 
-                if(1/*isLastRotate==1*/){
+                    posOfMaterial[taskcode[2] - 1] = 3 - posOfMaterial[taskcode[0] - 1] - posOfMaterial[taskcode[1] - 1] + 1;
+                    if (posOfMaterial[taskcode[2] - 1] == 3)
+                        posOfMaterial[taskcode[2] - 1] = 0;
+                    UDP_LOG("颜色：%d%d%d在%d%d%d号位", taskcode[0], taskcode[1], taskcode[2], posOfMaterial[taskcode[0] - 1], posOfMaterial[taskcode[1] - 1], posOfMaterial[taskcode[2] - 1]);
                     if(gotMaterialCount==0){
                         catchFromTurntable(0, {posOfMaterial[taskcode[0]-1], taskcode[0]-1});
                         if(posOfMaterial[taskcode[0]-1]==0){
@@ -731,13 +732,6 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
                             delay(300);
                         }
                         catchFromTurntable(2, {posOfMaterial[taskcode[2]-1], taskcode[2]-1});
-                    }
-                    else if(gotMaterialCount==1){
-                        catchFromTurntable(0, {posOfMaterial[taskcode[1]-1], taskcode[1]-1});
-                        catchFromTurntable(2, {posOfMaterial[taskcode[2]-1], taskcode[2]-1});
-                    }
-                    else if(gotMaterialCount==2){
-                        catchFromTurntable(0, {posOfMaterial[taskcode[2]-1], taskcode[2]-1});
                     }
                     break;
                 }else{

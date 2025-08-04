@@ -7,7 +7,7 @@
 
 // QR码扫描搜索的相关参数
 #define SEARCH_DISTANCE 30.0f   // QR码搜索移动距离，单位mm
-#define CIRCLE_SEARCH_DISTANCE 15.0f   // 色环搜索移动距离，单位mm
+#define CIRCLE_SEARCH_DISTANCE 50.0f   // 色环搜索移动距离，单位mm（统一为至少3cm）
 #define MAX_SEARCH_ATTEMPTS 12  // 最大搜索尝试次数
 #define SEARCH_DELAY 500       // 每次搜索间隔时间，单位ms
 
@@ -57,24 +57,55 @@ static bool searchCircle() {
     global_position_t originalPos;
     getGlobalPosition(&originalPos);
     
-    // 定义搜索方向，使用较小的搜索距离
-    float searchOffsets[MAX_SEARCH_ATTEMPTS][2] = {
-        {CIRCLE_SEARCH_DISTANCE, 0},           // 向前
-        {0, -CIRCLE_SEARCH_DISTANCE},          // 向右
-        {-CIRCLE_SEARCH_DISTANCE, 0},          // 向后
-        {0, CIRCLE_SEARCH_DISTANCE},           // 向左
-        {CIRCLE_SEARCH_DISTANCE, -CIRCLE_SEARCH_DISTANCE},  // 前右
-        {-CIRCLE_SEARCH_DISTANCE, -CIRCLE_SEARCH_DISTANCE}, // 后右
-        {-CIRCLE_SEARCH_DISTANCE, CIRCLE_SEARCH_DISTANCE},  // 后左
-        {CIRCLE_SEARCH_DISTANCE, CIRCLE_SEARCH_DISTANCE},   // 前左
-        {CIRCLE_SEARCH_DISTANCE * 2, 0},       // 向前远距离
-        {-CIRCLE_SEARCH_DISTANCE * 2, 0},      // 向后远距离
-        {0, CIRCLE_SEARCH_DISTANCE * 2},       // 向左远距离
-        {0, -CIRCLE_SEARCH_DISTANCE * 2}       // 向右远距离
-    };
+    // 自动判断当前区域：基于位置判断是否在暂存区
+    // 暂存区位置: pos[5] = {-1038.0, 1957.0, 0.0f}
+    // 判断标准：距离暂存区中心350mm以内视为暂存区
+    // 放宽标准是因为小车可以识别到区域两侧的红色和蓝色色环（约30-40cm范围）
+    float dist_to_storage = sqrt(pow(originalPos.x - (-1038.0), 2) + pow(originalPos.y - 1957.0, 2));
+    bool isStorageArea = (dist_to_storage <= 350.0f);
+    
+    // 根据区域定义搜索方向：先左右再前后
+    float searchOffsets[MAX_SEARCH_ATTEMPTS][2];
+    
+    if (isStorageArea) {
+        // 暂存区：左右是x轴方向，前后是y轴方向
+        float offsets[MAX_SEARCH_ATTEMPTS][2] = {
+            {-CIRCLE_SEARCH_DISTANCE, 0},          // 向左 (x-)
+            {CIRCLE_SEARCH_DISTANCE, 0},           // 向右 (x+)
+            {0, CIRCLE_SEARCH_DISTANCE},           // 向前 (y+)
+            {0, -CIRCLE_SEARCH_DISTANCE},          // 向后 (y-)
+            {-CIRCLE_SEARCH_DISTANCE, CIRCLE_SEARCH_DISTANCE},   // 前左
+            {CIRCLE_SEARCH_DISTANCE, CIRCLE_SEARCH_DISTANCE},    // 前右
+            {-CIRCLE_SEARCH_DISTANCE, -CIRCLE_SEARCH_DISTANCE},  // 后左
+            {CIRCLE_SEARCH_DISTANCE, -CIRCLE_SEARCH_DISTANCE},   // 后右
+            {-CIRCLE_SEARCH_DISTANCE * 2, 0},      // 向左远距离
+            {CIRCLE_SEARCH_DISTANCE * 2, 0},       // 向右远距离
+            {0, CIRCLE_SEARCH_DISTANCE * 2},       // 向前远距离
+            {0, -CIRCLE_SEARCH_DISTANCE * 2}       // 向后远距离
+        };
+        memcpy(searchOffsets, offsets, sizeof(offsets));
+    } else {
+        // 其他区域：左右是y轴方向，前后是x轴方向
+        float offsets[MAX_SEARCH_ATTEMPTS][2] = {
+            {0, CIRCLE_SEARCH_DISTANCE},           // 向左 (y+)
+            {0, -CIRCLE_SEARCH_DISTANCE},          // 向右 (y-)
+            {CIRCLE_SEARCH_DISTANCE, 0},           // 向前 (x+)
+            {-CIRCLE_SEARCH_DISTANCE, 0},          // 向后 (x-)
+            {CIRCLE_SEARCH_DISTANCE, CIRCLE_SEARCH_DISTANCE},   // 前左
+            {CIRCLE_SEARCH_DISTANCE, -CIRCLE_SEARCH_DISTANCE},  // 前右
+            {-CIRCLE_SEARCH_DISTANCE, CIRCLE_SEARCH_DISTANCE},  // 后左
+            {-CIRCLE_SEARCH_DISTANCE, -CIRCLE_SEARCH_DISTANCE}, // 后右
+            {0, CIRCLE_SEARCH_DISTANCE * 2},       // 向左远距离
+            {0, -CIRCLE_SEARCH_DISTANCE * 2},      // 向右远距离
+            {CIRCLE_SEARCH_DISTANCE * 2, 0},       // 向前远距离
+            {-CIRCLE_SEARCH_DISTANCE * 2, 0}       // 向后远距离
+        };
+        memcpy(searchOffsets, offsets, sizeof(offsets));
+    }
 
-    DEBUG_LOG("开始色环搜索，原始位置: x=%.2f, y=%.2f, yaw=%.2f", 
-              originalPos.x, originalPos.y, originalPos.rawYaw);
+    DEBUG_LOG("开始色环搜索，原始位置: x=%.2f, y=%.2f, yaw=%.2f, 区域类型: %s", 
+              originalPos.x, originalPos.y, originalPos.rawYaw, 
+              isStorageArea ? "暂存区(左右=x轴)" : "其他区域(左右=y轴)");
     
     for (int attempt = 0; attempt < MAX_SEARCH_ATTEMPTS; attempt++) {
         // 计算新的目标位置
@@ -122,23 +153,23 @@ static bool searchQRCode() {
     global_position_t originalPos;
     getGlobalPosition(&originalPos);
     
-    // 定义搜索方向：前、右、后、左、前右、后右、后左、前左、前方远距离、后方远距离、左侧远距离、右侧远距离
+    // 定义搜索方向：先左右再前后
     float searchOffsets[MAX_SEARCH_ATTEMPTS][2] = {
-        {SEARCH_DISTANCE, 0},           // 向前
-        {0, -SEARCH_DISTANCE},          // 向右
-        {-SEARCH_DISTANCE, 0},          // 向后
         {0, SEARCH_DISTANCE},           // 向左
-        {SEARCH_DISTANCE, -SEARCH_DISTANCE},  // 前右
-        {-SEARCH_DISTANCE, -SEARCH_DISTANCE}, // 后右
-        {-SEARCH_DISTANCE, SEARCH_DISTANCE},  // 后左
+        {0, -SEARCH_DISTANCE},          // 向右
+        {SEARCH_DISTANCE, 0},           // 向前
+        {-SEARCH_DISTANCE, 0},          // 向后
         {SEARCH_DISTANCE, SEARCH_DISTANCE},   // 前左
-        {SEARCH_DISTANCE * 2, 0},       // 向前远距离
-        {-SEARCH_DISTANCE * 2, 0},      // 向后远距离
+        {SEARCH_DISTANCE, -SEARCH_DISTANCE},  // 前右
+        {-SEARCH_DISTANCE, SEARCH_DISTANCE},  // 后左
+        {-SEARCH_DISTANCE, -SEARCH_DISTANCE}, // 后右
         {0, SEARCH_DISTANCE * 2},       // 向左远距离
-        {0, -SEARCH_DISTANCE * 2}       // 向右远距离
+        {0, -SEARCH_DISTANCE * 2},      // 向右远距离
+        {SEARCH_DISTANCE * 2, 0},       // 向前远距离
+        {-SEARCH_DISTANCE * 2, 0}       // 向后远距离
     };
 
-    DEBUG_LOG("开始QR码搜索，原始位置: x=%.2f, y=%.2f, yaw=%.2f", 
+    DEBUG_LOG("开始QR码搜索，原始位置: x=%.2f, y=%.2f, yaw=%.2f (QR码区域: 左右=y轴)", 
               originalPos.x, originalPos.y, originalPos.rawYaw);
     
     for (int attempt = 0; attempt < MAX_SEARCH_ATTEMPTS; attempt++) {
@@ -172,6 +203,70 @@ static bool searchQRCode() {
     
     // 搜索失败，返回原始位置
     DEBUG_LOG("QR码搜索失败，返回原始位置");
+    POS returnPos = {originalPos.x, originalPos.y, originalPos.rawYaw};
+    moveTo(returnPos);
+    waitArrived();
+    
+    return false;
+}
+
+/**
+ * @brief 转盘识别失败时的搜索处理
+ * @return 是否成功识别到转盘
+ */
+static bool searchTurntable() {
+    global_position_t originalPos;
+    getGlobalPosition(&originalPos);
+    
+    // 定义搜索方向：先左右再前后
+    float searchOffsets[MAX_SEARCH_ATTEMPTS][2] = {
+        {0, SEARCH_DISTANCE},           // 向左
+        {0, -SEARCH_DISTANCE},          // 向右
+        {SEARCH_DISTANCE, 0},           // 向前
+        {-SEARCH_DISTANCE, 0},          // 向后
+        {SEARCH_DISTANCE, SEARCH_DISTANCE},   // 前左
+        {SEARCH_DISTANCE, -SEARCH_DISTANCE},  // 前右
+        {-SEARCH_DISTANCE, SEARCH_DISTANCE},  // 后左
+        {-SEARCH_DISTANCE, -SEARCH_DISTANCE}, // 后右
+        {0, SEARCH_DISTANCE * 2},       // 向左远距离
+        {0, -SEARCH_DISTANCE * 2},      // 向右远距离
+        {SEARCH_DISTANCE * 2, 0},       // 向前远距离
+        {-SEARCH_DISTANCE * 2, 0}       // 向后远距离
+    };
+
+    DEBUG_LOG("开始转盘搜索，原始位置: x=%.2f, y=%.2f, yaw=%.2f (转盘区域: 左右=y轴)", 
+              originalPos.x, originalPos.y, originalPos.rawYaw);
+    
+    for (int attempt = 0; attempt < MAX_SEARCH_ATTEMPTS; attempt++) {
+        // 计算新的目标位置
+        POS targetPos = {
+            originalPos.x + searchOffsets[attempt][0],
+            originalPos.y + searchOffsets[attempt][1],
+            originalPos.rawYaw
+        };
+        
+        DEBUG_LOG("转盘搜索尝试 %d/%d: 移动到 x=%.2f, y=%.2f", 
+                  attempt + 1, MAX_SEARCH_ATTEMPTS, targetPos.x, targetPos.y);
+        
+        // 移动到新位置
+        moveTo(targetPos);
+        waitArrived();
+        
+        delay(SEARCH_DELAY);
+        
+        // 尝试识别转盘
+        int x, y;
+        if (visionGetTurntable(&x, &y)) {
+            DEBUG_LOG("转盘搜索成功！在位置 x=%.2f, y=%.2f，转盘偏移: (%d, %d)", 
+                      targetPos.x, targetPos.y, x, y);
+            return true;
+        }
+        
+        DEBUG_LOG("转盘第 %d 次尝试失败，继续搜索...", attempt + 1);
+    }
+    
+    // 搜索失败，返回原始位置
+    DEBUG_LOG("转盘搜索失败，返回原始位置");
     POS returnPos = {originalPos.x, originalPos.y, originalPos.rawYaw};
     moveTo(returnPos);
     waitArrived();
@@ -215,6 +310,20 @@ void errorHandle(int errorCode){
             break;
         case ERROR_MATERIAL_RECOGNITION_FAILED:
             DEBUG_LOG("物料识别失败，暂时不处理");
+            break;
+        case ERROR_TURNTABLE_RECOGNITION_FAILED:
+            {
+                DEBUG_LOG("转盘识别失败，开始搜索模式");
+                
+                // 执行转盘搜索
+                bool success = searchTurntable();
+                
+                if (success) {
+                    DEBUG_LOG("转盘搜索处理完成");
+                } else {
+                    DEBUG_LOG("转盘搜索失败，已尝试所有位置");
+                }
+            }
             break;
         default:
             DEBUG_LOG("未知错误码: %d", errorCode);

@@ -19,7 +19,7 @@
  * 比赛规则配置
  ******************************************************************************/
 #define LF_CORNER_START 1   // 是否可以从启停区左上角出发
-#define GRAB_FREELY 1       // 是否可以自由抓取
+#define CONTINUOUS_GRAB 0       // 是否连续抓取
 #define TURNTABLE_HEIGHT 80 // 转盘高度mm
 #define MATERIAL_HEIGHT 70 // 物料高度mm
 #define CIRCLE_DISTANCE 154 // 色环距离mm
@@ -178,5 +178,6 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 #define ERROR_QRCODE_RECOGNITION_FAILED 1   // 二维码识别失败
 #define ERROR_MATERIAL_RECOGNITION_FAILED 2 // 物料识别失败
 #define ERROR_CIRCLE_RECOGNITION_FAILED 3   // 色环识别失败
+#define ERROR_TURNTABLE_RECOGNITION_FAILED 4 // 转盘识别失败
 
 #define VISION_GET_MATERIAL_TIMEOUT 5000 //物料识别超时时间

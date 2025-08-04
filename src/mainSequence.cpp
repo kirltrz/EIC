@@ -178,14 +178,21 @@ void caliTurntable(void){
     int x, y;
     const float scale = 0.5f;
     const int threshold = 15; // 阈值，当摄像头返回的数值小于此值时终止校准
-    const int timeout_ms = 5000; // 超时时间
+    int timeout_ms = 5000; // 超时时间（可扩展）
     int start_time = millis();
+    bool error_handled = false; // 标记是否已经进行过错误处理
+    bool ever_detected = false; // 标记是否曾经成功识别过转盘
+    int failed_attempts = 0;    // 连续失败次数计数器
+    const int max_failed_attempts = 25; // 触发错误处理的最大连续失败次数（约5秒）
     
     global_position_t current_pos;
     POS current_pos_xy;
     
     while (millis() - start_time < timeout_ms) {
         if (visionGetTurntable(&x, &y)) {
+            ever_detected = true; // 标记已经成功识别过转盘
+            failed_attempts = 0;  // 重置失败计数器
+            
             // 根据视觉反馈调整位置
             getGlobalPosition(&current_pos);
             current_pos_xy = {current_pos.x, current_pos.y, pos[1].yaw};
@@ -194,17 +201,38 @@ void caliTurntable(void){
             moveTo(current_pos_xy);
             // 检查是否达到阈值
             if (abs(x) < threshold && abs(y) < threshold) {
-                //DEBUG_LOG("转盘校准完成，误差在阈值内: x=%d, y=%d", x, y);
+                DEBUG_LOG("转盘校准完成，误差在阈值内: x=%d, y=%d", x, y);
                 break;
             }
         } else {
-            //DEBUG_LOG("获取转盘位置失败，继续尝试");
+            failed_attempts++;
+            DEBUG_LOG("获取转盘位置失败，继续尝试 (失败次数: %d/%d)", failed_attempts, max_failed_attempts);
             delay(200);
+            
+            // 只有在从未识别到转盘且连续失败次数达到阈值时才触发错误处理
+            if (!error_handled && !ever_detected && failed_attempts >= max_failed_attempts) {
+                DEBUG_LOG("转盘完全无法识别，触发错误处理搜索");
+                errorHandle(ERROR_TURNTABLE_RECOGNITION_FAILED);
+                error_handled = true;
+                failed_attempts = 0; // 重置计数器
+                // 扩展超时时间，给搜索后的校准更多时间
+                timeout_ms += 5000;
+                DEBUG_LOG("转盘校准超时时间扩展至 %d ms", timeout_ms);
+            }
         }
     }
     
     if (millis() - start_time >= timeout_ms) {
-        //DEBUG_LOG("转盘校准超时");
+        if (ever_detected) {
+            DEBUG_LOG("转盘校准超时，但曾经识别成功，判断为校准精度问题，不触发错误处理");
+        } else {
+            DEBUG_LOG("转盘校准超时且从未识别成功，error_handled=%s", error_handled ? "true" : "false");
+            // 只有在从未识别过且未进行过错误处理时才最后尝试一次
+            if (!error_handled) {
+                DEBUG_LOG("转盘从未识别成功，进行最后一次错误处理搜索");
+                errorHandle(ERROR_TURNTABLE_RECOGNITION_FAILED);
+            }
+        }
     }
     
     // 设置全局定位xy数据为pos[1]中的数据
@@ -246,9 +274,9 @@ void caliCircle(POS caliBase, CaliMode mode)
             break;
             
         case CALI_STACKING:   // 码垛定位（粗定位+机械臂高位）
-            scale = 0.3f;
+            scale = 0.2f;
             ki = 0.0f;        // 码垛定位不使用积分项
-            threshold = 20;
+            threshold = 15;
             use_integral = false;
             // 机械臂保持高位，不需要额外调用
             break;
@@ -257,9 +285,13 @@ void caliCircle(POS caliBase, CaliMode mode)
     const float integral_limit = 100.0f; // 积分项限制，防止积分饱和
     float integral_x = 0.0f;        // x方向积分累积
     float integral_y = 0.0f;        // y方向积分累积
-    const int timeout_ms = 5000; // 超时时间
+    int timeout_ms = 5000; // 超时时间（可扩展）
     const int camera_offset = 11.0f; // 摄像头安装偏移量
     int start_time = millis();
+    bool error_handled = false; // 标记是否已经进行过错误处理
+    bool ever_detected = false; // 标记是否曾经成功识别过色环
+    int failed_attempts = 0;    // 连续失败次数计数器
+    const int max_failed_attempts = 25; // 触发错误处理的最大连续失败次数（约5秒）
     
     // 退出条件时间控制：需要持续500ms满足条件才退出
     unsigned long exit_condition_start_time = 0;
@@ -283,6 +315,10 @@ void caliCircle(POS caliBase, CaliMode mode)
     {
         if (visionGetCircle(&x, &y))
         {
+            // 成功获取到色环位置，重置失败计数器
+            ever_detected = true; // 标记已经成功识别过色环
+            failed_attempts = 0;
+            
             //sendDebugValuesUDP(x, y, integral_x, integral_y);
             
             // 检查是否达到阈值（需要持续500ms满足条件才退出）
@@ -361,7 +397,21 @@ void caliCircle(POS caliBase, CaliMode mode)
             // 获取位置失败时重置状态
             is_stable = false;
             exit_condition_start_time = 0;
-            // DEBUG_LOG("获取位置失败，继续尝试");
+            failed_attempts++;
+            
+            DEBUG_LOG("获取色环位置失败，继续尝试 (失败次数: %d/%d)", failed_attempts, max_failed_attempts);
+            
+            // 只有在从未识别到色环且连续失败次数达到阈值时才触发错误处理
+            if (!error_handled && !ever_detected && failed_attempts >= max_failed_attempts) {
+                DEBUG_LOG("色环完全无法识别，触发错误处理搜索");
+                errorHandle(ERROR_CIRCLE_RECOGNITION_FAILED);
+                error_handled = true;
+                failed_attempts = 0; // 重置计数器
+                // 扩展超时时间，给搜索后的校准更多时间
+                timeout_ms += 5000;
+                DEBUG_LOG("色环校准超时时间扩展至 %d ms", timeout_ms);
+            }
+            
             delay(100);
         }
     }
@@ -375,7 +425,16 @@ void caliCircle(POS caliBase, CaliMode mode)
         }
         else
         {
-            UDP_LOG("校准超时，未满足退出条件");
+            if (ever_detected) {
+                UDP_LOG("校准超时，但曾经识别成功，判断为校准精度问题，不触发错误处理");
+            } else {
+                UDP_LOG("校准超时且从未识别成功，error_handled=%s", error_handled ? "true" : "false");
+                // 只有在从未识别过且未进行过错误处理时才最后尝试一次
+                if (!error_handled) {
+                    DEBUG_LOG("色环从未识别成功，进行最后一次错误处理搜索");
+                    errorHandle(ERROR_CIRCLE_RECOGNITION_FAILED);
+                }
+            }
         }
     }
     UDP_LOG("在%lums结束色环校准用时%lums，开始颜色识别", millis(), millis() - start_time);
