@@ -9,6 +9,7 @@
 #include "VOFAdebug.h"
 #include "sensor.h"
 #include "mainSequence.h"
+#include "LED.h"
 
 FSUS_Protocol protocol(&SERVO_SERIAL, SERIAL_BAUDRATE);
 FSUS_Servo servo0(0, &protocol); // 云台舵机
@@ -24,13 +25,6 @@ struct armPos
     int x;
     int y;
     int z;
-};
-struct armPosRaw
-{
-    float servo0Angle;
-    float servo1Angle;
-    float servo2Angle;
-    float servo3Angle;
 };
 
 const armPos fold = {35,0, 99};        // 折叠状态
@@ -442,8 +436,7 @@ void catchFromTurntable(int sequence/*抓取序号：0=第一次，1=中间，2=
 }
 void arm_turntableDetect(void){
     arm_setClaw(1);
-    armControl_raw(ttDetect, 600, 300, 300, false);
-    delay(500);
+    armControl_raw(ttDetect, 600, 300, 300);
 }
 // 将xy坐标转换为极坐标角度的函数
 // 参数：target_x, target_y - 目标点坐标
@@ -612,6 +605,7 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
         const int REQUIRED_ROTATING_COUNT = 2; // 需要连续2次转动才认为开始转动
         const float STABLE_THRESHOLD = 2.0; // 角度变化小于2度认为稳定
         
+        LED(1);
         while (1)
         {
             arm_setClaw(1);
@@ -762,6 +756,7 @@ void arm_catchFromTurntable(int taskcode[3]) // 将物料从转盘抓取到托�
             delay(100);
         }
 #endif
+        LED(0);
         GOGOGO();
 
         // 释放参数内存并删除任务

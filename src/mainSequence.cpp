@@ -6,6 +6,7 @@
 #include "config.h"
 #include "sensor.h"
 #include "VOFAdebug.h"
+#include "LED.h"
 
 #if !DEBUG_ENABLE
 #include "ui.h"
@@ -108,7 +109,9 @@ void mainSequenceTask(void *pvParameters)
         
         moveTo(pos[3]); // 1 前往粗加工区
         waitArrived();
+        LED(1);
         caliCircle(pos[3], CALI_ROUGH);
+        LED(0);
         arm_putToGround(taskcode[0]);
         arm_catchFromGround(taskcode[0], 1);
         P(TASK_FIRST_ROUGH);
@@ -119,7 +122,9 @@ void mainSequenceTask(void *pvParameters)
         
         moveTo({pos[5].x, pos[5].y-20, pos[5].yaw}); // 1 前往暂存区
         waitArrived();
+        LED(1);
         caliCircle(pos[5], CALI_ROUGH);
+        LED(0);
         arm_putToGround(taskcode[0]);
         P(TASK_FIRST_STORAGE);
         moveTo(pos[6]); // 1 离开暂存区
@@ -135,7 +140,9 @@ void mainSequenceTask(void *pvParameters)
         
         moveTo(pos[3]); // 2 前往粗加工区
         waitArrived();
+        LED(1);
         caliCircle(pos[3], CALI_ROUGH);
+        LED(0);
         arm_putToGround(taskcode[1]);
         arm_catchFromGround(taskcode[1], 2);
         P(TASK_SECOND_ROUGH);
@@ -146,7 +153,9 @@ void mainSequenceTask(void *pvParameters)
         
         moveTo({pos[5].x, pos[5].y-20, pos[5].yaw}); // 2 前往暂存区
         waitArrived();
+        LED(1);
         caliCircle(pos[5], CALI_STACKING); // 码垛时，机械臂在更高高度校准
+        LED(0);
         arm_putToMaterial(taskcode[1]);
         P(TASK_SECOND_STORAGE);
         moveTo(pos[5]); // 先归中防止压线
@@ -173,7 +182,7 @@ void mainSequenceTask(void *pvParameters)
 
 void caliTurntable(void){
     arm_turntableDetect();
-        
+    LED(1);
     // 根据摄像头返回的与转盘中心的差值逐步靠近转盘
     int x, y;
     const float scale = 0.5f;
@@ -238,6 +247,7 @@ void caliTurntable(void){
     // 设置全局定位xy数据为pos[1]中的数据
     setGlobalPosition(pos[1].x, pos[1].y-10.0f);
     moveTo(pos[1]);
+    LED(0);
 }
 
 /**
