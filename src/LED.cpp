@@ -1,5 +1,7 @@
 #include "LED.h"
 
+#define ENABLE_LED 0
+
 #define LED_PIN 1
 #define LED_HIGH 255
 #define LED_MIDDLE 20
@@ -10,6 +12,10 @@ void initLED(void)
 }
 void LED(int level)
 {
+    if (ENABLE_LED == 0)
+    {
+        return;
+    }
     switch (level)
     {
     case 0:

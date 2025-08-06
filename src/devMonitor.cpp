@@ -5,6 +5,11 @@
 #include "motion.h"
 #include "arm.h"
 #include "PAW3395.h"
+#include "sensor.h"
+#include "config.h"
+#include <Arduino.h>
+#include <ESP.h>
+#include <math.h>
 
 deviceStatus_t devStatus;
 SemaphoreHandle_t devStatusMutex = NULL;
@@ -15,6 +20,13 @@ SemaphoreHandle_t taskProgressMutex = NULL;
 // 添加设备检测任务句柄和标志
 TaskHandle_t deviceCheckTasks[5] = {NULL};
 volatile bool deviceCheckInProgress = false;
+
+// 位置数据监测相关变量
+static unsigned long lastPositionUpdateTime = 0;
+static global_position_t lastPosition = {0, 0, 0, 0};
+static const unsigned long POSITION_DEADLOCK_TIMEOUT = 5000; // 10秒超时
+static const float POSITION_CHANGE_THRESHOLD = 0.1f; // 位置变化阈值（毫米）
+static bool positionMonitorEnabled = false;
 
 bool checkPaw3395(void)
 {
@@ -57,6 +69,66 @@ bool checkServo(void)
 {
     /*检查舵机是否正常工作*/
     return servo0.ping() && servo1.ping() && servo2.ping() && servo3.ping() && servo4.ping();
+}
+
+bool checkPositionData(void)
+{
+    /*检查位置数据是否锁死*/
+    
+    // 如果位置监测未启用，则始终返回true
+    if (!positionMonitorEnabled) {
+        return true;
+    }
+    
+    // 如果传感器正在重置，暂停监测
+    if (isSensorResetInProgress()) {
+        lastPositionUpdateTime = millis(); // 重置时间戳
+        return true;
+    }
+    
+    global_position_t currentPosition;
+    getGlobalPosition(&currentPosition);
+    
+    unsigned long currentTime = millis();
+    
+    // 计算位置变化量
+    float deltaX = fabs(currentPosition.x - lastPosition.x);
+    float deltaY = fabs(currentPosition.y - lastPosition.y);
+    float deltaYaw = fabs(currentPosition.rawYaw - lastPosition.rawYaw);
+    
+    // 检查是否有显著的位置变化
+    bool positionChanged = (deltaX > POSITION_CHANGE_THRESHOLD) || 
+                          (deltaY > POSITION_CHANGE_THRESHOLD) || 
+                          (deltaYaw > 0.5f); // 角度变化阈值0.5度
+    
+    if (positionChanged) {
+        // 位置有变化，更新时间戳和位置记录
+        lastPositionUpdateTime = currentTime;
+        lastPosition = currentPosition;
+        return true;
+    }
+    
+    // 检查是否超时
+    if (currentTime - lastPositionUpdateTime > POSITION_DEADLOCK_TIMEOUT) {
+        DEBUG_LOG("位置数据锁死检测：超过%lums未更新，当前位置(%.3f, %.3f, %.3f)", 
+                  POSITION_DEADLOCK_TIMEOUT, 
+                  currentPosition.x, currentPosition.y, currentPosition.rawYaw);
+        
+        // 检查是否真的是全零状态（可能的锁死情况）
+        if (fabs(currentPosition.x) < 0.01f && 
+            fabs(currentPosition.y) < 0.01f && 
+            fabs(currentPosition.rawYaw) < 0.01f) {
+            DEBUG_LOG("检测到位置数据全零锁死，准备重启系统");
+            delay(100); // 确保日志输出
+            ESP.restart(); // 立即重启
+        }
+        
+        // 即使不是全零，超时也要重置监测时间，避免反复触发
+        lastPositionUpdateTime = currentTime;
+        return false;
+    }
+    
+    return true;
 }
 
 void getDeviceStatus(deviceStatus_t *status) 
@@ -189,13 +261,19 @@ void deviceCheckTask(void *pvParameters)
 bool checkDevice(void){
     if (devStatusMutex == NULL) return false;
     
+    // 检查位置数据状态
+    bool positionOk = checkPositionData();
+    if (!positionOk) {
+        DEBUG_LOG("位置数据检测失败");
+    }
+    
     // 如果正在进行设备检测，直接返回当前状态
     if (deviceCheckInProgress) {
         if (xSemaphoreTake(devStatusMutex, pdMS_TO_TICKS(10))) {
             bool allOk = devStatus.hwt101_status && devStatus.paw3395_status && 
                         devStatus.vision_status && devStatus.motor_status && devStatus.servo_status;
             xSemaphoreGive(devStatusMutex);
-            return allOk;
+            return allOk && positionOk;
         }
         return false;
     }
@@ -264,7 +342,7 @@ bool checkDevice(void){
             bool allOk = devStatus.hwt101_status && devStatus.paw3395_status && 
                         devStatus.vision_status && devStatus.motor_status && devStatus.servo_status;
             xSemaphoreGive(devStatusMutex);
-            return allOk;
+            return allOk && positionOk;
         }
     }
     return false;
@@ -281,6 +359,12 @@ void initDevMonitor(void){
     devStatus.vision_status = false;
     devStatus.motor_status = false;
     devStatus.servo_status = false;
+    
+    // 初始化位置监测
+    lastPositionUpdateTime = millis();
+    getGlobalPosition(&lastPosition);
+    positionMonitorEnabled = true;
+    DEBUG_LOG("位置数据监测已启用，超时阈值: %lums", POSITION_DEADLOCK_TIMEOUT);
     
     xTaskCreate(
         [](void *pvParameters){

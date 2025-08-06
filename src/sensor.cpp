@@ -133,6 +133,11 @@ void resetSensor(void)
 void calculateGlobalPosition(void *pvParameters)
 {
     /*计算全局位置*/
+    DEBUG_LOG("位置计算任务启动");
+    
+    // 等待传感器初始化完成
+    delay(200);
+    
     float prevYaw = HWT101.getZ();  // 上一次的yaw角度
 
     int16_t dx = 0;

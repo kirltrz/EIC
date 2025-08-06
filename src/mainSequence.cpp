@@ -14,7 +14,7 @@
 
 #define TASK_TIMEOUT 5000
 POS pos[] = {
-    {-153.0  , 576.0  , 0.0f  }, // 0扫二维码
+    {-153.0  , 585.0  , 0.0f  }, // 0扫二维码
     {  0.0   , 1420.0 , 0.0f  }, // 1转盘抓取
     {-194.0  , 1000.0 , 90.0f }, // 2离开转盘
     {-1930.0 , 990.0  , 90.0f }, // 3粗加工区
@@ -296,7 +296,7 @@ void caliCircle(POS caliBase, CaliMode mode)
     float integral_x = 0.0f;        // x方向积分累积
     float integral_y = 0.0f;        // y方向积分累积
     int timeout_ms = 5000; // 超时时间（可扩展）
-    const int camera_offset = 11.0f; // 摄像头安装偏移量
+    const int camera_offset = 4.0f; // 摄像头安装偏移量
     int start_time = millis();
     bool error_handled = false; // 标记是否已经进行过错误处理
     bool ever_detected = false; // 标记是否曾经成功识别过色环

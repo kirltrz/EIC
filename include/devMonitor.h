@@ -64,5 +64,9 @@ uint8_t getTaskProgressPercent(void);
 /// @return 所有设备是否都正常工作
 bool checkDevice(void);
 
+/// @brief 检查位置数据是否锁死
+/// @return 位置数据是否正常
+bool checkPositionData(void);
+
 /// @brief 初始化设备监控
 void initDevMonitor(void);

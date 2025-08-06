@@ -14,7 +14,7 @@ static bool wifiInitialized = false;
 
 void initVOFAdebug(){
     initWiFi("kirl", "TRZtrz20060906");
-    setUDPConfig("192.168.1.98", 1347, true);
+    setUDPConfig("192.168.127.173", 1347, true);
 }
 /**
  * 发送浮点数据到上位机

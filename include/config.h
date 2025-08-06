@@ -22,7 +22,7 @@
 #define CONTINUOUS_GRAB 0       // 是否连续抓取
 #define TURNTABLE_HEIGHT 80 // 转盘高度mm
 #define MATERIAL_HEIGHT 70 // 物料高度mm
-#define CIRCLE_DISTANCE 154 // 色环距离mm
+#define CIRCLE_DISTANCE 150 // 色环距离mm
 /******************************************************************************
  * 底盘参数配置
  ******************************************************************************/
@@ -85,7 +85,7 @@ extern float HOLD_MAX_ANGULAR_SPEED;  // 位置保持时最大角速度，单位
 #define THIRD_ARM_ANGLE_MAX 45.0f
 
 #define ARM_GRIPPER_OPEN_ANGLE 40.0f  // 机械臂夹爪张开角度
-#define ARM_GRIPPER_CLOSE_ANGLE -7.0f // 机械臂夹爪闭合角度
+#define ARM_GRIPPER_CLOSE_ANGLE -1.5f // 机械臂夹爪闭合角度
 
 /******************************************************************************
  * 硬件配置

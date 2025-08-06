@@ -57,7 +57,7 @@ void enableMotor(lv_event_t *e)
 		// 开关打开，使能电机
 		motor->enControl(MOTOR_BROADCAST, is_checked);
 		stopArm(2000);
-		// LED(1);
+		LED(1);
 		DEBUG_LOG("电机已使能");
 	}
 	else
@@ -65,7 +65,7 @@ void enableMotor(lv_event_t *e)
 		// 开关关闭，失能电机
 		motor->enControl(MOTOR_BROADCAST, is_checked);
 		stopArm(0);
-		// LED(0);
+		LED(0);
 		DEBUG_LOG("电机已失能");
 	}
 }
@@ -285,6 +285,10 @@ void testFunc(lv_event_t * e)
 		return;
 	}
 	arm_groundDetect(0);
+	setGlobalPosition(pos[5].x, pos[5].y);
+	caliCircle(pos[5],CALI_ROUGH);
+	int taskcode[3]={1,2,3};
+	arm_putToGround(taskcode);
 	/*
 	int taskcode[3]={1,2,3};
 	setGlobalPosition(pos[1].x, pos[1].y);

@@ -892,7 +892,7 @@ void arm_putToGround(int taskcode[3])//将第一次的物料放置到地面的�
             delay(taskcode[i] == 1 ? 450+100 : 250+100);
             waitCompeletelyArrived();
             delay(200);
-            armControl_xyz(0, 212, 0, 800+100, 400+50, 400+50);//放置物料到地面
+            armControl_xyz(0, 214, 0, 800+100, 400+50, 400+50);//放置物料到地面
             delay(200);
             arm_setClaw(1);
             waitArm();
@@ -1037,7 +1037,7 @@ void arm_catchFromGround(int taskcode[3], int cycleNum)//将物料从地面抓�
             arm_setClaw(1);
             waitNear();
             delay(100);
-            armControl_xyz(0, 212, 0, 800, 400, 400); // 从地面抓取物料
+            armControl_xyz(0, 214, 0, 800, 400, 400); // 从地面抓取物料
             delay(100);
             arm_setClaw(0);
             waitArm();
